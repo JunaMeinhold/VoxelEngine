@@ -13,14 +13,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Remove="Mathematics\BlockVertex.cs" />
-    <Compile Remove="Mathematics\GreedyMesh.cs" />
-    <Compile Remove="Mathematics\MeshFace.cs" />
-    <Compile Remove="Mathematics\VertexPlane.cs" />
-    <Compile Remove="Mathematics\VoxelFace.cs" />
-  </ItemGroup>
-
-  <ItemGroup>
     <None Remove="Shaders\BuildIn\Deferred\VertexShader.hlsl" />
   </ItemGroup>
 
@@ -59,13 +51,6 @@
     <None Update="assets\shaders\deferred\PixelShader.hlsl">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Include="Mathematics\BlockVertex.cs" />
-    <None Include="Mathematics\GreedyMesh.cs" />
-    <None Include="Mathematics\MeshFace.cs" />
-    <None Include="Mathematics\VertexPlane.cs">
-      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
-    </None>
-    <None Include="Mathematics\VoxelFace.cs" />
     <ProjectReference Include="..\DirectXTexNet\DirectXTexNet.csproj" />
     <None Update="assets\shaders\color\PixelShader.hlsl">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>

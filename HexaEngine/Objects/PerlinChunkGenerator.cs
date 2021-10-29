@@ -1,6 +1,7 @@
 ﻿namespace HexaEngine.Objects
 {
     using HexaEngine.Extensions;
+    using HexaEngine.Mathematics;
     using System.Numerics;
     using VoxelGen;
     using static HexaEngine.Objects.Registry;

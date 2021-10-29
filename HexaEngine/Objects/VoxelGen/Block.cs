@@ -1,6 +1,6 @@
 ﻿using System.Runtime.CompilerServices;
 
-namespace VoxelGen
+namespace HexaEngine.Objects.VoxelGen
 {
     public struct Block
     {

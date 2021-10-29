@@ -1,7 +1,7 @@
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 
-namespace VoxelGen
+namespace HexaEngine.Objects.VoxelGen
 {
     [StructLayout(LayoutKind.Sequential, Pack = 1)]
     public static class BlockVertex

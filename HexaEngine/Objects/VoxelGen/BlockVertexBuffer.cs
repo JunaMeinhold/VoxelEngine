@@ -3,7 +3,7 @@ using System;
 using System.Runtime.InteropServices;
 using Vortice.Direct3D11;
 
-namespace VoxelGen
+namespace HexaEngine.Objects.VoxelGen
 {
     public class BlockVertexBuffer
     {

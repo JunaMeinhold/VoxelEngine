@@ -1,5 +1,6 @@
 ﻿namespace HexaEngine.Shaders.BuildIn.Voxel
 {
+    using HexaEngine.Objects.VoxelGen;
     using HexaEngine.Resources.Buffers;
     using HexaEngine.Scenes.Interfaces;
     using HexaEngine.Windows;
@@ -8,7 +9,6 @@
     using System.Runtime.InteropServices;
     using Vortice.Direct3D11;
     using Vortice.DXGI;
-    using VoxelGen;
 
     public class VoxelShader : Shader
     {

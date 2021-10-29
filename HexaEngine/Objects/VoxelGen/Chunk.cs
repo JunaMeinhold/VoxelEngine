@@ -11,7 +11,7 @@ using System.Text;
 using Vortice.Direct3D11;
 using Vortice.Mathematics;
 
-namespace VoxelGen
+namespace HexaEngine.Objects.VoxelGen
 {
     public class Chunk
     {
@@ -199,7 +199,7 @@ namespace VoxelGen
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void CreateRun(ref Block b, int i, int j, int k, int i1, int k1, int y, int access, bool minX, bool maxX, bool minY, bool maxY, bool minZ, bool maxZ, int iCS, int kCS2)
         {
-            int textureHealth16 = BlockVertex.IndexToTextureShifted[b.index] | ((b.health / 16) << 23);
+            int textureHealth16 = BlockVertex.IndexToTextureShifted[b.index] | b.health / 16 << 23;
             int accessIncremented = access + 1;
             int chunkAccess;
             int j1 = j + 1;

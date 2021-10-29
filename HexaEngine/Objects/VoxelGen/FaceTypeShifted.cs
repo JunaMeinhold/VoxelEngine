@@ -1,4 +1,4 @@
-﻿namespace VoxelGen
+﻿namespace HexaEngine.Objects.VoxelGen
 {
     public enum FaceTypeShifted : int
     {

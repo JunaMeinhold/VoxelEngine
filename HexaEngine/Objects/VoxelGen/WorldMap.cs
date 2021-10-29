@@ -4,7 +4,7 @@ using System;
 using System.Numerics;
 using Vortice.Mathematics;
 
-namespace VoxelGen
+namespace HexaEngine.Objects.VoxelGen
 {
     public class WorldMap
     {

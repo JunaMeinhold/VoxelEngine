@@ -1,6 +1,6 @@
 using System;
 
-namespace VoxelGen
+namespace HexaEngine.Objects.VoxelGen
 {
     public class ChunkHelper
     {

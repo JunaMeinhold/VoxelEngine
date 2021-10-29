@@ -1,4 +1,4 @@
-﻿namespace VoxelGen
+﻿namespace HexaEngine.Objects.VoxelGen
 {
     using System;
     using System.Collections.Generic;
