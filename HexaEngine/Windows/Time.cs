@@ -22,7 +22,7 @@
 
         public static int FixedUpdateRate { get; set; } = 3;
 
-        public static float FixedUpdatePerSecond => 1000F / FixedUpdateRate;
+        public static float FixedUpdatePerSecond => FixedUpdateRate / 1000F;
 
         // Public Methods
         public static bool Initialize()

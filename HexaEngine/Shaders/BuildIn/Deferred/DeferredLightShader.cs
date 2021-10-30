@@ -28,11 +28,19 @@ namespace HexaEngine.Shaders.BuildIn.Deferred
         public FogDescription FogDescription { get; set; }
 
         [StructLayout(LayoutKind.Sequential)]
-        public struct BufferLightType
+        public struct DirectionalLightDescription
         {
             public Vector3 LightDirection;
+            public Vector3 Position;
+            public Vector4 Ambient;
+            public Vector2 reserved;
+        }
+
+        [StructLayout(LayoutKind.Sequential)]
+        public struct BufferLightType
+        {
+            public DirectionalLightDescription LightDescription;
             public FogDescription FogDescription;
-            public float padd;
         }
 
         [StructLayout(LayoutKind.Sequential)]
@@ -88,7 +96,12 @@ namespace HexaEngine.Shaders.BuildIn.Deferred
 
             Write(LightBuffer, new BufferLightType()
             {
-                LightDirection = Directional.Direction
+                LightDescription = new DirectionalLightDescription()
+                {
+                    Ambient = Directional.AmbientColor,
+                    LightDirection = Directional.Direction,
+                    Position = Directional.Position
+                }
             });
 
             Write(FogBuffer, FogDescription);
@@ -124,7 +137,12 @@ namespace HexaEngine.Shaders.BuildIn.Deferred
 
             Write(LightBuffer, new BufferLightType()
             {
-                LightDirection = Directional.Direction,
+                LightDescription = new()
+                {
+                    Ambient = Directional.AmbientColor,
+                    LightDirection = Directional.Direction,
+                    Position = Directional.Position,
+                },
                 FogDescription = FogDescription,
             });
 

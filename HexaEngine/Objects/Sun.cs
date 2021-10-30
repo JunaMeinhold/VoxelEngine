@@ -1,20 +1,32 @@
 ﻿namespace HexaEngine.Objects
 {
+    using HexaEngine.Scenes.Interfaces;
     using HexaEngine.Shaders;
     using System;
     using System.Numerics;
 
     public class Sun : DirectionalLight
     {
+        public Sun()
+        {
+            AmbientColor = new Vector4(0.15f, 0.15f, 0.15f, 0.15f);
+            Width = 1024;
+        }
+
         private const float DegToRadFactor = 0.0174532925f;
+
         public float Distance { get; } = 1000f;
 
-        public float Angle { get; }
+        public float Angle { get; private set; }
 
-        public void UpdatePosition(Vector3 center)
+        public void Update(IView view, int time)
         {
-            float x = (float)(Math.Cos(Angle * DegToRadFactor) * Distance);
-            float y = (float)(Math.Sin(Angle * DegToRadFactor) * Distance);
+            Angle = (time / 24000f) * 360;
+            Direction = new Vector3(MathF.Cos(Angle * DegToRadFactor), MathF.Sin(Angle * DegToRadFactor), 0);
+            float x = (float)(MathF.Cos(Angle * DegToRadFactor) * Distance);
+            float y = (float)(MathF.Sin(Angle * DegToRadFactor) * Distance);
+            Position = new Vector3(x + view.Position.X, y + view.Position.Y, view.Position.Z);
+            GenerateViewMatrix();
         }
     }
 }

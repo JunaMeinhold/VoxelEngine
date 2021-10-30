@@ -19,6 +19,7 @@
 
         public World(string path)
         {
+            DeferredRenderer.Light = Sun;
             var dir = Directory.CreateDirectory(path);
             if (!dir.Exists)
             {
@@ -41,6 +42,10 @@
         public int RenderDistance { get; set; } = 16;
 
         public int Seed { get; private set; }
+
+        public int Time { get; private set; }
+
+        public int TimeScale { get; set; } = 1;
 
         public Sun Sun { get; } = new();
 
@@ -164,6 +169,12 @@
 
         public void UpdateFixed()
         {
+            Time += TimeScale;
+            if (Time >= 24000)
+            {
+                Time = 0;
+            }
+            Sun.Update(Player.Camera, Time);
         }
     }
 }

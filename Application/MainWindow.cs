@@ -47,6 +47,7 @@ namespace App
                 MinLOD = 0,
                 MaxLOD = float.MaxValue
             };
+            Scene.Renderers.Add(new DeferredRenderer());
             var world = new World("world/");
             var player = new Player(world);
             Scene.Camera = player.Camera;
@@ -55,7 +56,6 @@ namespace App
             world.RenderDistance = 16;
             world.Generator = new PerlinChunkGenerator(1332);
             Scene.Objects.Add(world);
-            Scene.Renderers.Add(new DeferredRenderer());
             Scene.UIRenderers.Add(new UIRenderer() { Crosshair = new Crosshair("crosshair.png") });
             Scene.ForwardRenderers.Add(new SkyboxRenderer() { Skybox = new Skybox("skybox.obj", "sky_box.dds") });
             DeviceManager.SwitchAlpha(true);

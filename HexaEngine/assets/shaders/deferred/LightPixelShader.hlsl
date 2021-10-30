@@ -10,6 +10,13 @@ struct Fog {
 	float fogEnd;
 };
 
+struct DirectionalLight
+{
+	float3 LightDirection;
+	float3 Position;
+	float4 Ambient;
+};
+
 /////////////
 // GLOBALS //
 /////////////
@@ -31,7 +38,7 @@ SamplerState SampleTypePoint : register(s0);
 
 cbuffer LightBuffer : register(b0)
 {
-	float3 lightDirection;
+	DirectionalLight light;
 	Fog fog;
 	float padding;
 };
@@ -69,24 +76,30 @@ float4 ComputeLighting(PixelInputType input, GBufferAttributes attrs)
 	float4 fogColor = float4(0.5f, 0.5f, 0.5f, 1.0f);
 	float3 lightDir;
 	float lightIntensity;
-	float4 outputColor;
+	float4 color;
 
 	// Invert the light direction for calculations.
-	lightDir = -lightDirection;
+	lightDir = -light.LightDirection;
 
+	color = light.Ambient;
 	// Calculate the amount of light on this pixel.
 	lightIntensity = saturate(dot(attrs.normal.xyz, lightDir));
 
-	// Determine the final amount of diffuse color based on the color of the pixel combined with the light intensity.
-	outputColor = saturate(attrs.color * lightIntensity);
+	if (lightIntensity > 0.0f)
+	{
+		// Determine the final diffuse color based on the diffuse color and the amount of light intensity.
+		color += (attrs.color * lightIntensity);
+	}
 
-	return attrs.color;
+	color = saturate(color);
+	color.w = attrs.color.w;
+	return color;
 }
 
 float4 ColorCorrect(float4 colorInput)
 {
 	float4 outputColor;
-	float gamma = 1.8;
+	float gamma = 1.1;
 
 	outputColor.rgb = pow(abs(colorInput.rgb), float3(1.0 / gamma, 1.0 / gamma, 1.0 / gamma));
 	outputColor.w = colorInput.w;
@@ -114,7 +127,7 @@ float4 LightPixelShader(PixelInputType pixel, uint coverage: SV_Coverage, uint s
 	{
 	ExtractGBufferAttributes(pixel, colorTexture, positionTexture, normalTexture, depthTexture, sampleIndex, attrs);
 	float4 color = ComputeLighting(pixel, attrs);
-	color = ColorCorrect(color);
+	//color = ColorCorrect(color);
 	return color;
 	}
 	discard;

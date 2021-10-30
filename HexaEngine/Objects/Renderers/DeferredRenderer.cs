@@ -9,7 +9,20 @@
 
     public class DeferredRenderer : IRenderer
     {
+        private static DirectionalLight light;
+
         public static DeferredLightShader DeferredShader { get; private set; }
+
+        public static DirectionalLight Light
+        {
+            get => light;
+            set
+            {
+                if (SIsInitialized)
+                    DeferredShader.Directional = value;
+                light = value;
+            }
+        }
 
         public bool IsInitialized { get => SIsInitialized; }
 
@@ -38,7 +51,7 @@
         public static void SInitialize(DeviceManager manager)
         {
             DeferredShader = ResourceManager.LoadShader<DeferredLightShader>();
-            DeferredShader.Directional = new DirectionalLight()
+            DeferredShader.Directional = Light is not null ? Light : new DirectionalLight()
             {
                 Position = new Vector3(0, 2, 0),
                 Direction = new Vector3(0, -0.5f, 0.5f),
