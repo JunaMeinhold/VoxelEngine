@@ -49,7 +49,7 @@
         {
             IntPtr deviceHandle = HidDeviceHandle.GetRawValue(device);
 
-            Kernel32.CloseHandle(deviceHandle);
+            _ = Kernel32.CloseHandle(deviceHandle);
         }
 
         public static string GetManufacturerString(HidDeviceHandle device)
@@ -70,7 +70,7 @@
         {
             IntPtr deviceHandle = HidDeviceHandle.GetRawValue(device);
 
-            HidD_GetPreparsedData(deviceHandle, out IntPtr preparsedData);
+            _ = HidD_GetPreparsedData(deviceHandle, out IntPtr preparsedData);
 
             return (HidPreparsedData)preparsedData;
         }
@@ -79,7 +79,7 @@
         {
             IntPtr preparsedDataPointer = HidPreparsedData.GetRawValue(preparsedData);
 
-            HidD_FreePreparsedData(preparsedDataPointer);
+            _ = HidD_FreePreparsedData(preparsedDataPointer);
         }
 
         private static string GetString(IntPtr handle, Func<IntPtr, byte[], uint, bool> proc)

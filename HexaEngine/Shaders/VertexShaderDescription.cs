@@ -1,5 +1,4 @@
-﻿using HexaEngine.Extensions;
-using HexaEngine.Resources;
+﻿using HexaEngine.Resources;
 
 namespace HexaEngine.Shaders
 {

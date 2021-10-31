@@ -15,7 +15,7 @@ namespace HexaEngine.Shaders.BuildIn.Deferred
         public DeferredShader()
         {
             GBuffers = new GBuffers();
-            GBuffers.Initialize(Manager.ID3D11Device, Manager.Width, Manager.Height);
+            _ = GBuffers.Initialize(Manager.ID3D11Device, Manager.Width, Manager.Height);
 
             VertexShaderDescription = new("deferred/VertexShader.hlsl", "main", VertexShaderVersion.VS_5_0);
             PixelShaderDescription = new("deferred/PixelShader.hlsl", "GPixelShader", PixelShaderVersion.PS_5_0);

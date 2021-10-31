@@ -5,6 +5,8 @@ using System.Runtime.InteropServices;
 
 namespace HexaEngine.Windows.Native
 {
+#pragma warning disable CA1069 // Enumerationswerte dürfen nicht dupliziert werden
+
     #region Enums
 
     public enum WindowLongParam
@@ -688,13 +690,13 @@ namespace HexaEngine.Windows.Native
         [DllImport(LibraryName)]
         public static extern int TrackMouseEvent(ref TRACKMOUSEEVENT lpEventTrack);
 
-        [DllImport(LibraryName)]
+        [DllImport(LibraryName, CharSet = CharSet.Unicode)]
         public static extern bool SetWindowTextA(IntPtr hWnd, string text);
 
         [DllImport(LibraryName)]
         public static extern short GetKeyState(int nVirtKey);
 
-        [DllImport(LibraryName)]
+        [DllImport(LibraryName, CharSet = CharSet.Unicode)]
         public static extern int MessageBox(IntPtr hWnd, string lpText, string lpCaption, uint uType);
 
         [DllImport(LibraryName)]
@@ -707,17 +709,18 @@ namespace HexaEngine.Windows.Native
         {
             if (hwnd == IntPtr.Zero)
             {
-                ClipCursor(null);
+                _ = ClipCursor(null);
             }
             else
             {
-                Rect rect = default;
-                GetClientRect(hwnd, out rect);
+                _ = GetClientRect(hwnd, out Rect rect);
                 var loc = rect.Location;
-                ClientToScreen(hwnd, ref loc);
+                _ = ClientToScreen(hwnd, ref loc);
                 rect.Location = loc;
-                ClipCursor(rect);
+                _ = ClipCursor(rect);
             }
         }
     }
 }
+
+#pragma warning restore CA1069 // Enumerationswerte dürfen nicht dupliziert werden

@@ -70,7 +70,7 @@ namespace HexaEngine.Models.ObjLoader.Loader.Loaders
         private Action<string> GetKeywordAction(string keyword)
         {
             Action<string> action;
-            _parseActionDictionary.TryGetValue(keyword.ToLowerInvariant(), out action);
+            _ = _parseActionDictionary.TryGetValue(keyword.ToLowerInvariant(), out action);
 
             return action;
         }

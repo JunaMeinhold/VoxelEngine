@@ -12,13 +12,13 @@
         public VoxelHelper(Vector3 position, Quaternion rotation, Vector3 scale)
         {
             TransformationMatrix = Matrix4x4.CreateTranslation(position) * Matrix4x4.CreateFromQuaternion(rotation) * Matrix4x4.CreateScale(scale);
-            Matrix4x4.Invert(TransformationMatrix, out inverseTransformationMatrix);
+            _ = Matrix4x4.Invert(TransformationMatrix, out inverseTransformationMatrix);
         }
 
         public VoxelHelper(Matrix4x4 transformationMatrix)
         {
             TransformationMatrix = transformationMatrix;
-            Matrix4x4.Invert(TransformationMatrix, out inverseTransformationMatrix);
+            _ = Matrix4x4.Invert(TransformationMatrix, out inverseTransformationMatrix);
         }
 
         public Matrix4x4 TransformationMatrix { get; private set; }

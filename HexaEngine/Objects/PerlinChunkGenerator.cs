@@ -1,9 +1,8 @@
 ﻿namespace HexaEngine.Objects
 {
-    using HexaEngine.Extensions;
     using HexaEngine.Mathematics;
+    using HexaEngine.Objects.VoxelGen;
     using System.Numerics;
-    using VoxelGen;
     using static HexaEngine.Objects.Registry;
 
     public class PerlinChunkGenerator : IChunkGenerator

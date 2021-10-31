@@ -65,7 +65,7 @@
             while (unloadQueue.TryDequeue(out ChunkRegion region))
             {
                 foreach (Chunk chunk in region.Chunks)
-                    LoadedChunks.Remove(chunk);
+                    _ = LoadedChunks.Remove(chunk);
             }
         }
 
@@ -98,7 +98,7 @@
                 return;
 
             region.DeepUnload();
-            loadedInternal.Remove(region);
+            _ = loadedInternal.Remove(region);
         }
 
         private void LoadVoid()

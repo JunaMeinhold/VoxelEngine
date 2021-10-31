@@ -93,7 +93,7 @@
             IntPtr preparsedDataPtr = HidPreparsedData.GetRawValue(preparsedData);
             uint usageCount = 0;
 
-            HidP_GetUsages(reportType, usagePage, linkCollection, null, ref usageCount, preparsedDataPtr, report, (uint)reportLength);
+            _ = HidP_GetUsages(reportType, usagePage, linkCollection, null, ref usageCount, preparsedDataPtr, report, (uint)reportLength);
 
             usageList = new ushort[usageCount];
 

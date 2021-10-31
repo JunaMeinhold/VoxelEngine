@@ -1,4 +1,5 @@
 ﻿using HexaEngine.Audio;
+using HexaEngine.IO;
 using System;
 using System.IO;
 using System.Numerics;
@@ -9,31 +10,15 @@ namespace HexaEngine.Resources
 {
     public class Sound : Resource
     {
-        // Variables
-        private string chunkId;
-
-        private int chunkSize;
-        private string format;
-        private string subChunkId;
-        private int subChunkSize;
-        private WaveFormatEncoding audioFormat;
-        private short numChannels;
-        private int sampleRate;
-        private int bytesPerSecond;
-        private short blockAlign;
-        private short bitsPerSample;
-        private string dataChunkId;
-        private int dataSize;
-
         public IXAudio2SourceVoice SourceVoice { get; private set; }
 
         public AudioBuffer Buffer { get; private set; }
 
         public AudioManager Manager { get; private set; }
 
-        public Emitter Emitter { get; private set; }
+        public Emitter Emitter { get; set; }
 
-        public CalculateFlags CalculateFlags { get; set; }
+        public bool Playing { get; private set; }
 
         // Constructor
         public Sound()
@@ -49,23 +34,24 @@ namespace HexaEngine.Resources
         internal void LoadAudioFile(AudioManager manager, string audioFile)
         {
             Manager = manager;
+
             // Open the wave file in binary.
-            BinaryReader reader = new(File.OpenRead(audioFile));
+            BinaryReader reader = new(FileSystem.Open(audioFile));
 
             // Read in the wave file header.
-            chunkId = new string(reader.ReadChars(4));
-            chunkSize = reader.ReadInt32();
-            format = new string(reader.ReadChars(4));
-            subChunkId = new string(reader.ReadChars(4));
-            subChunkSize = reader.ReadInt32();
-            audioFormat = (WaveFormatEncoding)reader.ReadInt16();
-            numChannels = reader.ReadInt16();
-            sampleRate = reader.ReadInt32();
-            bytesPerSecond = reader.ReadInt32();
-            blockAlign = reader.ReadInt16();
-            bitsPerSample = reader.ReadInt16();
-            dataChunkId = new string(reader.ReadChars(4));
-            dataSize = reader.ReadInt32();
+            var chunkId = new string(reader.ReadChars(4));
+            var chunkSize = reader.ReadInt32();
+            var format = new string(reader.ReadChars(4));
+            var subChunkId = new string(reader.ReadChars(4));
+            var subChunkSize = reader.ReadInt32();
+            var audioFormat = (WaveFormatEncoding)reader.ReadInt16();
+            var numChannels = reader.ReadInt16();
+            var sampleRate = reader.ReadInt32();
+            var bytesPerSecond = reader.ReadInt32();
+            var blockAlign = reader.ReadInt16();
+            var bitsPerSample = reader.ReadInt16();
+            var dataChunkId = new string(reader.ReadChars(4));
+            var dataSize = reader.ReadInt32();
 
             // Check that the chunk ID is the RIFF format
             // and the file format is the WAVE format
@@ -77,8 +63,16 @@ namespace HexaEngine.Resources
             // and there is the data chunk header.
             // Otherwise return false.
             // modified in Tutorial 31 for 3D Sound loading stereo files in a mono Secondary buffer.
-            if (chunkId != "RIFF" || format != "WAVE" || subChunkId.Trim() != "fmt" || audioFormat != WaveFormatEncoding.Pcm || numChannels > 2 || sampleRate != 44100 || bitsPerSample != 16 || dataChunkId != "data")
+            if (chunkId != "RIFF" || format != "WAVE" || subChunkId.Trim() != "fmt" || audioFormat != WaveFormatEncoding.Pcm)
                 return;
+
+            // prevent other chunkids to be loaded.
+            while (dataChunkId != "data")
+            {
+                reader.BaseStream.Position += dataSize;
+                dataChunkId = new string(reader.ReadChars(4));
+                dataSize = reader.ReadInt32();
+            }
 
             // Read in the wave file data into the temporary buffer.
             byte[] waveData = reader.ReadBytes(dataSize);
@@ -86,50 +80,38 @@ namespace HexaEngine.Resources
             // Close the reader
             reader.Close();
 
-            var waveFormat = new WaveFormat(44100, 16, 2);
+            var waveFormat = new WaveFormat(sampleRate, bitsPerSample, numChannels);
 
-            SourceVoice = Manager.IXAudio2.CreateSourceVoice(waveFormat);
+            SourceVoice = Manager.IXAudio2.CreateSourceVoice(waveFormat, flags: VoiceFlags.UseFilter);
             Buffer = new(waveData, BufferFlags.EndOfStream);
+            SourceVoice.SubmitSourceBuffer(Buffer);
+            SourceVoice.StreamEnd += SourceVoice_StreamEnd;
         }
 
-        internal void Tick()
+        private void SourceVoice_StreamEnd()
         {
-            var settings = Manager.X3DAudio.Calculate(Manager.Listener, Emitter, CalculateFlags, numChannels, Manager.Channels);
-            SourceVoice.SetOutputMatrix(settings.SourceChannelCount, settings.DestinationChannelCount, settings.MatrixCoefficients);
-            SourceVoice.SetFrequencyRatio(settings.DopplerFactor, 0);
-            FilterParameters FilterParameters = new() { Type = FilterType.LowPassFilter, Frequency = 2.0f * MathF.Sin(MathF.PI / 6.0f * settings.LpfDirectCoefficient), OneOverQ = 1.0f };
-            SourceVoice.SetOutputFilterParameters(SourceVoice, FilterParameters, 0);
+            Playing = false;
         }
 
-        public bool Play(int volume)
+        public void Tick()
         {
-            try
-            {
-                SourceVoice.SubmitSourceBuffer(Buffer);
-                SourceVoice.SetVolume(volume);
-                SourceVoice.Start(0);
-            }
-            catch
-            {
-                return false;
-            }
-
-            return true;
+            Manager.Update(SourceVoice, Emitter);
         }
 
-        public bool Play(Emitter emitter, CalculateFlags flags = CalculateFlags.None)
+        public void Play(int volume)
         {
-            try
-            {
-                SourceVoice.SubmitSourceBuffer(Buffer);
-                Manager.Play(SourceVoice, emitter, flags);
-            }
-            catch
-            {
-                return false;
-            }
+            Playing = true;
+            SourceVoice.SubmitSourceBuffer(Buffer);
+            SourceVoice.SetVolume(volume);
+            SourceVoice.Start(0);
+        }
 
-            return true;
+        public void Play()
+        {
+            Playing = true;
+            SourceVoice.SubmitSourceBuffer(Buffer);
+            Tick();
+            SourceVoice.Start(0);
         }
     }
 }

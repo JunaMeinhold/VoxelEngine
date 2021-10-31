@@ -35,17 +35,17 @@ namespace HexaEngine.Windows
             set
             {
                 title = value;
-                User32.SetWindowTextA(Handle, value);
+                _ = User32.SetWindowTextA(Handle, value);
             }
         }
 
-        public int X { get => x; protected set { x = value; User32.MoveWindow(Handle, x, y, width, height, true); } }
+        public int X { get => x; protected set { x = value; _ = User32.MoveWindow(Handle, x, y, width, height, true); } }
 
-        public int Y { get => y; protected set { y = value; User32.MoveWindow(Handle, x, y, width, height, true); } }
+        public int Y { get => y; protected set { y = value; _ = User32.MoveWindow(Handle, x, y, width, height, true); } }
 
-        public int Width { get => width; protected set { width = value; User32.MoveWindow(Handle, x, y, width, height, true); } }
+        public int Width { get => width; protected set { width = value; _ = User32.MoveWindow(Handle, x, y, width, height, true); } }
 
-        public int Height { get => height; protected set { height = value; User32.MoveWindow(Handle, x, y, width, height, true); } }
+        public int Height { get => height; protected set { height = value; _ = User32.MoveWindow(Handle, x, y, width, height, true); } }
 
         public bool BorderlessFullscreen { get => borderlessFullscreen; set => borderlessFullscreen = value; }
 
@@ -117,7 +117,7 @@ namespace HexaEngine.Windows
                 Rect rect = new Rect(0, 0, Width, Height);
 
                 // Adjust according to window styles
-                User32.AdjustWindowRectEx(
+                _ = User32.AdjustWindowRectEx(
                     ref rect,
                     Style,
                     false,
@@ -297,7 +297,7 @@ namespace HexaEngine.Windows
                 CreateWindow(IntPtr.Zero);
             }
 
-            User32.ShowWindow(Handle, ShowWindowCommand.Normal);
+            _ = User32.ShowWindow(Handle, ShowWindowCommand.Normal);
             IsShown = true;
         }
 
@@ -308,7 +308,7 @@ namespace HexaEngine.Windows
                 CreateWindow(parent);
             }
 
-            User32.ShowWindow(Handle, ShowWindowCommand.ShowDefault);
+            _ = User32.ShowWindow(Handle, ShowWindowCommand.ShowDefault);
             IsShown = true;
         }
 
@@ -321,8 +321,8 @@ namespace HexaEngine.Windows
                 Handle = IntPtr.Zero;
 
                 OnHandleDestroy();
-                User32.DestroyWindow(destroyHandle);
-                User32.UnregisterClass(Title + "Window", destroyHandle);
+                _ = User32.DestroyWindow(destroyHandle);
+                _ = User32.UnregisterClass(Title + "Window", destroyHandle);
                 IsShown = false;
             }
         }
@@ -341,7 +341,7 @@ namespace HexaEngine.Windows
             if (registeredDevices.Contains(device))
             {
                 RawInputDevice.UnregisterDevice(device);
-                registeredDevices.Remove(device);
+                _ = registeredDevices.Remove(device);
             }
         }
 
@@ -351,8 +351,8 @@ namespace HexaEngine.Windows
             {
                 var cx = User32.GetSystemMetrics(SystemMetrics.SM_CXSCREEN);
                 var cy = User32.GetSystemMetrics(SystemMetrics.SM_CYSCREEN);
-                User32.SetWindowLongPtr(Handle, WindowLongParam.GWL_STYLE, (long)((WindowStyles)User32.GetWindowLongPtr(Handle, WindowLongParam.GWL_STYLE) & (WindowStyles.WS_THICKFRAME | WindowStyles.WS_BORDER | WindowStyles.WS_DLGFRAME | WindowStyles.WS_CAPTION | WindowStyles.WS_MINIMIZEBOX | WindowStyles.WS_MAXIMIZEBOX | WindowStyles.WS_SYSMENU)));
-                User32.SetWindowPos(Handle, 0, 0, cx, cy, SetWindowPosFlags.NOMOVE | SetWindowPosFlags.NOSIZE);
+                _ = User32.SetWindowLongPtr(Handle, WindowLongParam.GWL_STYLE, (long)((WindowStyles)User32.GetWindowLongPtr(Handle, WindowLongParam.GWL_STYLE) & (WindowStyles.WS_THICKFRAME | WindowStyles.WS_BORDER | WindowStyles.WS_DLGFRAME | WindowStyles.WS_CAPTION | WindowStyles.WS_MINIMIZEBOX | WindowStyles.WS_MAXIMIZEBOX | WindowStyles.WS_SYSMENU)));
+                _ = User32.SetWindowPos(Handle, 0, 0, cx, cy, SetWindowPosFlags.NOMOVE | SetWindowPosFlags.NOSIZE);
             }
         }
 

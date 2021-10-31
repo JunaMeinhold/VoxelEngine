@@ -4,6 +4,7 @@
 
 #define Vibrance 0.9  //Intelligently saturates (or desaturates if you use negative values) the pixels depending on their original saturation.
 #define Vibrance_RGB_balance float3(1.00, 1.00, 1.00)  //[-10.00 to 10.00,-10.00 to 10.00,-10.00 to 10.00] A per channel multiplier to the Vibrance strength so you can give more boost to certain colors over others
+#define Shininess 20.0;
 
 struct Fog {
 	float fogStart;
@@ -71,28 +72,36 @@ void ExtractGBufferAttributes(in PixelInputType pixel, in Texture2DMS<float4> co
 	attrs.lightDepth = depthLightTexture.Sample(SampleTypePoint, pixel.tex);
 }
 
+float3 phongBRDF(float3 lightDir, float3 viewDir, float3 normal, float3 phongDiffuseCol, float3 phongSpecularCol, float phongShininess)
+{
+	float3 color = phongDiffuseCol;
+	float3 reflectDir = reflect(-lightDir, normal);
+	float specDot = max(dot(reflectDir, viewDir), 0.0);
+	color += pow(specDot, phongShininess) * phongSpecularCol;
+	return color;
+}
+
 float4 ComputeLighting(PixelInputType input, GBufferAttributes attrs)
 {
-	float4 fogColor = float4(0.5f, 0.5f, 0.5f, 1.0f);
-	float3 lightDir;
-	float lightIntensity;
+	float shininess = Shininess;
 	float4 color;
+	float3 specularColor = float3(0.5f, 0.5f, 0.5f);
 
-	// Invert the light direction for calculations.
-	lightDir = -light.LightDirection;
+	float3 lightDir = normalize(-light.LightDirection);
+	float3 viewDir = (float3)normalize(-attrs.position);
+	float3 n = (float3)normalize(attrs.normal);
 
-	color = light.Ambient;
-	// Calculate the amount of light on this pixel.
-	lightIntensity = saturate(dot(attrs.normal.xyz, lightDir));
+	float3 luminance = float3(0, 0, 0);
 
-	if (lightIntensity > 0.0f)
-	{
-		// Determine the final diffuse color based on the diffuse color and the amount of light intensity.
-		color += (attrs.color * lightIntensity);
+	float illuminance = dot(lightDir, n);
+	if (illuminance > 0.0) {
+		float3 brdf = phongBRDF(lightDir, viewDir, n, attrs.color.rgb, specularColor.rgb, shininess);
+		luminance += brdf * illuminance * float3(2, 2, 2);
 	}
 
-	color = saturate(color);
-	color.w = attrs.color.w;
+	color.rgb = luminance;
+	color.a = attrs.color.w;
+
 	return color;
 }
 
@@ -127,7 +136,7 @@ float4 LightPixelShader(PixelInputType pixel, uint coverage: SV_Coverage, uint s
 	{
 	ExtractGBufferAttributes(pixel, colorTexture, positionTexture, normalTexture, depthTexture, sampleIndex, attrs);
 	float4 color = ComputeLighting(pixel, attrs);
-	//color = ColorCorrect(color);
+	color = ColorCorrect(color);
 	return color;
 	}
 	discard;

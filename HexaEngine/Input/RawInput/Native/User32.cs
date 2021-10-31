@@ -51,11 +51,11 @@
 
             // Get device count by passing null for pRawInputDeviceList.
             uint deviceCount = 0;
-            GetRawInputDeviceList(null, ref deviceCount, size);
+            _ = GetRawInputDeviceList(null, ref deviceCount, size);
 
             // Now, fill the buffer using the device count.
             RawInputDeviceListItem[] devices = new RawInputDeviceListItem[deviceCount];
-            GetRawInputDeviceList(devices, ref deviceCount, size).EnsureSuccess();
+            _ = GetRawInputDeviceList(devices, ref deviceCount, size).EnsureSuccess();
 
             return devices;
         }
@@ -66,12 +66,12 @@
 
             // Get the length of the device name first.
             // For RIDI_DEVICENAME, the value in the pcbSize is the character count instead of the byte count.
-            GetRawInputDeviceInfo(deviceHandle, RawInputDeviceInfoBehavior.DeviceName, IntPtr.Zero, out uint size);
+            _ = GetRawInputDeviceInfo(deviceHandle, RawInputDeviceInfoBehavior.DeviceName, IntPtr.Zero, out uint size);
 
             if (size <= 2) return null;
 
             StringBuilder sb = new StringBuilder((int)size);
-            GetRawInputDeviceInfo(deviceHandle, RawInputDeviceInfoBehavior.DeviceName, sb, in size).EnsureSuccess();
+            _ = GetRawInputDeviceInfo(deviceHandle, RawInputDeviceInfoBehavior.DeviceName, sb, in size).EnsureSuccess();
 
             return sb.ToString();
         }
@@ -81,7 +81,7 @@
             IntPtr deviceHandle = RawInputDeviceHandle.GetRawValue(device);
             uint size = (uint)MarshalEx.SizeOf<RawInputDeviceInfo>();
 
-            GetRawInputDeviceInfo(deviceHandle, RawInputDeviceInfoBehavior.DeviceInfo, out RawInputDeviceInfo deviceInfo, in size).EnsureSuccess();
+            _ = GetRawInputDeviceInfo(deviceHandle, RawInputDeviceInfoBehavior.DeviceInfo, out RawInputDeviceInfo deviceInfo, in size).EnsureSuccess();
 
             return deviceInfo;
         }
@@ -90,19 +90,19 @@
         {
             IntPtr deviceHandle = RawInputDeviceHandle.GetRawValue(device);
 
-            GetRawInputDeviceInfo(deviceHandle, RawInputDeviceInfoBehavior.PreparsedData, IntPtr.Zero, out uint size);
+            _ = GetRawInputDeviceInfo(deviceHandle, RawInputDeviceInfoBehavior.PreparsedData, IntPtr.Zero, out uint size);
 
             if (size == 0) return null;
 
             byte[] rt = new byte[size];
-            GetRawInputDeviceInfo(deviceHandle, RawInputDeviceInfoBehavior.PreparsedData, rt, in size).EnsureSuccess();
+            _ = GetRawInputDeviceInfo(deviceHandle, RawInputDeviceInfoBehavior.PreparsedData, rt, in size).EnsureSuccess();
 
             return rt;
         }
 
         public static void RegisterRawInputDevices(params RawInputDeviceRegistration[] devices)
         {
-            RegisterRawInputDevices(devices, (uint)devices.Length, (uint)MarshalEx.SizeOf<RawInputDeviceRegistration>()).EnsureSuccess();
+            _ = RegisterRawInputDevices(devices, (uint)devices.Length, (uint)MarshalEx.SizeOf<RawInputDeviceRegistration>()).EnsureSuccess();
         }
 
         public static RawInputDeviceRegistration[] GetRegisteredRawInputDevices()
@@ -110,10 +110,10 @@
             uint size = (uint)MarshalEx.SizeOf<RawInputDeviceRegistration>();
 
             uint count = 0;
-            GetRegisteredRawInputDevices(null, ref count, size);
+            _ = GetRegisteredRawInputDevices(null, ref count, size);
 
             RawInputDeviceRegistration[] rt = new RawInputDeviceRegistration[count];
-            GetRegisteredRawInputDevices(rt, ref count, size).EnsureSuccess();
+            _ = GetRegisteredRawInputDevices(rt, ref count, size).EnsureSuccess();
 
             return rt;
         }
@@ -124,7 +124,7 @@
             uint headerSize = (uint)MarshalEx.SizeOf<RawInputHeader>();
             uint size = headerSize;
 
-            GetRawInputData(hRawInput, RawInputGetBehavior.Header, out RawInputHeader header, ref size, headerSize).EnsureSuccess();
+            _ = GetRawInputData(hRawInput, RawInputGetBehavior.Header, out RawInputHeader header, ref size, headerSize).EnsureSuccess();
 
             return header;
         }
@@ -135,7 +135,7 @@
             uint headerSize = (uint)MarshalEx.SizeOf<RawInputHeader>();
             uint size = 0;
 
-            GetRawInputData(hRawInput, RawInputGetBehavior.Input, IntPtr.Zero, ref size, headerSize);
+            _ = GetRawInputData(hRawInput, RawInputGetBehavior.Input, IntPtr.Zero, ref size, headerSize);
 
             return size;
         }
@@ -145,7 +145,7 @@
             IntPtr hRawInput = RawInputHandle.GetRawValue(rawInput);
             uint headerSize = (uint)MarshalEx.SizeOf<RawInputHeader>();
 
-            GetRawInputData(hRawInput, RawInputGetBehavior.Input, ptr, ref size, headerSize).EnsureSuccess();
+            _ = GetRawInputData(hRawInput, RawInputGetBehavior.Input, ptr, ref size, headerSize).EnsureSuccess();
         }
 
         public static unsafe RawMouse GetRawInputMouseData(RawInputHandle rawInput, out RawInputHeader header)
@@ -201,7 +201,7 @@
             uint headerSize = (uint)MarshalEx.SizeOf<RawInputHeader>();
             uint size = 0;
 
-            GetRawInputBuffer(IntPtr.Zero, ref size, headerSize);
+            _ = GetRawInputBuffer(IntPtr.Zero, ref size, headerSize);
 
             return size;
         }
@@ -217,7 +217,7 @@
         {
             uint headerSize = (uint)MarshalEx.SizeOf<RawInputHeader>();
 
-            DefRawInputProc(paRawInput, paRawInput.Length, headerSize);
+            _ = DefRawInputProc(paRawInput, paRawInput.Length, headerSize);
         }
 
         public static bool EnsureSuccess(this bool result)

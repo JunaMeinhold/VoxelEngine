@@ -18,7 +18,7 @@ namespace HexaEngine.Shaders
 
         static ShaderCache()
         {
-            Directory.CreateDirectory("cache");
+            _ = Directory.CreateDirectory("cache");
             Load();
             Application.ApplicationClosing += Application_ApplicationClosing;
         }
@@ -33,7 +33,7 @@ namespace HexaEngine.Shaders
         public static void CacheShader(string path, Blob blob)
         {
             var datetime = File.GetLastWriteTime(path);
-            cache.Remove(path);
+            _ = cache.Remove(path);
             cache.Add(path, new(datetime, blob.GetBytes()));
         }
 

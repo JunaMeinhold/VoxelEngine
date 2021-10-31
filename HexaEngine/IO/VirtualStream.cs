@@ -1,6 +1,5 @@
 ﻿namespace HexaEngine.IO
 {
-    using HexaEngine.Extensions;
     using System;
     using System.IO;
     using System.Runtime.InteropServices;
@@ -44,7 +43,7 @@
         {
             var buffer = new byte[Length];
             _baseStream.Position = _start;
-            _baseStream.Read(buffer);
+            _ = _baseStream.Read(buffer);
             var ptr = Marshal.AllocHGlobal((int)Length);
             Marshal.Copy(buffer, 0, ptr, (int)Length);
             return ptr;
@@ -54,7 +53,7 @@
         {
             var buffer = new byte[Length];
             _baseStream.Position = _start;
-            _baseStream.Read(buffer);
+            _ = _baseStream.Read(buffer);
             return buffer;
         }
 

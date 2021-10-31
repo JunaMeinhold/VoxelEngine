@@ -1,6 +1,5 @@
 ﻿namespace HexaEngine.IO
 {
-    using HexaEngine.Extensions;
     using System.IO;
 
     public class AssetBundle

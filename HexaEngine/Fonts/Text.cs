@@ -1,7 +1,10 @@
 ﻿using HexaEngine.Windows;
 using System.Numerics;
 using System.Runtime.InteropServices;
+using Vortice.Direct3D;
 using Vortice.Direct3D11;
+using Vortice.DirectWrite;
+using Vortice.DXGI;
 
 namespace HexaEngine.Fonts
 {
@@ -30,6 +33,8 @@ namespace HexaEngine.Fonts
         public Vector4 Color { get; set; } = new Vector4(1, 1, 1, 1);
 
         public Vector2 Position { get => position; set { position = value; UpdateSentece(); } }
+
+        public Matrix4x4 Transform { get; set; }
 
         public Text(DeviceManager manager, Font font, string text, int maxLength = int.MaxValue)
         {
@@ -105,9 +110,12 @@ namespace HexaEngine.Fonts
             IndexBuffer = null;
         }
 
-        public void Render(Matrix4x4? baseMatrix = null)
+        public void Render(ID3D11DeviceContext context)
         {
-            Font.Render(this, baseMatrix);
+            Font.Render(context);
+            context.IASetVertexBuffers(0, new VertexBufferView(VertexBuffer, Marshal.SizeOf<Vertex>(), 0));
+            context.IASetIndexBuffer(IndexBuffer, Format.R32_UInt, 0);
+            context.IASetPrimitiveTopology(PrimitiveTopology.TriangleList);
         }
     }
 }

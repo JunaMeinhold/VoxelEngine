@@ -54,6 +54,24 @@ namespace HexaEngine.Resources
             SamplerState = device.CreateSamplerState(SamplerDescription);
         }
 
+        public void Load(ID3D11Device device, string name, byte[] data)
+        {
+            Texture2D = LoadFromFile(device, data);
+            Texture2D.DebugName = "Texture: " + name;
+            ShaderResourceViewDescription srvDesc = new()
+            {
+                Format = Texture2D.Description.Format,
+                ViewDimension = Vortice.Direct3D.ShaderResourceViewDimension.Texture2D
+            };
+            srvDesc.Texture2D.MostDetailedMip = 0;
+            srvDesc.Texture2D.MipLevels = -1;
+
+            TextureResource = device.CreateShaderResourceView(Texture2D, srvDesc);
+            TextureResource.DebugName = nameof(TextureResource) + ": " + name;
+            device.ImmediateContext.GenerateMips(TextureResource);
+            SamplerState = device.CreateSamplerState(SamplerDescription);
+        }
+
         public void Load(ID3D11Device device, string fileName)
         {
             Texture2D = LoadFromFile(device, fileName);
@@ -118,6 +136,74 @@ namespace HexaEngine.Resources
             Texture2D?.Dispose();
             Texture2D = null;
             base.Dispose(disposing);
+        }
+
+        public static ID3D11Texture2D LoadFromFile(ID3D11Device device, byte[] bytes)
+        {
+            bool imageConverted = false;
+            IWICImagingFactory factory = new();
+            IWICBitmapDecoder decoder;
+            IWICBitmapFrameDecode frame;
+            IWICFormatConverter converter = null;
+            var fs = new MemoryStream(bytes);
+            decoder = factory.CreateDecoderFromStream(fs, DecodeOptions.CacheOnDemand);
+            frame = decoder.GetFrame(0);
+
+            var dxgiFormat = GetDXGIFormatFromWICFormat(frame.PixelFormat);
+
+            if (dxgiFormat == Format.Unknown)
+            {
+                var format = GetConvertToWICFormat(frame.PixelFormat);
+                if (format == PixelFormat.FormatDontCare) throw new NotSupportedException(frame.PixelFormat.ToString());
+                dxgiFormat = GetDXGIFormatFromWICFormat(format);
+                converter = factory.CreateFormatConverter();
+
+                if (!converter.CanConvert(frame.PixelFormat, format))
+                    throw new NotSupportedException(frame.PixelFormat.ToString());
+
+                converter.Initialize(frame, format, BitmapDitherType.ErrorDiffusion, null, 0, BitmapPaletteType.Custom);
+                imageConverted = true;
+            }
+
+            int bitsPerPixel = GetDXGIFormatBitsPerPixel(dxgiFormat);
+            int bytesPerRow = frame.Size.Width * bitsPerPixel / 8;
+            int imageSize = bytesPerRow * frame.Size.Height;
+
+            IntPtr data = Marshal.AllocHGlobal(imageSize);
+            if (imageConverted)
+            {
+                converter.CopyPixels(bytesPerRow, imageSize, data);
+            }
+            else
+            {
+                frame.CopyPixels(bytesPerRow, imageSize, data);
+            }
+
+            var desc = new Texture2DDescription()
+            {
+                Width = frame.Size.Width,
+                Height = frame.Size.Height,
+                ArraySize = 1,
+                BindFlags = BindFlags.ShaderResource | BindFlags.RenderTarget,
+                Usage = ResourceUsage.Default,
+                CpuAccessFlags = CpuAccessFlags.Read,
+                Format = dxgiFormat,
+                MipLevels = 1,
+                OptionFlags = ResourceOptionFlags.GenerateMips,
+                SampleDescription = new SampleDescription(1, 0),
+            };
+            var subres = new SubresourceData[] { new SubresourceData(data, bytesPerRow) };
+            var texture = device.CreateTexture2D(desc, subres);
+
+            Marshal.FreeHGlobal(data);
+
+            converter?.Dispose();
+            frame.Dispose();
+            decoder.Dispose();
+            factory.Dispose();
+            fs.Dispose();
+
+            return texture;
         }
 
         public static ID3D11Texture2D LoadFromFile(ID3D11Device device, string path)

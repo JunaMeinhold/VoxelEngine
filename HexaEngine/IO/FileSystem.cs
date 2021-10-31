@@ -1,5 +1,6 @@
 ﻿namespace HexaEngine.IO
 {
+    using System;
     using System.Collections.Generic;
     using System.Diagnostics;
     using System.IO;
@@ -33,6 +34,13 @@
 #endif
                 return asset?.GetStream();
             }
+        }
+
+        public static string[] ReadAllLines(string path)
+        {
+            var fs = Open(path);
+            var reader = new StreamReader(fs);
+            return reader.ReadToEnd().Split(Environment.NewLine);
         }
     }
 }

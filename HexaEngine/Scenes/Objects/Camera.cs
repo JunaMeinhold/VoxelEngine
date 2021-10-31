@@ -1,4 +1,4 @@
-﻿using HexaEngine.Extensions;
+﻿using HexaEngine.Mathematics;
 using HexaEngine.Scenes.Interfaces;
 using HexaEngine.Windows;
 using System;
@@ -20,6 +20,7 @@ namespace HexaEngine.Scenes.Objects
         private float rotationX;
         private float rotationY;
         private float rotationZ;
+        private Vector3 old;
 
         public Camera()
         {
@@ -50,12 +51,6 @@ namespace HexaEngine.Scenes.Objects
 
         public Vector3 Down { get; private set; }
 
-        public bool RotateNormalAxisX { get; set; } = true;
-
-        public bool RotateNormalAxisY { get; set; } = true;
-
-        public bool RotateNormalAxisZ { get; set; } = true;
-
         public Vector3 Position { get; private set; }
 
         public Matrix4x4 ViewMatrix { get; private set; }
@@ -72,6 +67,8 @@ namespace HexaEngine.Scenes.Objects
 
         public Listener Listener { get; set; }
 
+        public Cone? Cone { get; set; } = null;
+
         public Matrix4x4 BaseViewMatrix { get; private set; }
 
         public Frustum Frustum { get; set; }
@@ -81,33 +78,44 @@ namespace HexaEngine.Scenes.Objects
             switch (type)
             {
                 case CameraType.Perspective:
-                    ProjectionMatrix = MatrixExtensions.PerspectiveFovLH(fov * DegToRadFactor, DeviceManager.Current.AspectRatio, near, far);
+                    ProjectionMatrix = Extensions.PerspectiveFovLH(fov * DegToRadFactor, DeviceManager.Current.AspectRatio, near, far);
                     break;
 
                 case CameraType.Orthographic:
-                    ProjectionMatrix = MatrixExtensions.OrthoLH(DeviceManager.Current.Width, DeviceManager.Current.Height, near, far);
+                    ProjectionMatrix = Extensions.OrthoLH(DeviceManager.Current.Width, DeviceManager.Current.Height, near, far);
                     break;
             }
         }
 
         public void UpdateView()
         {
+            old = Position;
             Position = new(PositionX, PositionY, PositionZ);
+
             float pitch = RotationX * DegToRadFactor;
             float yaw = RotationY * DegToRadFactor;
             float roll = RotationZ * DegToRadFactor;
-            Matrix4x4 rotationMatrix = MatrixExtensions.RotationYawPitchRoll(yaw, pitch, roll);
+            Matrix4x4 rotationMatrix = Extensions.RotationYawPitchRoll(yaw, pitch, roll);
             Vector3 up = Vector3.Transform(Vector3.UnitY, rotationMatrix);
             Vector3 target = Vector3.Add(Vector3.Transform(Vector3.UnitZ, rotationMatrix), Position);
-            ViewMatrix = MatrixExtensions.LookAtLH(Position, target, up);
+            ViewMatrix = Extensions.LookAtLH(Position, target, up);
 
-            Matrix4x4 vecRotationMatrix = Matrix4x4.CreateFromYawPitchRoll(RotateNormalAxisX ? yaw : 0, RotateNormalAxisY ? pitch : 0, 0f);
+            Matrix4x4 vecRotationMatrix = Matrix4x4.CreateFromYawPitchRoll(yaw, pitch, 0f);
             Forward = Vector3.Transform(Vector3.UnitZ, vecRotationMatrix);
             Backward = Vector3.Transform(-Vector3.UnitZ, vecRotationMatrix);
             Right = Vector3.Transform(Vector3.UnitX, vecRotationMatrix);
             Left = Vector3.Transform(-Vector3.UnitX, vecRotationMatrix);
             Up = Vector3.Transform(Vector3.UnitY, vecRotationMatrix);
             Down = Vector3.Transform(-Vector3.UnitY, vecRotationMatrix);
+
+            if (Listener is not null)
+            {
+                Listener.Position = Position;
+                Listener.OrientFront = Forward;
+                Listener.OrientTop = Up;
+                Listener.Velocity = Position - old;
+                Listener.Cone = Cone;
+            }
 
             RenderBaseViewMatrix();
             Frustum = new Frustum(FarPlane, ProjectionMatrix, ViewMatrix);
@@ -128,7 +136,7 @@ namespace HexaEngine.Scenes.Objects
             lookAt.Z = MathF.Cos(radians) + PositionZ;
 
             // Create the base view matrix from the three vectors.
-            BaseViewMatrix = MatrixExtensions.LookAtLH(Position, lookAt, up);
+            BaseViewMatrix = Mathematics.Extensions.LookAtLH(Position, lookAt, up);
         }
 
         public void AdjustPosition(Vector3 vector)

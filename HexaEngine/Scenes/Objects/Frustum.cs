@@ -1,7 +1,5 @@
 ﻿namespace HexaEngine.Scenes.Objects
 {
-    using HexaEngine.Extensions;
-    using System;
     using System.Numerics;
     using Vortice.Mathematics;
 

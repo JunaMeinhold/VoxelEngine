@@ -41,9 +41,9 @@ namespace HexaEngine.Resources
             }
         }
 
-        public static Texture LoadTexture(string path)
+        public static Texture LoadTexture(string path, bool isFont = false)
         {
-            var path1 = CurrentTexturePath + path;
+            var path1 = (isFont ? CurrentFontPath : CurrentTexturePath) + path;
             var resource = textures.FirstOrDefault(x => x.Key.Path == path1);
             if (resource.Value is not null)
             {
@@ -131,9 +131,9 @@ namespace HexaEngine.Resources
             }
         }
 
-        public static Font LoadFont(string path, string pathTexture)
+        public static Font LoadFont(string path)
         {
-            var path1 = new FileInfo(CurrentSoundPath + path).FullName + new FileInfo(CurrentFontPath + pathTexture).FullName;
+            var path1 = new FileInfo(CurrentSoundPath + path).FullName + new FileInfo(CurrentFontPath).FullName;
             var resource = fonts.FirstOrDefault(x => x.Key.Path == path1);
             if (resource.Value is not null)
             {
@@ -142,7 +142,7 @@ namespace HexaEngine.Resources
             }
             else
             {
-                Font font = new(CurrentFontPath + path, CurrentFontPath + pathTexture);
+                Font font = new(CurrentFontPath + path);
                 fonts.Add(new ResourceState() { Instances = 1, Path = path1 }, font);
                 return font;
             }

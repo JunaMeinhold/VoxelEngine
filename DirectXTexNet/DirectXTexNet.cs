@@ -19,6 +19,8 @@ using XMVectorPtr = System.IntPtr;
 
 namespace DirectXTexNet
 {
+#pragma warning disable CA1069 // Enumerationswerte dürfen nicht dupliziert werden
+
     #region enums
 
     public enum DXGI_FORMAT
@@ -544,6 +546,7 @@ namespace DirectXTexNet
         /// Filtering mode to use for any required image resizing
         /// Equiv to Box filtering for mipmap generation
         /// </summary>
+
         FANT = 0x400000,
 
         /// <summary>
@@ -1439,3 +1442,5 @@ namespace DirectXTexNet
         #endregion Direct3D 11 functions
     }
 }
+
+#pragma warning restore CA1069 // Enumerationswerte dürfen nicht dupliziert werden

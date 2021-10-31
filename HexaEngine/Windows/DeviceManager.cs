@@ -55,7 +55,7 @@ namespace HexaEngine.Windows
                 SampleDescription = new SampleDescription(MSAASampleCount, MSAASampleQuality),
                 Scaling = Scaling.Stretch,
                 SwapEffect = SwapEffect.Discard,
-                Flags = SwapChainFlags.AllowModeSwitch
+                Flags = SwapChainFlags.AllowModeSwitch,
             };
 
             var fullscreenDescription = new SwapChainFullscreenDescription
@@ -144,7 +144,36 @@ namespace HexaEngine.Windows
             BackBuffer.DebugName = "DeviceMan." + nameof(BackBuffer);
             RenderTargetView = ID3D11Device.CreateRenderTargetView(BackBuffer, new RenderTargetViewDescription() { Format = Format.B8G8R8A8_UNorm, ViewDimension = RenderTargetViewDimension.Texture2DMultisampled });
             RenderTargetView.DebugName = "DeviceMan." + nameof(RenderTargetView);
+
+#if D2D1_SUPPORT
+#if DEBUG
+            Trace.WriteLine("Initalizing D2D1");
+#endif
+            ID2D1Device = Vortice.Direct2D1.D2D1.D2D1CreateDevice(IDXGIDevice, new Vortice.Direct2D1.CreationProperties()
+            {
+#if DEBUG
+                DebugLevel = Vortice.Direct2D1.DebugLevel.Information,
+#else
+                DebugLevel = Vortice.Direct2D1.DebugLevel.None,
+#endif
+                Options = Vortice.Direct2D1.DeviceContextOptions.EnableMultithreadedOptimizations,
+                ThreadingMode = Vortice.Direct2D1.ThreadingMode.MultiThreaded
+            });
+            ID2D1Factory = Vortice.Direct2D1.D2D1.D2D1CreateFactory<Vortice.Direct2D1.ID2D1Factory>();
+            var temp = ID2D1Device.CreateDeviceContext(Vortice.Direct2D1.DeviceContextOptions.EnableMultithreadedOptimizations);
+            ID2D1DeviceContext = temp.QueryInterface<Vortice.Direct2D1.ID2D1DeviceContext1>();
+            ID2D1DeviceContext.AntialiasMode = Vortice.Direct2D1.AntialiasMode.PerPrimitive;
+            ID2D1DeviceContext.TextAntialiasMode = Vortice.Direct2D1.TextAntialiasMode.Cleartype;
+            temp.Dispose();
+            var surface = SwapChain.GetBuffer<IDXGISurface>(0);
+            ID2D1RenderTarget = ID2D1DeviceContext.CreateBitmapFromDxgiSurface(surface, TargetBitmapProperties);
+            surface.Dispose();
+#if DWRITE_SUPPORT
+            IDWriteFactory = Vortice.DirectWrite.DWrite.DWriteCreateFactory<Vortice.DirectWrite.IDWriteFactory>();
+#endif
+#endif
             BackBuffer.Dispose();
+
 #if D3D_DEBUG
             DebugDevice = ID3D11Device.QueryInterface<ID3D11Debug>();
 #endif
@@ -368,6 +397,22 @@ namespace HexaEngine.Windows
         public Vortice.Direct3D12.ID3D12CommandQueue ID3D12CommandQueue { get; }
 #endif
 
+#if D2D1_SUPPORT
+
+        public Vortice.Direct2D1.ID2D1Factory ID2D1Factory { get; }
+        public Vortice.Direct2D1.ID2D1Device ID2D1Device { get; }
+        public Vortice.Direct2D1.ID2D1DeviceContext1 ID2D1DeviceContext { get; }
+        public Vortice.Direct2D1.ID2D1Bitmap1 ID2D1RenderTarget { get; set; }
+
+        public static Vortice.DCommon.PixelFormat PixelFormat => new(Format.B8G8R8A8_UNorm, Vortice.DCommon.AlphaMode.Premultiplied);
+
+        public static Vortice.Direct2D1.BitmapProperties1 TargetBitmapProperties => new(PixelFormat, 96, 96, Vortice.Direct2D1.BitmapOptions.Target | Vortice.Direct2D1.BitmapOptions.CannotDraw);
+
+#if DWRITE_SUPPORT
+        public Vortice.DirectWrite.IDWriteFactory IDWriteFactory { get; }
+#endif
+#endif
+
         public int BufferCount { get; set; } = 1;
 
         public float AspectRatio { get; private set; }
@@ -390,8 +435,8 @@ namespace HexaEngine.Windows
             RenderTargetView.Dispose();
 
             // Resize Targets and SwapChainBuffers.
-            SwapChain.ResizeTarget(new ModeDescription(Width, Height));
-            SwapChain.ResizeBuffers(BufferCount, Width, Height, Format.B8G8R8A8_UNorm, SwapChainFlags.AllowModeSwitch);
+            _ = SwapChain.ResizeTarget(new ModeDescription(Width, Height));
+            _ = SwapChain.ResizeBuffers(BufferCount, Width, Height, Format.B8G8R8A8_UNorm, SwapChainFlags.AllowModeSwitch);
 
             // Recreate SwapChainBuffer all references.
             BackBuffer = SwapChain.GetBuffer<ID3D11Texture2D>(0);
@@ -586,6 +631,15 @@ namespace HexaEngine.Windows
                 ID3D11Device = null;
                 IDXGIFactory.Dispose();
                 IDXGIDevice.Dispose();
+#if D2D1_SUPPORT
+
+                ID2D1RenderTarget.Dispose();
+                ID2D1Device.Dispose();
+                ID2D1DeviceContext.Dispose();
+#if DWRITE_SUPPORT
+                IDWriteFactory.Dispose();
+#endif
+#endif
 
                 DebugDevice?.ReportLiveDeviceObjects(ReportLiveDeviceObjectFlags.Detail);
                 DebugDevice?.Dispose();

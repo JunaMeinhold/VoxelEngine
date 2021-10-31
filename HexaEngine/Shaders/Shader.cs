@@ -136,7 +136,7 @@ namespace HexaEngine.Shaders
 
         protected ID3D11InputLayout CreateInputLayout(DeviceManager manager, Blob blob)
         {
-            Compiler.GetInputSignatureBlob(blob.BufferPointer, blob.BufferSize, out var iblob);
+            _ = Compiler.GetInputSignatureBlob(blob.BufferPointer, blob.BufferSize, out var iblob);
             var layout = manager.ID3D11Device.CreateInputLayout(InputElements.ToArray(), iblob);
             iblob.Dispose();
             return layout;
@@ -144,7 +144,7 @@ namespace HexaEngine.Shaders
 
         protected ID3D11InputLayout CreateInputLayout(DeviceManager manager, IntPtr ptr, PointerSize size)
         {
-            Compiler.GetInputSignatureBlob(ptr, size, out var iblob);
+            _ = Compiler.GetInputSignatureBlob(ptr, size, out var iblob);
             var layout = manager.ID3D11Device.CreateInputLayout(InputElements.ToArray(), iblob);
             iblob.Dispose();
             return layout;
@@ -154,7 +154,7 @@ namespace HexaEngine.Shaders
         {
             var unmanagedPointer = Marshal.AllocHGlobal(blob.Data.Length);
             Marshal.Copy(blob.Data, 0, unmanagedPointer, blob.Data.Length);
-            Compiler.GetInputSignatureBlob(unmanagedPointer, new SharpGen.Runtime.PointerSize(blob.Data.Length), out var iblob);
+            _ = Compiler.GetInputSignatureBlob(unmanagedPointer, new SharpGen.Runtime.PointerSize(blob.Data.Length), out var iblob);
             var layout = manager.ID3D11Device.CreateInputLayout(InputElements.ToArray(), iblob);
             iblob.Dispose();
             Marshal.FreeHGlobal(unmanagedPointer);
@@ -178,28 +178,28 @@ namespace HexaEngine.Shaders
         protected void Write<T>(ID3D11Buffer buffer, T t) where T : unmanaged
         {
             var mapped = Manager.ID3D11DeviceContext.Map(buffer, MapMode.WriteDiscard);
-            UnsafeUtilities.Write(mapped.DataPointer, ref t);
+            _ = UnsafeUtilities.Write(mapped.DataPointer, ref t);
             Manager.ID3D11DeviceContext.Unmap(buffer);
         }
 
         protected void Write<T>(ID3D11Buffer buffer, T[] t) where T : unmanaged
         {
             var mapped = Manager.ID3D11DeviceContext.Map(buffer, MapMode.WriteDiscard);
-            UnsafeUtilities.Write(mapped.DataPointer, t);
+            _ = UnsafeUtilities.Write(mapped.DataPointer, t);
             Manager.ID3D11DeviceContext.Unmap(buffer);
         }
 
         public static void SWrite<T>(DeviceManager manager, ID3D11Buffer buffer, T t) where T : unmanaged
         {
             var mapped = manager.ID3D11DeviceContext.Map(buffer, MapMode.WriteDiscard);
-            UnsafeUtilities.Write(mapped.DataPointer, ref t);
+            _ = UnsafeUtilities.Write(mapped.DataPointer, ref t);
             manager.ID3D11DeviceContext.Unmap(buffer);
         }
 
         public static void SWrite<T>(DeviceManager manager, ID3D11Buffer buffer, T[] t) where T : unmanaged
         {
             var mapped = manager.ID3D11DeviceContext.Map(buffer, MapMode.WriteDiscard);
-            UnsafeUtilities.Write(mapped.DataPointer, t);
+            _ = UnsafeUtilities.Write(mapped.DataPointer, t);
             manager.ID3D11DeviceContext.Unmap(buffer);
         }
 

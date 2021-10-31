@@ -1,4 +1,4 @@
-﻿using HexaEngine.Extensions;
+﻿using HexaEngine.Mathematics;
 using HexaEngine.Resources;
 using HexaEngine.Resources.Buffers;
 using HexaEngine.Scenes.Interfaces;
@@ -12,7 +12,7 @@ namespace HexaEngine.Shaders.BuildIn.Deferred
 {
     public class DeferredLightShader : Shader
     {
-        public Matrix4x4 viewMatrix = Matrix4x4.Transpose(MatrixExtensions.LookAtLH(-Vector3.UnitZ, Vector3.UnitZ + -Vector3.UnitZ, Vector3.UnitY));
+        public Matrix4x4 viewMatrix = Matrix4x4.Transpose(Mathematics.Extensions.LookAtLH(-Vector3.UnitZ, Vector3.UnitZ + -Vector3.UnitZ, Vector3.UnitY));
         public Matrix4x4 projectMatrix;
         private DirectionalLight directional;
         public readonly ID3D11Buffer MatrixBuffer;
@@ -55,7 +55,7 @@ namespace HexaEngine.Shaders.BuildIn.Deferred
         {
             DepthShader = new();
             GBuffers = new();
-            GBuffers.Initialize(Manager.ID3D11Device, Manager.Width, Manager.Height);
+            _ = GBuffers.Initialize(Manager.ID3D11Device, Manager.Width, Manager.Height);
             RenderPlane = new(Manager, nameof(DeferredLightShader));
             VertexShaderDescription = new("deferred/LightVertexShader.hlsl", "LightVertexShader", VertexShaderVersion.VS_5_0);
             PixelShaderDescription = new("deferred/LightPixelShader.hlsl", "LightPixelShader", PixelShaderVersion.PS_5_0);
@@ -78,7 +78,7 @@ namespace HexaEngine.Shaders.BuildIn.Deferred
 
         private void Manager_OnResize(object sender, System.EventArgs e)
         {
-            projectMatrix = Matrix4x4.Transpose(MatrixExtensions.OrthoLH(Manager.Width, Manager.Height, 0.01f, 10000f));
+            projectMatrix = Matrix4x4.Transpose(Mathematics.Extensions.OrthoLH(Manager.Width, Manager.Height, 0.01f, 10000f));
         }
 
         public override void Render(IView view, Matrix4x4 transform, int indexCount)

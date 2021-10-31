@@ -16,7 +16,7 @@ namespace HexaEngine.Shaders.BuildIn
         public DepthShader()
         {
             DepthMap = new RenderTexture();
-            DepthMap.Initialize(Manager.ID3D11Device, nameof(DepthShader), 1024, 1024);
+            _ = DepthMap.Initialize(Manager.ID3D11Device, nameof(DepthShader), 1024, 1024);
 
             VertexShaderDescription = new("depth/VertexShader.hlsl", "main", VertexShaderVersion.VS_5_0);
             PixelShaderDescription = new("depth/PixelShader.hlsl", "main", PixelShaderVersion.PS_5_0);

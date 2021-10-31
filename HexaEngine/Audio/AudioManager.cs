@@ -1,4 +1,6 @@
-﻿using Vortice.Multimedia;
+﻿using HexaEngine.Windows;
+using System;
+using Vortice.Multimedia;
 using Vortice.XAudio2;
 
 namespace HexaEngine.Audio
@@ -6,35 +8,48 @@ namespace HexaEngine.Audio
     /// <summary>
     /// Basics sind implementiert aber mehr auch nicht.
     /// </summary>
-    public class AudioManager
+    public class AudioManager : Disposable
     {
-        public X3DAudio X3DAudio { get; } = new(Speakers.All);
+        public X3DAudio X3DAudio { get; private set; }
 
-        public IXAudio2 IXAudio2 { get; }
+        public IXAudio2 IXAudio2 { get; private set; }
 
-        public Listener Listener { get; } = new Listener();
+        public Listener Listener { get; private set; } = new Listener();
 
-        public IXAudio2MasteringVoice MasteringVoice { get; }
+        public IXAudio2MasteringVoice MasteringVoice { get; private set; }
 
-        public int Channels { get; set; }
+        public IXAudio2SubmixVoice SubmixVoice { get; private set; }
 
         public AudioManager()
         {
             IXAudio2 = XAudio2.XAudio2Create(ProcessorSpecifier.UseDefaultProcessor);
-            MasteringVoice = IXAudio2.CreateMasteringVoice(0, 0, AudioStreamCategory.GameMedia);
-            /*
-            var listener = new Listener();
-            listener.OrientFront = System.Numerics.Vector3.UnitZ;
-            listener.OrientTop = System.Numerics.Vector3.UnitY;
-            listener.Position = System.Numerics.Vector3.Zero;
-            listener.Velocity = System.Numerics.Vector3.Zero;
-            Emitter emitter = new();
-            emitter.Position = new System.Numerics.Vector3(0, 0, 10);
-            var settings = X3DAudio.Calculate(listener, emitter, CalculateFlags.None, 0, 0);*/
+            IXAudio2.StartEngine();
+            MasteringVoice = IXAudio2.CreateMasteringVoice();
+            SubmixVoice = IXAudio2.CreateSubmixVoice();
+            X3DAudio = new((Speakers)MasteringVoice.ChannelMask);
         }
 
-        public void Play(IXAudio2SourceVoice voice, Emitter emitter, CalculateFlags flags)
+        public void Update(IXAudio2SourceVoice voice, Emitter emitter)
         {
+            DspSettings settings = new(voice.VoiceDetails.InputChannelCount, MasteringVoice.VoiceDetails.InputChannelCount);
+            X3DAudio.Calculate(Listener, emitter, CalculateFlags.Matrix | CalculateFlags.Doppler | CalculateFlags.LpfDirect | CalculateFlags.Reverb, settings);
+            voice.SetOutputMatrix(MasteringVoice, voice.VoiceDetails.InputChannelCount, MasteringVoice.VoiceDetails.InputChannelCount, settings.MatrixCoefficients);
+            voice.SetFrequencyRatio(settings.DopplerFactor, IXAudio2.CommitNow);
+            FilterParameters parameters = new() { Type = FilterType.LowPassFilter, Frequency = 2.0f * MathF.Sin(MathF.PI / 6.0f * settings.LpfDirectCoefficient), OneOverQ = 1.0f };
+            voice.SetFilterParameters(parameters, IXAudio2.CommitNow);
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            X3DAudio = null;
+            SubmixVoice.Dispose();
+            SubmixVoice = null;
+            MasteringVoice.Dispose();
+            MasteringVoice = null;
+            IXAudio2.StopEngine();
+            IXAudio2.Dispose();
+            IXAudio2 = null;
+            base.Dispose(disposing);
         }
     }
 }

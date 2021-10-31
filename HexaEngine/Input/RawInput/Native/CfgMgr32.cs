@@ -58,7 +58,7 @@
 
         public static string GetDevNodePropertyString(DeviceInstanceHandle device, in DevicePropertyKey propertyKey)
         {
-            TryGetDevNodePropertyString(device, in propertyKey, out string value);
+            _ = TryGetDevNodePropertyString(device, in propertyKey, out string value);
 
             return value;
         }

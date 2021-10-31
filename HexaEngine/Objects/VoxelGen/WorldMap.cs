@@ -1,5 +1,4 @@
-﻿using HexaEngine.Extensions;
-using HexaEngine.Mathematics;
+﻿using HexaEngine.Mathematics;
 using System;
 using System.Numerics;
 using Vortice.Mathematics;
@@ -52,7 +51,7 @@ namespace HexaEngine.Objects.VoxelGen
                 return true;
 
             // Chunk data accessed quickly using bit masks
-            return c.data[ArrayExtensions.MapToIndex(xlocal, ylocal, zlocal, Chunk.CHUNK_SIZE, Chunk.CHUNK_SIZE)].kind == Chunk.EMPTY;
+            return c.data[Extensions.MapToIndex(xlocal, ylocal, zlocal, Chunk.CHUNK_SIZE, Chunk.CHUNK_SIZE)].kind == Chunk.EMPTY;
         }
 
         public void Set(Chunk chunk, Vector3 pos)

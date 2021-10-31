@@ -1,5 +1,7 @@
 ﻿namespace HexaEngine.Input.RawInput.Native
 {
+#pragma warning disable CA1069 // Enumerationswerte dürfen nicht dupliziert werden
+
     /// <summary>
     /// CONFIGRET
     /// </summary>
@@ -70,4 +72,6 @@
         InvalidIndex = 0x3A,
         InvalidStructureSize = 0x3B,
     }
+
+#pragma warning restore CA1069 // Enumerationswerte dürfen nicht dupliziert werden
 }

@@ -156,7 +156,7 @@ namespace HexaEngine.Particles
             UpdateParticles(frameTime);
 
             // Update the dynamic vertex buffer with the new position of each particle.
-            UpdateBuffers(manager);
+            _ = UpdateBuffers(manager);
         }
 
         private bool UpdateBuffers(DeviceManager manager)

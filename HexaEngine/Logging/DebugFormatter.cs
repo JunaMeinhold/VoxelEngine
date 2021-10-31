@@ -10,11 +10,11 @@ namespace HexaEngine.Logging
             var type = typeof(T);
             foreach (var prop in type.GetProperties())
             {
-                sb.Append($"{prop.Name}: {prop.GetValue(t)}{sep}");
+                _ = sb.Append($"{prop.Name}: {prop.GetValue(t)}{sep}");
             }
             foreach (var field in type.GetFields())
             {
-                sb.Append($"{field.Name}: {field.GetValue(t)}{sep}");
+                _ = sb.Append($"{field.Name}: {field.GetValue(t)}{sep}");
             }
             return sb.ToString();
         }

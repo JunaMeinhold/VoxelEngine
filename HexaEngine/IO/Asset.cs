@@ -1,6 +1,4 @@
-﻿using HexaEngine.Extensions;
-
-namespace HexaEngine.IO
+﻿namespace HexaEngine.IO
 {
     public class Asset
     {

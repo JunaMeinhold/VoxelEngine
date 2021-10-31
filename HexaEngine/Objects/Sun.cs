@@ -21,8 +21,8 @@
 
         public void Update(IView view, int time)
         {
-            Angle = (time / 24000f) * 360;
-            Direction = new Vector3(MathF.Cos(Angle * DegToRadFactor), MathF.Sin(Angle * DegToRadFactor), 0);
+            Angle = time / 24000f * 360;
+            Direction = new Vector3(MathF.Cos(Angle * DegToRadFactor), MathF.Sin(Angle * DegToRadFactor), 0.5f);
             float x = (float)(MathF.Cos(Angle * DegToRadFactor) * Distance);
             float y = (float)(MathF.Sin(Angle * DegToRadFactor) * Distance);
             Position = new Vector3(x + view.Position.X, y + view.Position.Y, view.Position.Z);

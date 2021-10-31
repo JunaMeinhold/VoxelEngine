@@ -1,6 +1,5 @@
 ﻿namespace HexaEngine.Shaders.BuildIn.Texture
 {
-    using HexaEngine.Extensions;
     using HexaEngine.Resources.Buffers;
     using HexaEngine.Scenes.Interfaces;
     using System.Numerics;

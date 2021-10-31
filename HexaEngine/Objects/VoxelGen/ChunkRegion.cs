@@ -35,7 +35,7 @@
 
         public void Update()
         {
-            Parallel.ForEach(Chunks, chunk => chunk?.Update());
+            _ = Parallel.ForEach(Chunks, chunk => chunk?.Update());
         }
 
         public void Generate(World world)
@@ -88,7 +88,7 @@
             var fs = File.OpenRead(filename);
             var data = ArrayPool<byte>.Shared.Rent((int)fs.Length);
             var span = data.AsSpan(0, (int)fs.Length);
-            fs.Read(span);
+            _ = fs.Read(span);
             var index = 0;
             var count = BinaryPrimitives.ReadInt32LittleEndian(span[index..]);
             index += 4;

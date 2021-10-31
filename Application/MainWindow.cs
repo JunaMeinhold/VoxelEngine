@@ -1,4 +1,5 @@
-﻿using HexaEngine.Input.Events;
+﻿using HexaEngine.Fonts;
+using HexaEngine.Input.Events;
 using HexaEngine.Input.RawInput;
 using HexaEngine.Objects;
 using HexaEngine.Objects.Renderers;
@@ -6,6 +7,7 @@ using HexaEngine.Resources;
 using HexaEngine.Scenes;
 using HexaEngine.Scenes.Objects;
 using HexaEngine.Windows;
+using System.Numerics;
 using Vortice.Direct3D11;
 using Vortice.Mathematics;
 
@@ -48,15 +50,21 @@ namespace App
                 MaxLOD = float.MaxValue
             };
             Scene.Renderers.Add(new DeferredRenderer());
+            var ui = new UIRenderer() { Crosshair = new Crosshair("crosshair.png") };
+            var font = new Font("font0.ff");
+            var str = "Pre-Alpha 0.11";
+            var text = new Text(DeviceManager, font, str, str.Length) { Transform = Matrix4x4.CreateTranslation(-(1280 / 2), 720 / 2, 0) };
+            ui.Texts.Add(text);
             var world = new World("world/");
             var player = new Player(world);
+            player.Camera.Listener = DeviceManager.AudioManager.Listener;
             Scene.Camera = player.Camera;
             Scene.Objects.Add(player);
             world.Player = player;
             world.RenderDistance = 16;
             world.Generator = new PerlinChunkGenerator(1332);
             Scene.Objects.Add(world);
-            Scene.UIRenderers.Add(new UIRenderer() { Crosshair = new Crosshair("crosshair.png") });
+            Scene.UIRenderers.Add(ui);
             Scene.ForwardRenderers.Add(new SkyboxRenderer() { Skybox = new Skybox("skybox.obj", "sky_box.dds") });
             DeviceManager.SwitchAlpha(true);
         }

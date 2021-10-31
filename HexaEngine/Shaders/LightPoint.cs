@@ -1,4 +1,4 @@
-﻿using HexaEngine.Extensions;
+﻿using HexaEngine.Mathematics;
 using HexaEngine.Scenes.Interfaces;
 using HexaEngine.Scenes.Objects;
 using System;
@@ -27,7 +27,7 @@ namespace HexaEngine.Shaders
             GenerateProjectionMatrix();
 
             // Create the view matrix from the three vectors.
-            ViewMatrix = MatrixExtensions.LookAtLH(position, LookAt, Vector3.UnitY);
+            ViewMatrix = Mathematics.Extensions.LookAtLH(position, LookAt, Vector3.UnitY);
             Frustum = new Frustum(FarPlane, ProjectionMatrix, ViewMatrix);
         }
 
@@ -38,7 +38,7 @@ namespace HexaEngine.Shaders
             var screenAspect = 1.0f;
 
             // Create the projection matrix for the light.
-            ProjectionMatrix = MatrixExtensions.PerspectiveFovLH(fieldOfView, screenAspect, NearPlane, FarPlane);
+            ProjectionMatrix = Mathematics.Extensions.PerspectiveFovLH(fieldOfView, screenAspect, NearPlane, FarPlane);
         }
     }
 }

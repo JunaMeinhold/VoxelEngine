@@ -15,7 +15,7 @@ namespace HexaEngine.Windows
 
         public static void Run(NativeWindow window)
         {
-            Trace.Listeners.Add(new DebugListener($"logs/{DateTime.Now.ToFileTime()}-log.txt"));
+            _ = Trace.Listeners.Add(new DebugListener($"logs/{DateTime.Now.ToFileTime()}-log.txt"));
 
             MainWindow = window;
             window.Show();
@@ -25,7 +25,7 @@ namespace HexaEngine.Windows
         public static void SetHighDpiMode(HighDpiMode mode)
         {
             if (mode == HighDpiMode.SystemAware)
-                User32.SetProcessDPIAware();
+                _ = User32.SetProcessDPIAware();
         }
 
         public static void Exit()

@@ -70,8 +70,7 @@ namespace HexaEngine.Mathematics
 
         public void Set(string memberName, float value)
         {
-            Metadata.Member member;
-            if (!nodeMetadata[mMetadataId].members.TryGetValue(FormatLookup(memberName), out member))
+            if (!nodeMetadata[mMetadataId].members.TryGetValue(FormatLookup(memberName), out Metadata.Member member))
             {
                 throw new ArgumentException("Failed to find member name: " + memberName);
             }
@@ -99,8 +98,7 @@ namespace HexaEngine.Mathematics
 
         public void Set(string memberName, int value)
         {
-            Metadata.Member member;
-            if (!nodeMetadata[mMetadataId].members.TryGetValue(FormatLookup(memberName), out member))
+            if (!nodeMetadata[mMetadataId].members.TryGetValue(FormatLookup(memberName), out Metadata.Member member))
             {
                 throw new ArgumentException("Failed to find member name: " + memberName);
             }
@@ -118,8 +116,7 @@ namespace HexaEngine.Mathematics
 
         public void Set(string memberName, string enumValue)
         {
-            Metadata.Member member;
-            if (!nodeMetadata[mMetadataId].members.TryGetValue(FormatLookup(memberName), out member))
+            if (!nodeMetadata[mMetadataId].members.TryGetValue(FormatLookup(memberName), out Metadata.Member member))
             {
                 throw new ArgumentException("Failed to find member name: " + memberName);
             }
@@ -129,8 +126,7 @@ namespace HexaEngine.Mathematics
                 throw new ArgumentException(memberName + " cannot be set to an enum value");
             }
 
-            int enumIdx;
-            if (!member.enumNames.TryGetValue(FormatLookup(enumValue), out enumIdx))
+            if (!member.enumNames.TryGetValue(FormatLookup(enumValue), out int enumIdx))
             {
                 throw new ArgumentException("Failed to find enum value: " + enumValue);
             }
@@ -143,8 +139,7 @@ namespace HexaEngine.Mathematics
 
         public void Set(string memberName, FastNoise nodeLookup)
         {
-            Metadata.Member member;
-            if (!nodeMetadata[mMetadataId].members.TryGetValue(FormatLookup(memberName), out member))
+            if (!nodeMetadata[mMetadataId].members.TryGetValue(FormatLookup(memberName), out Metadata.Member member))
             {
                 throw new ArgumentException("Failed to find member name: " + memberName);
             }
@@ -176,7 +171,7 @@ namespace HexaEngine.Mathematics
                                        float frequency, int seed)
         {
             float[] minMax = new float[2];
-            fnGenUniformGrid2D(mNodeHandle, noiseOut, xStart, yStart, xSize, ySize, frequency, seed, minMax);
+            _ = fnGenUniformGrid2D(mNodeHandle, noiseOut, xStart, yStart, xSize, ySize, frequency, seed, minMax);
             return new OutputMinMax(minMax);
         }
 
@@ -186,7 +181,7 @@ namespace HexaEngine.Mathematics
                                        float frequency, int seed)
         {
             float[] minMax = new float[2];
-            fnGenUniformGrid3D(mNodeHandle, noiseOut, xStart, yStart, zStart, xSize, ySize, zSize, frequency, seed, minMax);
+            _ = fnGenUniformGrid3D(mNodeHandle, noiseOut, xStart, yStart, zStart, xSize, ySize, zSize, frequency, seed, minMax);
             return new OutputMinMax(minMax);
         }
 
@@ -196,7 +191,7 @@ namespace HexaEngine.Mathematics
                                        float frequency, int seed)
         {
             float[] minMax = new float[2];
-            fnGenUniformGrid4D(mNodeHandle, noiseOut, xStart, yStart, zStart, wStart, xSize, ySize, zSize, wSize, frequency, seed, minMax);
+            _ = fnGenUniformGrid4D(mNodeHandle, noiseOut, xStart, yStart, zStart, wStart, xSize, ySize, zSize, wSize, frequency, seed, minMax);
             return new OutputMinMax(minMax);
         }
 
@@ -254,8 +249,8 @@ namespace HexaEngine.Mathematics
             return fnGenSingle4D(mNodeHandle, x, y, z, w, seed);
         }
 
-        private IntPtr mNodeHandle = IntPtr.Zero;
-        private int mMetadataId = -1;
+        private readonly IntPtr mNodeHandle = IntPtr.Zero;
+        private readonly int mMetadataId = -1;
 
         public class Metadata
         {
@@ -291,7 +286,7 @@ namespace HexaEngine.Mathematics
             // Collect metadata for all FastNoise node classes
             for (int id = 0; id < metadataCount; id++)
             {
-                Metadata metadata = new Metadata();
+                Metadata metadata = new();
 
                 metadata.id = id;
                 metadata.name = FormatLookup(Marshal.PtrToStringAnsi(fnGetMetadataName(id)));
@@ -306,7 +301,7 @@ namespace HexaEngine.Mathematics
                 // Init variables
                 for (int variableIdx = 0; variableIdx < variableCount; variableIdx++)
                 {
-                    Metadata.Member member = new Metadata.Member();
+                    Metadata.Member member = new();
 
                     member.name = FormatLookup(Marshal.PtrToStringAnsi(fnGetMetadataVariableName(id, variableIdx)));
                     member.type = (Metadata.Member.Type)fnGetMetadataVariableType(id, variableIdx);
@@ -332,7 +327,7 @@ namespace HexaEngine.Mathematics
                 // Init node lookups
                 for (int nodeLookupIdx = 0; nodeLookupIdx < nodeLookupCount; nodeLookupIdx++)
                 {
-                    Metadata.Member member = new Metadata.Member();
+                    Metadata.Member member = new();
 
                     member.name = FormatLookup(Marshal.PtrToStringAnsi(fnGetMetadataNodeLookupName(id, nodeLookupIdx)));
                     member.type = Metadata.Member.Type.NodeLookup;
@@ -346,7 +341,7 @@ namespace HexaEngine.Mathematics
                 // Init hybrids
                 for (int hybridIdx = 0; hybridIdx < hybridCount; hybridIdx++)
                 {
-                    Metadata.Member member = new Metadata.Member();
+                    Metadata.Member member = new();
 
                     member.name = FormatLookup(Marshal.PtrToStringAnsi(fnGetMetadataHybridName(id, hybridIdx)));
                     member.type = Metadata.Member.Type.Hybrid;
@@ -377,8 +372,8 @@ namespace HexaEngine.Mathematics
             return s.Replace(" ", "").ToLower();
         }
 
-        static private Dictionary<string, int> metadataNameLookup;
-        static private Metadata[] nodeMetadata;
+        private static readonly Dictionary<string, int> metadataNameLookup;
+        private static readonly Metadata[] nodeMetadata;
 
         private const string NATIVE_LIB = "FastNoise";
 

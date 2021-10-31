@@ -1,5 +1,4 @@
-﻿using HexaEngine.Extensions;
-using HexaEngine.Resources;
+﻿using HexaEngine.Resources;
 using HexaEngine.Scenes;
 using HexaEngine.Scenes.Objects;
 using HexaEngine.Windows.Native;
@@ -7,7 +6,6 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Drawing;
-using System.Numerics;
 using System.Threading;
 using Vortice.DXGI;
 using static HexaEngine.Windows.Native.Helper;
@@ -113,7 +111,7 @@ namespace HexaEngine.Windows
 
         protected virtual void EndRender()
         {
-            DeviceManager.SwapChain.Present(VSync ? 1 : 0, PresentFlags.None);
+            _ = DeviceManager.SwapChain.Present(VSync ? 1 : 0, PresentFlags.None);
         }
 
         protected override void OnResize()

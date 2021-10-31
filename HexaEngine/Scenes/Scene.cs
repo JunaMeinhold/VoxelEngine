@@ -39,7 +39,7 @@
             ForEach<ISceneObject>(x => { if (!x.Renderer?.IsInitialized ?? false) x.Renderer.Initialize(DeviceManager); });
             ForEach<IScriptObject>(x => x.Initialize());
             Time.FixedUpdate += FixedUpdate;
-            Time.Initialize();
+            _ = Time.Initialize();
         }
 
         public void Render()
