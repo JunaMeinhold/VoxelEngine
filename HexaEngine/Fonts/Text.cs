@@ -3,40 +3,20 @@ using System.Numerics;
 using System.Runtime.InteropServices;
 using Vortice.Direct3D;
 using Vortice.Direct3D11;
-using Vortice.DirectWrite;
 using Vortice.DXGI;
 
 namespace HexaEngine.Fonts
 {
-    public class Text
+    public class Text : TextBase
     {
-        [StructLayout(LayoutKind.Sequential)]
-        public struct Vertex
-        {
-            public Vector3 Position;
-            public Vector2 Texture;
-        }
-
-        public Font Font;
-        public ID3D11Buffer VertexBuffer;
-        public ID3D11Buffer IndexBuffer;
-        private int VertexCount;
-        public int IndexCount;
-        private int MaxLength;
+        private readonly int maxLength;
         private Vector2 position;
-        private string textString;
 
         public DeviceManager Manager { get; }
 
-        public string TextString { get => textString; set { textString = value; UpdateSentece(); } }
-
-        public Vector4 Color { get; set; } = new Vector4(1, 1, 1, 1);
-
         public Vector2 Position { get => position; set { position = value; UpdateSentece(); } }
 
-        public Matrix4x4 Transform { get; set; }
-
-        public Text(DeviceManager manager, Font font, string text, int maxLength = int.MaxValue)
+        public Text(DeviceManager manager, AtlasFont font, string text, int maxLength = int.MaxValue)
         {
             Manager = manager;
             Font = font;
@@ -46,7 +26,7 @@ namespace HexaEngine.Fonts
             IndexBuffer = null;
 
             // Set the maximum length of the sentence.
-            MaxLength = maxLength;
+            this.maxLength = maxLength;
 
             // Set the number of vertices in vertex array.
             VertexCount = 6 * maxLength;
@@ -83,13 +63,13 @@ namespace HexaEngine.Fonts
             TextString = text;
         }
 
-        protected void UpdateSentece()
+        protected override void UpdateSentece()
         {
             // Get the number of the letter in the sentence.
             var numLetters = TextString.Length;
 
             // Check for possible buffer overflow.
-            if (numLetters > MaxLength)
+            if (numLetters > maxLength)
                 return;
 
             // Calculate the X and Y pixel position on screen to start drawing to.
@@ -110,7 +90,7 @@ namespace HexaEngine.Fonts
             IndexBuffer = null;
         }
 
-        public void Render(ID3D11DeviceContext context)
+        public override void Render(ID3D11DeviceContext context)
         {
             Font.Render(context);
             context.IASetVertexBuffers(0, new VertexBufferView(VertexBuffer, Marshal.SizeOf<Vertex>(), 0));

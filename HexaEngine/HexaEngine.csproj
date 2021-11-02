@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <TargetFramework>net5.0</TargetFramework>
-    <DefineConstants>TRACE;DEBUG;D3D_DEBUG</DefineConstants>
+    <DefineConstants>TRACE;DEBUG;D3D_DEBUG;D2D1_SUPPORT;DWRITE_SUPPORT</DefineConstants>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <Platforms>x64</Platforms>
   </PropertyGroup>

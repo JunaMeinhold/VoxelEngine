@@ -1,5 +1,7 @@
-﻿using HexaEngine.Windows;
+﻿using HexaEngine.Resources;
+using HexaEngine.Windows;
 using System;
+using System.Collections.Generic;
 using Vortice.Multimedia;
 using Vortice.XAudio2;
 
@@ -10,6 +12,8 @@ namespace HexaEngine.Audio
     /// </summary>
     public class AudioManager : Disposable
     {
+        internal List<Sound> PlayingSounds { get; } = new();
+
         public X3DAudio X3DAudio { get; private set; }
 
         public IXAudio2 IXAudio2 { get; private set; }

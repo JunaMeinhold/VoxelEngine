@@ -47,6 +47,11 @@
             Crosshair.Dispose();
             TextureShader.Dispose();
             FontShader.Dispose();
+            foreach (var text in Texts)
+            {
+                text.Font.Dispose();
+                text.Dispose();
+            }
             IsInitialized = false;
         }
 

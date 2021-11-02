@@ -1,8 +1,6 @@
 ﻿using HexaEngine.Audio;
 using HexaEngine.IO;
-using System;
 using System.IO;
-using System.Numerics;
 using Vortice.Multimedia;
 using Vortice.XAudio2;
 
@@ -90,11 +88,13 @@ namespace HexaEngine.Resources
 
         private void SourceVoice_StreamEnd()
         {
+            Manager.PlayingSounds.Remove(this);
             Playing = false;
         }
 
         public void Tick()
         {
+            if (Emitter is null) return;
             Manager.Update(SourceVoice, Emitter);
         }
 
@@ -104,6 +104,7 @@ namespace HexaEngine.Resources
             SourceVoice.SubmitSourceBuffer(Buffer);
             SourceVoice.SetVolume(volume);
             SourceVoice.Start(0);
+            Manager.PlayingSounds.Add(this);
         }
 
         public void Play()
@@ -112,6 +113,7 @@ namespace HexaEngine.Resources
             SourceVoice.SubmitSourceBuffer(Buffer);
             Tick();
             SourceVoice.Start(0);
+            Manager.PlayingSounds.Add(this);
         }
     }
 }

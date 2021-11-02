@@ -41,9 +41,6 @@
     <None Update="assets\models\skybox.obj">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Update="assets\sounds\test.wav">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
     <None Update="assets\textures\crosshair.png">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>

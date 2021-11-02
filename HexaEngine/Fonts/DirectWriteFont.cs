@@ -1,18 +1,24 @@
 ﻿#if D2D1_SUPPORT && DWRITE_SUPPORT
 
 using HexaEngine.Windows;
+using System.Collections.Generic;
 using System.Drawing;
 using System.Numerics;
 using Vortice.Direct2D1;
 using Vortice.Direct3D11;
 using Vortice.DirectWrite;
 using Vortice.DXGI;
-using FontStyle = Vortice.DirectWrite.FontStyle;
 
 namespace HexaEngine.Fonts
 {
-    public class DirectWriteFont
+    public class DirectWriteFont : Font
     {
+        public const int AtlasSize = 4096;
+
+        private DirectWriteFont()
+        {
+        }
+
         public DirectWriteFont(string fontFamily, int fontSize)
         {
             TextFormat = DeviceManager.Current.IDWriteFactory.CreateTextFormat(fontFamily, fontSize);
@@ -47,6 +53,13 @@ namespace HexaEngine.Fonts
             return width == 0 ? 2 : width;
         }
 
+        public IDWriteTextLayout RenderTo(ID3D11Texture2D texture, Vector4 color, Vector2 origin, string text)
+        {
+            var layout = CreateLayout(text, AtlasSize, AtlasSize);
+            RenderTo(texture, color, origin, layout);
+            return layout;
+        }
+
         public static void RenderTo(ID3D11Texture2D texture, Vector4 color, Vector2 origin, IDWriteTextLayout layout)
         {
             var surface = texture.QueryInterface<IDXGISurface>();
@@ -67,31 +80,25 @@ namespace HexaEngine.Fonts
             target.Dispose();
             surface.Dispose();
         }
-    }
 
-    public struct DirectWriteFontDesc
-    {
-        public FontStyle FontStyle { get; set; }
+        public void BuildVertexArray(DirectWriteText text, IDWriteTextLayout layout)
+        {
+        }
 
-        public FontWeight FontWeight { get; set; }
+        protected override void BuildVertexArray(out List<TextBase.Vertex> vertices, string sentence, float drawX, float drawY)
+        {
+            throw new System.NotImplementedException();
+        }
 
-        public float IncrementalTabStop { get; set; }
+        protected override void BuildVertexArray(List<TextBase.Vertex> vertices, char letter, ref float drawX, ref float drawY)
+        {
+            throw new System.NotImplementedException();
+        }
 
-        public FlowDirection FlowDirection { get; set; }
-
-        public ReadingDirection ReadingDirection { get; set; }
-
-        public WordWrapping WordWrapping { get; set; }
-
-        public FontStretch FontStretch { get; set; }
-
-        public ParagraphAlignment ParagraphAlignment { get; set; }
-
-        public string FontFamilyName { get; set; }
-
-        public TextAlignment TextAlignment { get; set; }
-
-        public float FontSize { get; set; }
+        public override void Render(ID3D11DeviceContext context)
+        {
+            throw new System.NotImplementedException("Only use Text Render");
+        }
     }
 }
 

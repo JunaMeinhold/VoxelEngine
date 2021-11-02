@@ -51,7 +51,7 @@ namespace App
             };
             Scene.Renderers.Add(new DeferredRenderer());
             var ui = new UIRenderer() { Crosshair = new Crosshair("crosshair.png") };
-            var font = new Font("font0.ff");
+            var font = new AtlasFont("font0.ff");
             var str = "Pre-Alpha 0.11";
             var text = new Text(DeviceManager, font, str, str.Length) { Transform = Matrix4x4.CreateTranslation(-(1280 / 2), 720 / 2, 0) };
             ui.Texts.Add(text);

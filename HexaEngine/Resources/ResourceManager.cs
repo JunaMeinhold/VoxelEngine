@@ -12,7 +12,7 @@ namespace HexaEngine.Resources
         private static readonly Dictionary<ResourceState, Texture> textures = new();
         private static readonly Dictionary<ResourceState, Model> models = new();
         private static readonly Dictionary<ResourceState, Sound> sounds = new();
-        private static readonly Dictionary<ResourceState, Font> fonts = new();
+        private static readonly Dictionary<ResourceState, AtlasFont> fonts = new();
         private static readonly Dictionary<ResourceState, Shader> shaders = new();
 
         public static string CurrentTexturePath { get; set; } = "assets/textures/";
@@ -131,7 +131,7 @@ namespace HexaEngine.Resources
             }
         }
 
-        public static Font LoadFont(string path)
+        public static AtlasFont LoadFont(string path)
         {
             var path1 = new FileInfo(CurrentSoundPath + path).FullName + new FileInfo(CurrentFontPath).FullName;
             var resource = fonts.FirstOrDefault(x => x.Key.Path == path1);
@@ -142,7 +142,7 @@ namespace HexaEngine.Resources
             }
             else
             {
-                Font font = new(CurrentFontPath + path);
+                AtlasFont font = new(CurrentFontPath + path);
                 fonts.Add(new ResourceState() { Instances = 1, Path = path1 }, font);
                 return font;
             }

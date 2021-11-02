@@ -1,10 +1,7 @@
 ﻿namespace HexaEngine.Windows
 {
     using System;
-    using System.Collections.Generic;
-    using System.Linq;
-    using System.Text;
-    using System.Threading.Tasks;
+    using System.Diagnostics;
 
     public class Disposable : IDisposable
     {
@@ -21,6 +18,8 @@
         // // TODO: Finalizer nur überschreiben, wenn "Dispose(bool disposing)" Code für die Freigabe nicht verwalteter Ressourcen enthält
         ~Disposable()
         {
+            if (!disposedValue)
+                Trace.WriteLine(GetType() + " is not Disposed!");
             // Ändern Sie diesen Code nicht. Fügen Sie Bereinigungscode in der Methode "Dispose(bool disposing)" ein.
             Dispose(disposing: false);
         }

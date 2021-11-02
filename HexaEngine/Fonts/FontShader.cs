@@ -41,7 +41,7 @@ namespace HexaEngine.Fonts
             ConstantPixelBuffer = Manager.ID3D11Device.CreateBuffer(pixelBufferDesc);
         }
 
-        public void Render(Matrix4x4 mvp, Text text)
+        public void Render(Matrix4x4 mvp, TextBase text)
         {
             text.Render(Manager.ID3D11DeviceContext);
             Write(ConstantMatrixBuffer, new PerFrameBuffer2()
@@ -68,6 +68,13 @@ namespace HexaEngine.Fonts
         public override void Render(IView view, Matrix4x4 transform, int indexCount)
         {
             throw new NotImplementedException();
+        }
+
+        protected override void Dispose(bool disposing)
+        {
+            ConstantMatrixBuffer.Dispose();
+            ConstantPixelBuffer.Dispose();
+            base.Dispose(disposing);
         }
     }
 }

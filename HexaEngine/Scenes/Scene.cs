@@ -29,6 +29,8 @@
 
         public DeviceManager DeviceManager { get; }
 
+        public SceneDispatcher Dispatcher { get; } = new();
+
         public Camera Camera { get; set; }
 
         public void Initialize()
@@ -47,6 +49,8 @@
             Time.FrameUpdate();
             Camera.UpdateView();
             Simulate(Time.Delta);
+
+            Dispatcher.ExecuteInvokes();
 
             Renderers.ForEach(x => x.BeginRender(DeviceManager));
             Objects.ForEach(x => x.Renderer?.Render(DeviceManager, Camera, x, Matrix4x4.Identity));

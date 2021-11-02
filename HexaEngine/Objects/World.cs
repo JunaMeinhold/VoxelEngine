@@ -1,13 +1,11 @@
 ﻿namespace HexaEngine.Objects
 {
-    using HexaEngine.Audio;
     using HexaEngine.Objects.Renderers;
     using HexaEngine.Objects.VoxelGen;
     using HexaEngine.Physics;
     using HexaEngine.Resources;
     using HexaEngine.Scenes.Interfaces;
     using HexaEngine.Scenes.Objects;
-    using HexaEngine.Windows;
     using System;
     using System.Collections.Generic;
     using System.IO;
@@ -17,13 +15,11 @@
 
     public class World : WorldMap, IScriptObject, IFrameScriptObject
     {
-        private Sound sound;
         private Vector3 CurrentPlayerChunkPos;
         private bool invalidate = true;
 
         public World(string path)
         {
-            Emitter.Position = Vector3.One;
             DeferredRenderer.Light = Sun;
             var dir = Directory.CreateDirectory(path);
             if (!dir.Exists)
@@ -32,13 +28,6 @@
             }
             Chunks = new Chunk[CHUNK_AMOUNT_X, CHUNK_AMOUNT_Y, CHUNK_AMOUNT_Z];
             Path = dir.FullName;
-            Emitter.ChannelCount = 1;
-            Emitter.CurveDistanceScaler = 1;
-            Emitter.OrientTop = Vector3.UnitY;
-            Emitter.OrientFront = Vector3.UnitZ;
-
-            sound = ResourceManager.LoadSound("test.wav");
-            sound.Emitter = Emitter;
         }
 
         public IObjectRenderer Renderer { get; } = new WorldRenderer();
@@ -60,8 +49,6 @@
         public int TimeScale { get; set; } = 1;
 
         public Sun Sun { get; } = new();
-
-        public Emitter Emitter { get; } = new();
 
         public VoxelHelper VoxelHelper { get; } = new(Matrix4x4.Identity);
 
@@ -152,15 +139,6 @@
 
         public void Update()
         {
-            if (sound.Playing)
-            {
-                sound.Tick();
-            }
-            else
-            {
-                sound.Play();
-            }
-
             WorldLoader.Upload();
             var chunkPos = Player.Camera.Position / Chunk.CHUNK_SIZE;
             chunkPos = new Vector3((int)chunkPos.X, 0, (int)chunkPos.Z);
