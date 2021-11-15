@@ -26,4 +26,8 @@
   <ItemGroup>
     <None Include="..\.editorconfig" Link=".editorconfig" />
   </ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Vortice.Direct3D11" Version="1.9.143" />
+    <PackageReference Include="Vortice.DXGI" Version="1.9.143" />
+  </ItemGroup>
 </Project>

@@ -6,7 +6,6 @@ using System.IO;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using System.Text;
 using Vortice.Direct3D11;
 using Vortice.Mathematics;
 
@@ -51,6 +50,8 @@ namespace HexaEngine.Objects.VoxelGen
             Array.Fill(MinY, (byte)CHUNK_SIZE);
         }
 
+        public ChunkState State { get; set; }
+
         public bool IsLoaded { get; private set; }
 
         public bool InMemory => data is not null;
@@ -72,8 +73,37 @@ namespace HexaEngine.Objects.VoxelGen
         /// </summary>
         public void Update()
         {
+            if (data is null) return;
             chunkHelper = new();
             GenerateMesh();
+            chunkHelper = null;
+        }
+
+        public void UpdateState(ChunkState state)
+        {
+            switch (state)
+            {
+                case ChunkState.OnDisk:
+                    vertexBuffer.Unload();
+                    vertexBuffer.Reset(0);
+                    break;
+
+                case ChunkState.OnGpu:
+                    chunkHelper = new();
+                    GenerateMesh();
+                    chunkHelper = null;
+                    data = null;
+                    MinY = null;
+                    MaxY = null;
+                    break;
+
+                case ChunkState.OnCpu:
+                    chunkHelper = new();
+                    GenerateMesh();
+                    chunkHelper = null;
+                    break;
+            }
+            State = state;
         }
 
         /// <summary>
@@ -182,7 +212,7 @@ namespace HexaEngine.Objects.VoxelGen
                     {
                         ref Block b = ref data[access];
 
-                        if (b.kind != EMPTY)
+                        if (b.index != EMPTY)
                         {
                             CreateRun(ref b, i, j, k << 12, i1, k1 << 12, j + chunkY, access, minX, maxX, j == 0, j == CHUNK_SIZE_MINUS_ONE, minZ, maxZ, iCS, kCS2);
                         }
@@ -448,50 +478,53 @@ namespace HexaEngine.Objects.VoxelGen
         {
             ConcurrentQueue<ChunkRecord> savequeue = new();
 
-            int access, heightMapAccess, iCS, kCS2, i1, k1, j, topJ;
-            k1 = 1;
-            for (int k = 0; k < CHUNK_SIZE; k++, k1++)
+            if (data != null)
             {
-                // Calculate this once, rather than multiple times in the inner loop
-                kCS2 = k * CHUNK_SIZE_SQUARED;
-
-                i1 = 1;
-                heightMapAccess = k * CHUNK_SIZE;
-
-                for (int i = 0; i < CHUNK_SIZE; i++, i1++)
+                int access, heightMapAccess, iCS, kCS2, i1, k1, j, topJ;
+                k1 = 1;
+                for (int k = 0; k < CHUNK_SIZE; k++, k1++)
                 {
-                    // Determine where to start the innermost loop
-                    j = MinY[heightMapAccess];
-                    topJ = MaxY[heightMapAccess];
-                    heightMapAccess++;
-
                     // Calculate this once, rather than multiple times in the inner loop
-                    iCS = i * CHUNK_SIZE;
+                    kCS2 = k * CHUNK_SIZE_SQUARED;
 
-                    // Calculate access here and increment it each time in the innermost loop
-                    access = kCS2 + iCS + j;
+                    i1 = 1;
+                    heightMapAccess = k * CHUNK_SIZE;
 
-                    // X and Z runs search upwards to create runs, so start at the bottom.
-                    for (; j < topJ; j++, access++)
+                    for (int i = 0; i < CHUNK_SIZE; i++, i1++)
                     {
-                        ref Block b = ref data[access];
+                        // Determine where to start the innermost loop
+                        j = MinY[heightMapAccess];
+                        topJ = MaxY[heightMapAccess];
+                        heightMapAccess++;
 
-                        if (b.kind != EMPTY)
+                        // Calculate this once, rather than multiple times in the inner loop
+                        iCS = i * CHUNK_SIZE;
+
+                        // Calculate access here and increment it each time in the innermost loop
+                        access = kCS2 + iCS + j;
+
+                        // X and Z runs search upwards to create runs, so start at the bottom.
+                        for (; j < topJ; j++, access++)
                         {
-                            savequeue.Enqueue(new ChunkRecord() { Position = new(i, j, k), Type = b.index, Health = b.health });
+                            ref Block b = ref data[access];
+
+                            if (b.index != EMPTY)
+                            {
+                                savequeue.Enqueue(new ChunkRecord() { Position = new(i, j, k), Type = b.index, Health = b.health });
+                            }
                         }
                     }
                 }
             }
 
-            var size = 4 + MinY.Length + MaxY.Length + savequeue.Count * Marshal.SizeOf<ChunkRecord>();
+            var size = 4 + CHUNK_SIZE_SQUARED + CHUNK_SIZE_SQUARED + savequeue.Count * Marshal.SizeOf<ChunkRecord>();
             var result = ArrayPool<byte>.Shared.Rent(size);
             var span = result.AsSpan(0, size);
             var index = 4;
             MinY.CopyTo(span[index..]);
-            index += MinY.Length;
+            index += CHUNK_SIZE_SQUARED;
             MaxY.CopyTo(span[index..]);
-            index += MaxY.Length;
+            index += CHUNK_SIZE_SQUARED;
             var buffer = new byte[Marshal.SizeOf<ChunkRecord>()];
             BinaryPrimitives.WriteInt32LittleEndian(span, savequeue.Count);
             while (savequeue.TryDequeue(out var run))
@@ -505,6 +538,7 @@ namespace HexaEngine.Objects.VoxelGen
             MaxY = null;
             chunkHelper = null;
             stream.Write(span);
+            State = ChunkState.OnDisk;
             ArrayPool<byte>.Shared.Return(result);
         }
 
@@ -525,18 +559,46 @@ namespace HexaEngine.Objects.VoxelGen
             index += CHUNK_SIZE_SQUARED;
             span.Slice(index, CHUNK_SIZE_SQUARED).CopyTo(MaxY);
             index += CHUNK_SIZE_SQUARED;
-
+            if (count == 0)
+            {
+                data = null;
+                MinY = null;
+                MaxY = null;
+            }
             var buffer = new byte[Marshal.SizeOf<ChunkRecord>()];
             for (int i = 0; i < count; i++)
             {
                 span.Slice(index, buffer.Length).CopyTo(buffer);
                 index += buffer.Length;
                 var record = buffer.FromBytes<ChunkRecord>();
-                data[record.Position.MapToIndex(CHUNK_SIZE, CHUNK_SIZE)] = new Block() { health = record.Health, index = record.Type, kind = 1 };
+                data[record.Position.MapToIndex(CHUNK_SIZE, CHUNK_SIZE)] = new Block() { health = record.Health, index = record.Type };
             }
             return index;
         }
 
         #endregion Serialization
+    }
+
+    public enum ChunkState
+    {
+        /// <summary>
+        /// Chunk does not exist and must be generated by the ChunkGen.
+        /// </summary>
+        None,
+
+        /// <summary>
+        /// No impact
+        /// </summary>
+        OnDisk,
+
+        /// <summary>
+        /// Medium memory impact (only vertex buffer)
+        /// </summary>
+        OnGpu,
+
+        /// <summary>
+        /// Highest memory impact (full data)
+        /// </summary>
+        OnCpu
     }
 }

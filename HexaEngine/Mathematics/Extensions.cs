@@ -136,5 +136,10 @@ namespace HexaEngine.Mathematics
         {
             plane = Plane.Normalize(plane);
         }
+
+        public static Vector3 Floor(this Vector3 vector)
+        {
+            return new(MathF.Floor(vector.X), MathF.Floor(vector.Y), MathF.Floor(vector.Z));
+        }
     }
 }

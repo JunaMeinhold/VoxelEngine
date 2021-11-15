@@ -16,6 +16,8 @@
         private readonly ConcurrentQueue<ChunkRegion> unloadQueue = new();
         private readonly ConcurrentQueue<ChunkRegion> unloadIOQueue = new();
         private readonly List<ChunkRegion> loadedInternal = new();
+        private readonly List<ChunkRegion> cpuInternal = new();
+        private readonly List<ChunkRegion> gpuInternal = new();
         private readonly Thread thread;
         private bool running = true;
         private Vector3 currentPos;
@@ -31,7 +33,9 @@
 
         public List<Chunk> LoadedChunks { get; } = new();
 
-        public int RenderDistance { get; set; } = 16;
+        public int RenderDistance { get; set; } = 32;
+
+        public int DiskRadius { get; set; } = 1;
 
         public int HalfDistance => RenderDistance / 2;
 
@@ -49,7 +53,7 @@
         {
             foreach (var region in loadedInternal)
             {
-                region.Update();
+                region.Load();
                 uploadQueue.Enqueue(region);
             }
         }
@@ -85,7 +89,7 @@
                             region.Generate(World);
                     }
                     if (!region.InMemory) return;
-                    region.Update();
+                    region.Load();
                     loadedInternal.Add(region);
                     uploadQueue.Enqueue(region);
                 }
@@ -107,7 +111,7 @@
             {
                 while (updateQueue.TryDequeue(out var region) && running)
                 {
-                    region.Update();
+                    region.Load();
                     uploadQueue.Enqueue(region);
                 }
 

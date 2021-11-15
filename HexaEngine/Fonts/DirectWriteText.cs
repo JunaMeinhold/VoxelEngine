@@ -15,8 +15,6 @@ namespace HexaEngine.Fonts
             texture = DeviceManager.Current.ID3D11Device.CreateTexture2D(new Texture2DDescription(Vortice.DXGI.Format.R32G32B32A32_Float, DirectWriteFont.AtlasSize, DirectWriteFont.AtlasSize));
         }
 
-        public Vector4 Color { get; set; }
-
         public override void Render(ID3D11DeviceContext context)
         {
         }

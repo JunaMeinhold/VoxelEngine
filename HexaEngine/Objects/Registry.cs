@@ -17,21 +17,18 @@
             public static Block Stone = new Block()
             {
                 index = 2,
-                kind = 1,
                 health = 4,
             };
 
             public static Block Dirt = new Block()
             {
                 index = 1,
-                kind = 1,
                 health = 4,
             };
 
             public static Block Grass = new Block()
             {
                 index = 3,
-                kind = 1,
                 health = 4,
             };
         }

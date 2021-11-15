@@ -61,7 +61,7 @@ namespace App
             Scene.Camera = player.Camera;
             Scene.Objects.Add(player);
             world.Player = player;
-            world.RenderDistance = 16;
+            world.RenderDistance = 128;
             world.Generator = new PerlinChunkGenerator(1332);
             Scene.Objects.Add(world);
             Scene.UIRenderers.Add(ui);

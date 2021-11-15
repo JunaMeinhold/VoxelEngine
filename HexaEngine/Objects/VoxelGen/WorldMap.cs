@@ -51,7 +51,7 @@ namespace HexaEngine.Objects.VoxelGen
                 return true;
 
             // Chunk data accessed quickly using bit masks
-            return c.data[Extensions.MapToIndex(xlocal, ylocal, zlocal, Chunk.CHUNK_SIZE, Chunk.CHUNK_SIZE)].kind == Chunk.EMPTY;
+            return c.data[Extensions.MapToIndex(xlocal, ylocal, zlocal, Chunk.CHUNK_SIZE, Chunk.CHUNK_SIZE)].index == Chunk.EMPTY;
         }
 
         public void Set(Chunk chunk, Vector3 pos)
@@ -161,7 +161,7 @@ namespace HexaEngine.Objects.VoxelGen
                 }
 
                 // If the block is empty
-                else if (c.data[access].kind == 0)
+                else if (c.data[access].index == 0)
                 {
                     hit = false;
                 }
@@ -275,7 +275,7 @@ namespace HexaEngine.Objects.VoxelGen
             while (t <= max)
             {
                 // Exit check
-                if (c != null && c.data[access].kind != 0)
+                if (c != null && c.data[access].index != 0)
                 {
                     hit = true;
                     return;

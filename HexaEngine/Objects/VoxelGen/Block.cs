@@ -4,7 +4,6 @@ namespace HexaEngine.Objects.VoxelGen
 {
     public struct Block
     {
-        public byte kind;
         public byte health;
         public int index;
 

@@ -15,6 +15,8 @@
 
         public bool IsEmpty => Chunks is null || Chunks[0] is null;
 
+        public ChunkState State => Chunks is not null && Chunks[0] is not null ? Chunks[0].State : ChunkState.None;
+
         public bool IsLoaded => Chunks is not null && Chunks[0] is not null && Chunks[0].IsLoaded;
 
         public bool InMemory => Chunks is not null && Chunks[0] is not null && Chunks[0].InMemory;
@@ -33,14 +35,10 @@
             return File.Exists(Path.Combine(world.Path, $"region-{Position.X}-{Position.Y}"));
         }
 
-        public void Update()
-        {
-            _ = Parallel.ForEach(Chunks, chunk => chunk?.Update());
-        }
-
         public void Generate(World world)
         {
             Chunks = world.Generator.GenerateBatch(world, new(Position.X, 0, Position.Y));
+            ToDisk(Chunks[0].Map);
         }
 
         public void Upload()
@@ -59,6 +57,11 @@
             }
         }
 
+        public void Load()
+        {
+            _ = Parallel.ForEach(Chunks, chunk => chunk?.Update());
+        }
+
         public void DeepUnload()
         {
             foreach (var chunk in Chunks)
@@ -66,6 +69,36 @@
                 chunk.Unload();
             }
             ToDisk(Chunks[0].Map);
+        }
+
+        public void UpdateState(ChunkState state)
+        {
+            switch (state)
+            {
+                case ChunkState.OnDisk:
+                    if (State == ChunkState.OnCpu)
+                    {
+                        ToDisk(Chunks[0].Map);
+                    }
+                    _ = Parallel.ForEach(Chunks, chunk => chunk?.UpdateState(state));
+                    break;
+
+                case ChunkState.OnGpu:
+                    if (State == ChunkState.OnGpu | State == ChunkState.OnDisk)
+                    {
+                        LoadFromDisk(Chunks[0].Map);
+                    }
+                    _ = Parallel.ForEach(Chunks, chunk => chunk?.UpdateState(state));
+                    break;
+
+                case ChunkState.OnCpu:
+                    if (State == ChunkState.OnGpu | State == ChunkState.OnDisk)
+                    {
+                        LoadFromDisk(Chunks[0].Map);
+                    }
+                    _ = Parallel.ForEach(Chunks, chunk => chunk?.UpdateState(state));
+                    break;
+            }
         }
 
         public void ToDisk(WorldMap world)

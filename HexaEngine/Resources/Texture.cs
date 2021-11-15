@@ -1,5 +1,4 @@
 ﻿using HexaEngine.IO;
-using HexaEngine.Windows;
 using System;
 using System.Diagnostics;
 using System.Drawing;
@@ -282,14 +281,14 @@ namespace HexaEngine.Resources
             var ptr = fs.GetIntPtr();
 
             var image = DirectXTexNet.TexHelper.Instance.LoadFromDDSMemory(ptr, fs.Length, DirectXTexNet.DDS_FLAGS.NONE);
-            var image1 = image.Decompress((DirectXTexNet.DXGI_FORMAT)Format.R16G16B16A16_Float);
-            var texture = new ID3D11Texture2D(image1.CreateTextureEx(
-                device.NativePointer,
-                DirectXTexNet.D3D11_USAGE.DEFAULT,
-                DirectXTexNet.D3D11_BIND_FLAG.SHADER_RESOURCE | DirectXTexNet.D3D11_BIND_FLAG.RENDER_TARGET,
-                0,
-                DirectXTexNet.D3D11_RESOURCE_MISC_FLAG.GENERATE_MIPS,
-                false));
+            var image1 = image.Decompress(Format.R16G16B16A16_Float);
+            var texture = image1.CreateTextureEx(
+                device,
+                ResourceUsage.Default,
+                BindFlags.ShaderResource | BindFlags.RenderTarget,
+                CpuAccessFlags.None,
+                ResourceOptionFlags.GenerateMips,
+                false);
             image1.Dispose();
             image.Dispose();
             Marshal.FreeHGlobal(ptr);

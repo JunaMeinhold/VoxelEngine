@@ -17,6 +17,9 @@ using ID3D11ShaderResourceViewPtr = System.IntPtr;
 using ID3D11DeviceContextPtr = System.IntPtr;
 using XMVectorPtr = System.IntPtr;
 
+using Vortice.Direct3D11;
+using Vortice.DXGI;
+
 namespace DirectXTexNet
 {
 #pragma warning disable CA1069 // Enumerationswerte dürfen nicht dupliziert werden
@@ -1178,7 +1181,17 @@ namespace DirectXTexNet
         /// <param name="alphaWeight">The alpha weight (is only used by BC7. 1.0 is the typical value to use).</param>
         public abstract ScratchImage Compress(ID3D11DevicePtr pDevice, DXGI_FORMAT format, TEX_COMPRESS_FLAGS compress, float alphaWeight);
 
+        public ScratchImage Decompress(Size_t imageIndex, Format format)
+        {
+            return Decompress(imageIndex, (DXGI_FORMAT)format);
+        }
+
         public abstract ScratchImage Decompress(Size_t imageIndex, DXGI_FORMAT format);
+
+        public ScratchImage Decompress(Format format)
+        {
+            return Decompress((DXGI_FORMAT)format);
+        }
 
         public abstract ScratchImage Decompress(DXGI_FORMAT format);
 
@@ -1209,6 +1222,11 @@ namespace DirectXTexNet
         public abstract ID3D11ResourcePtr CreateTexture(ID3D11DevicePtr pDevice);
 
         public abstract ID3D11ShaderResourceViewPtr CreateShaderResourceView(ID3D11DevicePtr pDevice);
+
+        public ID3D11Texture2D CreateTextureEx(ID3D11Device device, ResourceUsage usage, BindFlags bindFlags, CpuAccessFlags cpu, ResourceOptionFlags optionFlags, bool forceSRGB)
+        {
+            return new ID3D11Texture2D(CreateTextureEx(device.NativePointer, (D3D11_USAGE)usage, (D3D11_BIND_FLAG)bindFlags, (D3D11_CPU_ACCESS_FLAG)cpu, (D3D11_RESOURCE_MISC_FLAG)optionFlags, forceSRGB));
+        }
 
         public abstract ID3D11ResourcePtr CreateTextureEx(
             ID3D11DevicePtr pDevice,

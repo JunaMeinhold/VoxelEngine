@@ -6,7 +6,6 @@
     using HexaEngine.Scenes.Objects;
     using HexaEngine.Windows;
     using System.Numerics;
-    using VoxelGen;
 
     public class Player : IFrameScriptObject
     {
@@ -22,7 +21,7 @@
                 Fov = 120,
                 Type = CameraType.Perspective,
                 FarPlane = 1000f,
-                PositionZ = -2,
+                PositionY = 60,
             };
             World = world;
         }
