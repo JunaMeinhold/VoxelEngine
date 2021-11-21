@@ -1,4 +1,5 @@
 ﻿using HexaEngine.Windows;
+using TestGame;
 
 namespace App
 {
@@ -6,8 +7,10 @@ namespace App
     {
         private static void Main(string[] args)
         {
-            var window = new MainWindow();
-            Application.Run(window);
+            Game game = new();
+            game.Initialize();
+            Application.Run(new GameWindow(game));
+            game.Uninitialize();
         }
     }
 }

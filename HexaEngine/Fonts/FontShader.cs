@@ -17,21 +17,19 @@ namespace HexaEngine.Fonts
             public Vector4 pixelColor;
         }
 
-        // Properties
-        public ID3D11Buffer ConstantMatrixBuffer { get; set; }
-
-        public ID3D11Buffer ConstantPixelBuffer { get; set; }
+        private ID3D11Buffer ConstantMatrixBuffer;
+        private ID3D11Buffer ConstantPixelBuffer;
 
         public IView View { get; set; }
 
         // Constructor
-        public FontShader()
+
+        protected override void Initialize()
         {
             VertexShaderDescription = new("font/FontVertex.hlsl", "FontVertexShader", VertexShaderVersion.VS_5_0);
             PixelShaderDescription = new("font/FontPixel.hlsl", "FontPixelShader", PixelShaderVersion.PS_5_0);
             InputElements.Add(new("POSITION", 0, Format.R32G32B32_Float, 0, 0, InputClassification.PerVertexData, 0));
             InputElements.Add(new("TEXCOORD", 0, Format.R32G32_Float, InputElementDescription.AppendAligned, 0, InputClassification.PerVertexData, 0));
-            Initialize();
 
             // Setup the description of the dynamic matrix constant buffer that is in the vertex shader.
             var matrixBufferDesc = new BufferDescription(Marshal.SizeOf<PerFrameBuffer2>(), BindFlags.ConstantBuffer, ResourceUsage.Dynamic) { CpuAccessFlags = CpuAccessFlags.Write };

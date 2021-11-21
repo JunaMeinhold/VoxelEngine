@@ -6,16 +6,13 @@
 #define Vibrance_RGB_balance float3(1.00, 1.00, 1.00)  //[-10.00 to 10.00,-10.00 to 10.00,-10.00 to 10.00] A per channel multiplier to the Vibrance strength so you can give more boost to certain colors over others
 #define Shininess 20.0;
 
-struct Fog {
-	float fogStart;
-	float fogEnd;
-};
-
 struct DirectionalLight
 {
+	float4 Color;
 	float3 LightDirection;
-	float3 Position;
-	float4 Ambient;
+	float reserved;
+	matrix view;
+	matrix projection;
 };
 
 /////////////
@@ -25,8 +22,8 @@ struct DirectionalLight
 Texture2DMS<float4> colorTexture : register(t0);
 Texture2DMS<float4> positionTexture : register(t1);
 Texture2DMS<float4> normalTexture : register(t2);
-Texture2DMS<float4> depthTexture : register(t3);
-Texture2D depthLightTexture : register(t4);
+Texture2D depthMapTexture : register(t3);
+//Texture2DMS<float4> depthTexture : register(t4);
 
 ///////////////////
 // SAMPLE STATES //
@@ -40,8 +37,6 @@ SamplerState SampleTypePoint : register(s0);
 cbuffer LightBuffer : register(b0)
 {
 	DirectionalLight light;
-	Fog fog;
-	float padding;
 };
 
 //////////////
@@ -57,51 +52,57 @@ struct GBufferAttributes {
 	float4 color;
 	float4 position;
 	float4 normal;
-	float4 depth;
-	float4 lightDepth;
+	//float4 depth;
 };
 
-void ExtractGBufferAttributes(in PixelInputType pixel, in Texture2DMS<float4> color, in Texture2DMS<float4> pos, in Texture2DMS<float4> normal, in Texture2DMS<float4> depth, in int sampleIndex,
+void ExtractGBufferAttributes(in PixelInputType pixel, in Texture2DMS<float4> color, in Texture2DMS<float4> pos, in Texture2DMS<float4> normal, in int sampleIndex,
 	out GBufferAttributes attrs)
 {
+	//in Texture2DMS<float4> depth
 	int3 screenPos = (int3)pixel.position;
 	attrs.color = (float4)color.Load((int2)screenPos, sampleIndex);
 	attrs.position = (float4)pos.Load((int2)screenPos, sampleIndex);
 	attrs.normal = (float4)normal.Load((int2)screenPos, sampleIndex);
-	attrs.depth = (float4)depth.Load((int2)screenPos, sampleIndex);
-	attrs.lightDepth = depthLightTexture.Sample(SampleTypePoint, pixel.tex);
-}
-
-float3 phongBRDF(float3 lightDir, float3 viewDir, float3 normal, float3 phongDiffuseCol, float3 phongSpecularCol, float phongShininess)
-{
-	float3 color = phongDiffuseCol;
-	float3 reflectDir = reflect(-lightDir, normal);
-	float specDot = max(dot(reflectDir, viewDir), 0.0);
-	color += pow(specDot, phongShininess) * phongSpecularCol;
-	return color;
+	//attrs.depth = (float4)depth.Load((int2)screenPos, sampleIndex);
 }
 
 float4 ComputeLighting(PixelInputType input, GBufferAttributes attrs)
 {
-	float shininess = Shininess;
-	float4 color;
-	float3 specularColor = float3(0.5f, 0.5f, 0.5f);
+	float4 image = attrs.color;
+	float3 position = (float3)attrs.position;
+	float3 normal = normalize((float3)attrs.normal);
+	float4 color = float4(0.1, 0.1, 0.1, 0.1);
 
-	float3 lightDir = normalize(-light.LightDirection);
-	float3 viewDir = (float3)normalize(-attrs.position);
-	float3 n = (float3)normalize(attrs.normal);
+	float3 lightDir = -light.LightDirection;
 
-	float3 luminance = float3(0, 0, 0);
+	// Correct
+	float4 projectedEyeDir = float4(position, 1);
+	projectedEyeDir = mul(projectedEyeDir, light.view);
+	projectedEyeDir = mul(projectedEyeDir, light.projection);
+	float2 projectTexCoord;
+	projectTexCoord.x = projectedEyeDir.x / projectedEyeDir.w / 2.0f + 0.5f;
+	projectTexCoord.y = -projectedEyeDir.y / projectedEyeDir.w / 2.0f + 0.5f;
 
-	float illuminance = dot(lightDir, n);
-	if (illuminance > 0.0) {
-		float3 brdf = phongBRDF(lightDir, viewDir, n, attrs.color.rgb, specularColor.rgb, shininess);
-		luminance += brdf * illuminance * float3(2, 2, 2);
+	if ((saturate(projectTexCoord.x) == projectTexCoord.x) && (saturate(projectTexCoord.y) == projectTexCoord.y))
+	{
+		const float bias = 0.0001;
+		float depthValue = depthMapTexture.Sample(SampleTypePoint, projectTexCoord).r;
+		float lightDepthValue = (projectedEyeDir.z / projectedEyeDir.w) - bias;
+
+		if (lightDepthValue < depthValue)
+		{
+			float lightIntensity = saturate(dot(normal, lightDir));
+
+			if (lightIntensity > 0.0f)
+			{
+				color += (light.Color * lightIntensity);
+				color = saturate(color);
+			}
+		}
 	}
-
-	color.rgb = luminance;
+	color = color * image;
+	//color.xyz = projectedEyeDir.xyz;
 	color.a = attrs.color.w;
-
 	return color;
 }
 
@@ -134,10 +135,12 @@ float4 LightPixelShader(PixelInputType pixel, uint coverage: SV_Coverage, uint s
 	GBufferAttributes attrs;
 	if (coverage & (1 << sampleIndex))
 	{
-	ExtractGBufferAttributes(pixel, colorTexture, positionTexture, normalTexture, depthTexture, sampleIndex, attrs);
-	float4 color = ComputeLighting(pixel, attrs);
-	color = ColorCorrect(color);
-	return color;
+		// ExtractGBufferAttributes(pixel, colorTexture, positionTexture, normalTexture, depthTexture, sampleIndex, attrs);
+
+		ExtractGBufferAttributes(pixel, colorTexture, positionTexture, normalTexture, sampleIndex, attrs);
+		float4 color = ComputeLighting(pixel, attrs);
+		color = ColorCorrect(color);
+		return color;
 	}
 	discard;
 	return 0;

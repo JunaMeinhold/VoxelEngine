@@ -8,7 +8,6 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
-using System.Linq;
 using System.Numerics;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -25,6 +24,7 @@ namespace HexaEngine.Shaders
 
         public Shader()
         {
+            InternalInitialize();
         }
 
         protected DeviceManager Manager { get; set; } = DeviceManager.Current;
@@ -49,11 +49,46 @@ namespace HexaEngine.Shaders
 
         protected PixelShaderDescription? PixelShaderDescription { get; set; } = null;
 
-        protected void Initialize()
+        protected bool IsInvalid { get; private set; }
+
+        protected bool IsReloading { get; private set; }
+
+        public static bool AutoReload { get; set; } = true;
+
+        protected FileSystemWatcher FileSystemWatcher { get; set; }
+
+        public static event EventHandler<Shader> RequestForReload;
+
+        public void ReloadShader()
         {
+            if (IsReloading) return;
+            IsReloading = true;
+            Dispose();
+            InputElements.Clear();
+            InternalInitialize();
+            IsReloading = false;
+            FileSystemWatcher.EnableRaisingEvents = true;
+        }
+
+        protected abstract void Initialize();
+
+        private void InternalInitialize()
+        {
+            Initialize();
             if (VertexShaderDescription.HasValue)
             {
                 var desc = VertexShaderDescription.Value;
+                if (AutoReload)
+                {
+                    FileSystemWatcher = new(Path.GetDirectoryName(desc.Path));
+                    FileSystemWatcher.NotifyFilter = NotifyFilters.Size;
+                    FileSystemWatcher.EnableRaisingEvents = true;
+                    FileSystemWatcher.Changed += (s, e) =>
+                    {
+                        FileSystemWatcher.EnableRaisingEvents = false;
+                        RequestForReload?.Invoke(this, this);
+                    };
+                }
                 if (ShaderCache.GetShader(desc.Path, out var ptr, out var size))
                 {
                     VertexShader = Manager.ID3D11Device.CreateVertexShader(ptr, size);
@@ -65,6 +100,11 @@ namespace HexaEngine.Shaders
                 else
                 {
                     CompileShader(Manager, desc.Path, desc.Entry, desc.Version.ToString().ToLowerInvariant(), out var vBlob);
+                    if (vBlob == null)
+                    {
+                        IsInvalid = true;
+                        return;
+                    }
                     ShaderCache.CacheShader(desc.Path, vBlob);
                     VertexShader = Manager.ID3D11Device.CreateVertexShader(vBlob.BufferPointer, vBlob.BufferSize);
                     VertexShader.DebugName = GetType().Name + nameof(VertexShader);
@@ -101,36 +141,65 @@ namespace HexaEngine.Shaders
                 else
                 {
                     CompileShader(Manager, desc.Path, desc.Entry, desc.Version.ToString().ToLowerInvariant(), out var pBlob);
+                    if (pBlob == null)
+                    {
+                        IsInvalid = true;
+                        return;
+                    }
                     ShaderCache.CacheShader(desc.Path, pBlob);
                     PixelShader = Manager.ID3D11Device.CreatePixelShader(pBlob.BufferPointer, pBlob.BufferSize);
                     PixelShader.DebugName = GetType().Name + nameof(PixelShader);
                     pBlob.Dispose();
                 }
             }
+            IsInvalid = false;
+        }
+
+        public struct ShaderDebugName
+        {
+            public ushort Flags;       // Reserved, must be set to zero.
+            public ushort NameLength;  // Length of the debug name, without null terminator.
+                                       // Followed by NameLength bytes of the UTF-8-encoded name.
+                                       // Followed by a null terminator.
+                                       // Followed by [0-3] zero bytes to align to a 4-byte boundary.
         }
 
         protected void CompileShader(DeviceManager manager, string shaderPath, string entry, string version, out Blob blob)
         {
             var flags = ShaderFlags.None;
 #if DEBUG
-            flags |= ShaderFlags.Debug | ShaderFlags.SkipOptimization;
+            flags |= ShaderFlags.Debug | ShaderFlags.SkipOptimization | ShaderFlags.DebugNameForSource;
 #endif
             var fs = FileSystem.Open(shaderPath);
             var bytes = fs.GetBytes();
             fs.Dispose();
 
-            _ = Compiler.Compile(bytes, entry, Path.GetFileName(shaderPath), version, out blob, out var error);
-            //_ = Compiler.CompileFromFile(new FileInfo(shaderPath).FullName, null, null, entry, version, flags, out blob, out var error);
+            _ = Compiler.Compile(bytes, null, null, entry, shaderPath, version, flags, out blob, out var error);
+
+#if DEBUG
+            if (blob != null)
+            {
+                var pdb = Compiler.GetBlobPart(blob.BufferPointer, blob.BufferSize, ShaderBytecodePart.Pdb, 0);
+                var pdbname = Compiler.GetBlobPart(blob.BufferPointer, blob.BufferSize, ShaderBytecodePart.DebugName, 0);
+                var pDebugNameData = Marshal.PtrToStructure<ShaderDebugName>(pdbname.BufferPointer);
+                var name = Marshal.PtrToStringUTF8(pdbname.BufferPointer + 4, pDebugNameData.NameLength);
+                File.WriteAllBytes(Path.Combine(ResourceManager.CurrentPDBShaderPath, name), pdb.GetBytes());
+                pdb.Dispose();
+                pdbname.Dispose();
+            }
+#endif
             if (error is not null)
             {
                 var text = Encoding.UTF8.GetString(error.GetBytes());
                 Debug.WriteLine(text);
+#if DEBUG
                 var result = manager.Window.ShowMessageBox($"Shader: {version}",
                     text,
                     MessageBoxButtons.OkCancel,
                     MessageBoxIcon.Warning);
                 if (result == DialogResult.Cancel)
                     Application.Exit();
+#endif
             }
         }
 

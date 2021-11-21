@@ -13,7 +13,7 @@ namespace HexaEngine.Shaders.BuildIn
         public ID3D11Buffer MatrixBuffer;
         public RenderTexture DepthMap;
 
-        public DepthShader()
+        protected override void Initialize()
         {
             DepthMap = new RenderTexture();
             _ = DepthMap.Initialize(Manager.ID3D11Device, nameof(DepthShader), 1024, 1024);
@@ -21,7 +21,6 @@ namespace HexaEngine.Shaders.BuildIn
             VertexShaderDescription = new("depth/VertexShader.hlsl", "main", VertexShaderVersion.VS_5_0);
             PixelShaderDescription = new("depth/PixelShader.hlsl", "main", PixelShaderVersion.PS_5_0);
             InputElements.Add(new("POSITION", 0, Format.R32G32B32A32_Float, 0, 0, InputClassification.PerVertexData, 0));
-            Initialize();
 
             var matrixBufferDesc = new BufferDescription(Marshal.SizeOf<PerFrameBuffer>(), BindFlags.ConstantBuffer, ResourceUsage.Dynamic) { CpuAccessFlags = CpuAccessFlags.Write };
             MatrixBuffer = CreateBuffer(matrixBufferDesc, nameof(MatrixBuffer));
@@ -29,6 +28,7 @@ namespace HexaEngine.Shaders.BuildIn
 
         public override void Render(IView view, Matrix4x4 transform, int indexCount)
         {
+            if (IsInvalid) return;
             Write(MatrixBuffer, new PerFrameBuffer()
             {
                 Projection = Matrix4x4.Transpose(view.ProjectionMatrix),
@@ -36,6 +36,7 @@ namespace HexaEngine.Shaders.BuildIn
                 World = Matrix4x4.Transpose(transform)
             });
 
+            //Manager.SetState(Manager.FrontCullingRasterizerState);
             Manager.ID3D11DeviceContext.VSSetConstantBuffer(0, MatrixBuffer);
 
             Manager.ID3D11DeviceContext.IASetInputLayout(InputLayout);
@@ -44,6 +45,7 @@ namespace HexaEngine.Shaders.BuildIn
 
             Manager.ID3D11DeviceContext.PSSetShaderResource(0, null);
             Manager.ID3D11DeviceContext.DrawIndexed(indexCount, 0, 0);
+            //Manager.RestoreState();
         }
 
         protected override void Dispose(bool disposing)

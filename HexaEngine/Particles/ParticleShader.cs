@@ -26,15 +26,13 @@ namespace HexaEngine.Particles
 
         public ID3D11SamplerState SamplerState { get; set; }
 
-        // Constructor
-        public ParticleShader()
+        protected override void Initialize()
         {
             VertexShaderDescription = new("particle/ParticleVertexShader.hlsl", "ParticleVertexShader", VertexShaderVersion.VS_5_0);
             PixelShaderDescription = new("particle/ParticlePixelShader.hlsl", "ParticlePixelShader", PixelShaderVersion.PS_5_0);
             InputElements.Add(new("POSITION", 0, Format.R32G32B32A32_Float, 0, 0, InputClassification.PerVertexData, 0));
             InputElements.Add(new("TEXCOORD", 0, Format.R32G32_Float, InputElementDescription.AppendAligned, 0, InputClassification.PerVertexData, 0));
             InputElements.Add(new("COLOR", 0, Format.R32G32B32A32_Float, InputElementDescription.AppendAligned, 0, InputClassification.PerVertexData, 0));
-            Initialize();
 
             ConstantMatrixBuffer = CreateBuffer(new()
             {
