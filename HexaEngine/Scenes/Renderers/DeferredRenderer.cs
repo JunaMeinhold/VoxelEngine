@@ -33,10 +33,10 @@
             DeferredShader = ResourceManager.LoadShader<DeferredLightShader>();
             DeferredShader.Directional = Light is not null ? Light : new DirectionalLight()
             {
-                Position = new Vector3(0, 10, -1),
+                Position = new Vector3(0, 10, -10),
                 Direction = new(0, -0.5f, 0.5f),
                 DiffuseColor = new Vector4(1f, 1f, 1f, 1),
-                Width = 1024
+                Width = 1024 * 8
             };
             DeferredShader.Directional.GenerateViewMatrix();
             DeferredShader.FogDescription = new()

@@ -63,7 +63,8 @@ namespace HexaEngine.Shaders
         public void GenerateProjectionMatrix()
         {
             // Create the projection matrix for the light.
-            ProjectionMatrix = Extensions.OrthoLH(Width, Width, NearPlane, FarPlane);
+            ProjectionMatrix = Extensions.OrthoLH(10, 10, NearPlane, FarPlane);
+            //ProjectionMatrix = Extensions.PerspectiveFovLH(45 * DegToRadFactor, 1, NearPlane, FarPlane);
         }
 
         public void Render(List<HexaElement> elements)

@@ -39,6 +39,14 @@ cbuffer LightBuffer : register(b0)
 	DirectionalLight light;
 };
 
+cbuffer CamBuffer : register(b1)
+{
+	float3 viewPos;
+	float reserved;
+	matrix viewMatrix;
+	matrix projectionMatrix;
+};
+
 //////////////
 // TYPEDEFS //
 //////////////
@@ -66,44 +74,56 @@ void ExtractGBufferAttributes(in PixelInputType pixel, in Texture2DMS<float4> co
 	//attrs.depth = (float4)depth.Load((int2)screenPos, sampleIndex);
 }
 
+float ShadowCalculation(float4 projectedEyeDir, float bias)
+{
+	float currentDepth = projectedEyeDir.z / projectedEyeDir.w;
+	float2 projCoords;
+	projCoords.x = projectedEyeDir.x / projectedEyeDir.w / 2.0f + 0.5f;
+	projCoords.y = -projectedEyeDir.y / projectedEyeDir.w / 2.0f + 0.5f;
+	float closestDepth = depthMapTexture.Sample(SampleTypePoint, projCoords).r;
+
+	float shadow = currentDepth - bias > closestDepth ? 1.0 : 0.0;
+	if (currentDepth > 1.0)
+		shadow = 0.0;
+	return shadow;
+}
+
 float4 ComputeLighting(PixelInputType input, GBufferAttributes attrs)
 {
-	float4 image = attrs.color;
+	float4 color = attrs.color;
 	float3 position = (float3)attrs.position;
 	float3 normal = normalize((float3)attrs.normal);
-	float4 color = float4(0.1, 0.1, 0.1, 0.1);
+	float4 lightColor = float4(1.0, 1.0, 1.0, 1.0);
+	float4 positionViewSpace = float4(position, 1);
+	positionViewSpace = mul(positionViewSpace, viewMatrix);
+	positionViewSpace = mul(positionViewSpace, projectionMatrix);
 
-	float3 lightDir = -light.LightDirection;
+	// ambient
+	float4 ambient = 0.15 * lightColor;
 
-	// Correct
-	float4 projectedEyeDir = float4(position, 1);
-	projectedEyeDir = mul(projectedEyeDir, light.view);
-	projectedEyeDir = mul(projectedEyeDir, light.projection);
-	float2 projectTexCoord;
-	projectTexCoord.x = projectedEyeDir.x / projectedEyeDir.w / 2.0f + 0.5f;
-	projectTexCoord.y = -projectedEyeDir.y / projectedEyeDir.w / 2.0f + 0.5f;
+	// diffuse
+	float3 lightDir = normalize(-light.LightDirection);
+	float diff = max(dot(lightDir, normal), 0.0);
+	float4 diffuse = diff * lightColor;
 
-	if ((saturate(projectTexCoord.x) == projectTexCoord.x) && (saturate(projectTexCoord.y) == projectTexCoord.y))
-	{
-		const float bias = 0.0001;
-		float depthValue = depthMapTexture.Sample(SampleTypePoint, projectTexCoord).r;
-		float lightDepthValue = (projectedEyeDir.z / projectedEyeDir.w) - bias;
+	// specular
+	float3 viewDir = normalize(viewPos - (float3)positionViewSpace);
+	float spec = 0.0;
+	float3 halfwayDir = normalize(lightDir + viewDir);
+	spec = pow(max(dot(normal, halfwayDir), 0.0), 64.0);
+	float4 specular = spec * lightColor;
 
-		if (lightDepthValue < depthValue)
-		{
-			float lightIntensity = saturate(dot(normal, lightDir));
+	// project
+	float4 positionLightSpace = float4(position, 1);
+	positionLightSpace = mul(positionLightSpace, light.view);
+	positionLightSpace = mul(positionLightSpace, light.projection);
 
-			if (lightIntensity > 0.0f)
-			{
-				color += (light.Color * lightIntensity);
-				color = saturate(color);
-			}
-		}
-	}
-	color = color * image;
-	//color.xyz = projectedEyeDir.xyz;
-	color.a = attrs.color.w;
-	return color;
+	// calculate shadow
+	//float bias = max(0.05 * (1.0 - dot(normal, lightDir)), 0.005);
+	float shadow = ShadowCalculation(positionLightSpace, 0.005f);
+	float4 lighting = (ambient + ((1.0 - shadow) * (diffuse + specular))) * color;
+	lighting.a = attrs.color.w;
+	return lighting;
 }
 
 float4 ColorCorrect(float4 colorInput)

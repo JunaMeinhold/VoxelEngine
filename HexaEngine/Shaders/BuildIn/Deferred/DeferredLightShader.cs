@@ -15,6 +15,7 @@ namespace HexaEngine.Shaders.BuildIn.Deferred
         private DirectionalLight directional;
         private ID3D11Buffer MatrixBuffer;
         private ID3D11Buffer LightBuffer;
+        private ID3D11Buffer CamBuffer;
         private GBuffers _gBuffers;
         private RenderPlane RenderPlane;
 
@@ -45,11 +46,12 @@ namespace HexaEngine.Shaders.BuildIn.Deferred
         }
 
         [StructLayout(LayoutKind.Sequential)]
-        public struct CamBuffer
+        public struct CamDescription
         {
             public Vector3 Position;
-            public Matrix4x4 CameraViewToWorldMatrix;
             public float reserved;
+            public Matrix4x4 View;
+            public Matrix4x4 Projection;
         }
 
         [StructLayout(LayoutKind.Sequential)]
@@ -82,6 +84,9 @@ namespace HexaEngine.Shaders.BuildIn.Deferred
 
             var lightBufferDesc = new BufferDescription(Marshal.SizeOf<BufferLightType>(), BindFlags.ConstantBuffer, ResourceUsage.Dynamic) { CpuAccessFlags = CpuAccessFlags.Write };
             LightBuffer = CreateBuffer(lightBufferDesc, nameof(LightBuffer));
+
+            var camBufferDesc = new BufferDescription(Marshal.SizeOf<CamDescription>(), BindFlags.ConstantBuffer, ResourceUsage.Dynamic) { CpuAccessFlags = CpuAccessFlags.Write };
+            CamBuffer = CreateBuffer(camBufferDesc, nameof(LightBuffer));
 
             Manager.OnResize += Manager_OnResize;
             Manager_OnResize(null, null);
@@ -120,8 +125,16 @@ namespace HexaEngine.Shaders.BuildIn.Deferred
                 },
             });
 
+            Write(CamBuffer, new CamDescription()
+            {
+                Position = view.Position,
+                View = view.ViewMatrix,
+                Projection = view.ProjectionMatrix,
+            });
+
             Manager.ID3D11DeviceContext.VSSetConstantBuffer(0, MatrixBuffer);
             Manager.ID3D11DeviceContext.PSSetConstantBuffer(0, LightBuffer);
+            Manager.ID3D11DeviceContext.PSSetConstantBuffer(1, CamBuffer);
 
             Manager.ID3D11DeviceContext.IASetInputLayout(InputLayout);
             Manager.ID3D11DeviceContext.VSSetShader(VertexShader);
@@ -140,6 +153,7 @@ namespace HexaEngine.Shaders.BuildIn.Deferred
         {
             MatrixBuffer.Dispose();
             LightBuffer.Dispose();
+            CamBuffer.Dispose();
             _gBuffers.Dispose();
             DepthShader.Dispose();
             RenderPlane.Dispose();

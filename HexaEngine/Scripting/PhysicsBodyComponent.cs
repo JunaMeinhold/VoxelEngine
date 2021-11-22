@@ -28,7 +28,7 @@
         public virtual void Update()
         {
             Body = element.Scene.Simulation.Bodies.GetBodyReference(Handle);
-            element.Transform = Matrix4x4.CreateTranslation(Body.Pose.Position) * Matrix4x4.CreateFromQuaternion(Body.Pose.Orientation);
+            element.Transform = Matrix4x4.CreateFromQuaternion(Body.Pose.Orientation) * Matrix4x4.CreateTranslation(Body.Pose.Position);
         }
     }
 }

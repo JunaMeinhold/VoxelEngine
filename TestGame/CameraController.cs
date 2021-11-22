@@ -1,6 +1,10 @@
 ﻿namespace TestGame
 {
+    using BepuPhysics;
+    using BepuPhysics.Collidables;
+    using BepuPhysics.Trees;
     using HexaEngine.Input;
+    using HexaEngine.Scenes;
     using HexaEngine.Scenes.Objects;
     using HexaEngine.Scripting;
     using HexaEngine.Windows;
@@ -91,6 +95,38 @@
             if (!Mouse.IsDown(MouseButton.LButton) & leftDown)
             {
                 leftDown = false;
+            }
+            if (Mouse.IsDown(MouseButton.LButton))
+            {
+                var handler = new RayHitHandler(Scene.Simulation);
+                Scene.Simulation.RayCast(Camera.Position, Camera.Forward, 100, ref handler);
+            }
+        }
+
+        private class RayHitHandler : IRayHitHandler
+        {
+            private readonly Simulation Simulation;
+
+            public RayHitHandler(Simulation simulation)
+            {
+                Simulation = simulation;
+            }
+
+            public bool AllowTest(CollidableReference collidable)
+            {
+                return collidable.Mobility == CollidableMobility.Dynamic;
+            }
+
+            public bool AllowTest(CollidableReference collidable, int childIndex)
+            {
+                return collidable.Mobility == CollidableMobility.Dynamic;
+            }
+
+            public void OnRayHit(in RayData ray, ref float maximumT, float t, in Vector3 normal, CollidableReference collidable, int childIndex)
+            {
+                var refer = Simulation.Bodies.GetBodyReference(collidable.BodyHandle);
+                refer.ApplyLinearImpulse(ray.Direction);
+                refer.Awake = true;
             }
         }
     }

@@ -28,7 +28,7 @@
         public virtual void Update()
         {
             Static = element.Scene.Simulation.Statics.GetStaticReference(Handle);
-            element.Transform = Matrix4x4.CreateTranslation(Static.Pose.Position) * Matrix4x4.CreateFromQuaternion(Static.Pose.Orientation);
+            element.Transform = Matrix4x4.CreateFromQuaternion(Static.Pose.Orientation) * Matrix4x4.CreateTranslation(Static.Pose.Position);
         }
     }
 }
