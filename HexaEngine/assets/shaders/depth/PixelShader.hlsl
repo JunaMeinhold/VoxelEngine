@@ -21,7 +21,7 @@ PixelOutputType main(PixelInputType input)
 	PixelOutputType output;
 
 	// Get the depth value of the pixel by dividing the Z pixel depth by the homogeneous W coordinate.
-	float depth = input.position.z / input.position.w;
+	float depth = input.depthPosition.z / input.depthPosition.w;
 	output.color = float4(depth, depth, depth, 1.0f);
 	return output;
 }

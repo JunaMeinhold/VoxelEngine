@@ -9,14 +9,15 @@
 
     public class TextureShader : Shader
     {
-        private ID3D11Buffer MatrixBuffer;
+        public ID3D11Buffer MatrixBuffer;
 
-        protected override void Initialize()
+        public TextureShader()
         {
             VertexShaderDescription = new("texture/VertexShader.hlsl", "main", VertexShaderVersion.VS_5_0);
             PixelShaderDescription = new("texture/PixelShader.hlsl", "main", PixelShaderVersion.PS_5_0);
             InputElements.Add(new("POSITION", 0, Format.R32G32B32A32_Float, 0, 0, InputClassification.PerVertexData, 0));
             InputElements.Add(new("TEXTURE", 0, Format.R32G32_Float, 0, 0, InputClassification.PerVertexData, 0));
+            Initialize();
 
             var matrixBufferDesc = new BufferDescription(Marshal.SizeOf<PerFrameBuffer2>(), BindFlags.ConstantBuffer, ResourceUsage.Dynamic) { CpuAccessFlags = CpuAccessFlags.Write };
             MatrixBuffer = CreateBuffer(matrixBufferDesc, nameof(MatrixBuffer));
@@ -24,7 +25,6 @@
 
         public override void Render(IView view, Matrix4x4 transform, int indexCount)
         {
-            if (IsInvalid) return;
             Write(MatrixBuffer, new PerFrameBuffer2()
             {
                 MVP = Matrix4x4.Transpose(transform * view.ViewMatrix * view.ProjectionMatrix),
@@ -41,7 +41,6 @@
 
         public void Render(Matrix4x4 mvp, int indexCount)
         {
-            if (IsInvalid) return;
             Write(MatrixBuffer, new PerFrameBuffer2()
             {
                 MVP = Matrix4x4.Transpose(mvp),

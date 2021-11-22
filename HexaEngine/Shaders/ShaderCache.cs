@@ -23,7 +23,7 @@ namespace HexaEngine.Shaders
             Application.ApplicationClosing += Application_ApplicationClosing;
         }
 
-        public static bool DisableCache { get; set; } = false;
+        public static bool ForceReCompile { get; set; } = false;
 
         private static void Application_ApplicationClosing(object sender, EventArgs e)
         {
@@ -32,7 +32,6 @@ namespace HexaEngine.Shaders
 
         public static void CacheShader(string path, Blob blob)
         {
-            if (DisableCache) return;
             var datetime = File.GetLastWriteTime(path);
             _ = cache.Remove(path);
             cache.Add(path, new(datetime, blob.GetBytes()));
@@ -42,7 +41,7 @@ namespace HexaEngine.Shaders
         {
             pointer = default;
             pointerSize = default;
-            if (DisableCache) return false;
+            if (ForceReCompile) return false;
             if (cache.TryGetValue(path, out var pair))
             {
                 var datetime = File.GetLastWriteTime(path);

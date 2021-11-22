@@ -11,15 +11,16 @@
 
     public class SkyboxShader : Shader
     {
-        private ID3D11Buffer MatrixBuffer;
+        public readonly ID3D11Buffer MatrixBuffer;
 
-        protected override void Initialize()
+        public SkyboxShader()
         {
             VertexShaderDescription = new("skybox/VertexShader.hlsl", "SkyboxVertexShader", VertexShaderVersion.VS_5_0);
             PixelShaderDescription = new("skybox/PixelShader.hlsl", "SkyboxPixelShader", PixelShaderVersion.PS_5_0);
             InputElements.Add(new("POSITION", 0, Format.R32G32B32A32_Float, 0, 0, InputClassification.PerVertexData, 0));
             InputElements.Add(new("TEXCOORD", 0, Format.R32G32_Float, InputElementDescription.AppendAligned, 0, InputClassification.PerVertexData, 0));
             InputElements.Add(new("NORMAL", 0, Format.R32G32B32_Float, InputElementDescription.AppendAligned, 0, InputClassification.PerVertexData, 0));
+            Initialize();
 
             var matrixBufferDesc = new BufferDescription(Marshal.SizeOf<PerFrameBuffer>(), BindFlags.ConstantBuffer, ResourceUsage.Dynamic) { CpuAccessFlags = CpuAccessFlags.Write };
             MatrixBuffer = CreateBuffer(matrixBufferDesc, nameof(MatrixBuffer));
@@ -35,7 +36,6 @@
 
         public void Render(IView view, Skybox skybox)
         {
-            if (IsInvalid) return;
             if (skybox is null) return;
             Manager.SetRenderTarget();
             Write(MatrixBuffer, new PerFrameBuffer()

@@ -334,10 +334,6 @@ namespace HexaEngine.Windows
             NoCullingRasterizerState = ID3D11Device.CreateRasterizerState(rasterDesc);
             NoCullingRasterizerState.DebugName = "DeviceMan." + nameof(NoCullingRasterizerState);
 
-            rasterDesc.CullMode = CullMode.Front;
-            FrontCullingRasterizerState = ID3D11Device.CreateRasterizerState(rasterDesc);
-            FrontCullingRasterizerState.DebugName = "DeviceMan." + nameof(NoCullingRasterizerState);
-
             SetState(DefaultRasterizerState);
         }
 
@@ -389,8 +385,6 @@ namespace HexaEngine.Windows
         public ID3D11RasterizerState DefaultRasterizerState { get; private set; }
 
         public ID3D11RasterizerState NoCullingRasterizerState { get; private set; }
-
-        public ID3D11RasterizerState FrontCullingRasterizerState { get; private set; }
 
         public int MSAASampleCount { get; set; } = 2;
 

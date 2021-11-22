@@ -1,7 +1,6 @@
 ﻿using HexaEngine.Fonts;
 using HexaEngine.Shaders;
 using HexaEngine.Windows;
-using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -22,21 +21,9 @@ namespace HexaEngine.Resources
 
         public static string CurrentShaderPath { get; set; } = "assets/shaders/";
 
-        public static string CurrentPDBShaderPath { get; set; } = "assets/shaders/pdbs";
-
         public static string CurrentFontPath { get; set; } = "assets/fonts/";
 
         public static string CurrentSoundPath { get; set; } = "assets/sounds/";
-
-        static ResourceManager()
-        {
-            Directory.CreateDirectory(CurrentTexturePath);
-            Directory.CreateDirectory(CurrentModelPath);
-            Directory.CreateDirectory(CurrentShaderPath);
-            Directory.Delete(CurrentPDBShaderPath, true);
-            Directory.CreateDirectory(CurrentPDBShaderPath);
-            Directory.CreateDirectory(CurrentFontPath);
-        }
 
         public static void ReleaseAll()
         {
@@ -175,31 +162,6 @@ namespace HexaEngine.Resources
                 T shader = new T();
                 shaders.Add(new ResourceState() { Instances = 1, Path = path1 }, shader);
                 return shader;
-            }
-        }
-
-        public static Shader LoadShader(Type type)
-        {
-            var path1 = type.FullName;
-            var resource = shaders.FirstOrDefault(x => x.Key.Path == path1);
-            if (resource.Value is not null)
-            {
-                resource.Key.Instances++;
-                return resource.Value;
-            }
-            else
-            {
-                Shader shader = (Shader)Activator.CreateInstance(type);
-                shaders.Add(new ResourceState() { Instances = 1, Path = path1 }, shader);
-                return shader;
-            }
-        }
-
-        public static void ReloadShaders()
-        {
-            foreach (var shader in shaders)
-            {
-                shader.Value.ReloadShader();
             }
         }
     }

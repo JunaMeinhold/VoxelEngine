@@ -105,6 +105,8 @@ namespace HexaEngine.Windows
 
         public bool IsRendering { get; set; } = true;
 
+        public bool IsSimulating { get; set; } = true;
+
         protected abstract void InitializeComponent();
 
         protected virtual void EndRender()

@@ -25,9 +25,9 @@ struct VertexInputType
 struct PixelInputType
 {
 	float4 position : SV_POSITION;
-	float4 pos : POSITION;
 	float3 tex : TEXCOORD0;
 	float3 normal : NORMAL;
+	float depth : DEPTH;
 };
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -39,7 +39,6 @@ PixelInputType main(VertexInputType input)
 
 	// Calculate the position of the vertex against the world, view, and projection matrices.
 	output.position = mul(input.position, worldMatrix);
-	output.pos = output.position;
 	output.position = mul(output.position, viewMatrix);
 	output.position = mul(output.position, projectionMatrix);
 
@@ -49,5 +48,8 @@ PixelInputType main(VertexInputType input)
 	// Calculate the normal vector against the world matrix only.
 	output.normal = mul(input.normal, (float3x3)worldMatrix);
 	output.normal = normalize(output.normal);
+
+	// Store the position value in a second input value for depth value calculations.
+	output.depth = output.position.z / output.position.w;
 	return output;
 }

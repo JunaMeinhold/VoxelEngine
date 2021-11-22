@@ -14,13 +14,8 @@ namespace HexaEngine.Shaders
 
         public Vector4 AmbientColor { get; set; }
         public Vector4 DiffuseColor { get; set; }
-
-        public Vector3 Position
-        { get => position; set { position = value; GenerateViewMatrix(); } }
-
-        public Vector3 LookAt
-        { get => lookAt; set { lookAt = value; GenerateViewMatrix(); } }
-
+        public Vector3 Position { get => position; set { position = value; GenerateViewMatrix(); } }
+        public Vector3 LookAt { get => lookAt; set { lookAt = value; GenerateViewMatrix(); } }
         public Matrix4x4 ViewMatrix { get; private set; }
         public Matrix4x4 ProjectionMatrix { get; private set; }
         public float NearPlane { get; } = 1f;
@@ -32,7 +27,7 @@ namespace HexaEngine.Shaders
             GenerateProjectionMatrix();
 
             // Create the view matrix from the three vectors.
-            ViewMatrix = Extensions.LookAtLH(position, LookAt, Vector3.UnitY);
+            ViewMatrix = Mathematics.Extensions.LookAtLH(position, LookAt, Vector3.UnitY);
             Frustum = new Frustum(FarPlane, ProjectionMatrix, ViewMatrix);
         }
 
@@ -43,7 +38,7 @@ namespace HexaEngine.Shaders
             var screenAspect = 1.0f;
 
             // Create the projection matrix for the light.
-            ProjectionMatrix = Extensions.PerspectiveFovLH(fieldOfView, screenAspect, NearPlane, FarPlane);
+            ProjectionMatrix = Mathematics.Extensions.PerspectiveFovLH(fieldOfView, screenAspect, NearPlane, FarPlane);
         }
     }
 }

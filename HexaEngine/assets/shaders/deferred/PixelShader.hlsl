@@ -18,9 +18,9 @@ SamplerState SampleTypeWrap : register(s0);
 struct PixelInputType
 {
 	float4 position : SV_POSITION;
-	float4 pos : POSITION;
 	float3 tex : TEXCOORD0;
 	float3 normal : NORMAL;
+	float depth : DEPTH;
 };
 
 struct PixelOutputType
@@ -38,9 +38,8 @@ PixelOutputType GPixelShader(PixelInputType input)
 {
 	PixelOutputType output;
 	output.color = shaderTexture.Sample(SampleTypeWrap, input.tex);
-	output.position = input.pos;
+	output.position = input.position;
 	output.normal = float4(input.normal, 1.0f);
-	float depth = input.position.z / input.position.w;
-	output.depth = float4(depth, depth, depth, depth);
+	output.depth = float4(input.depth, input.depth, input.depth, 1.0f);
 	return output;
 }
