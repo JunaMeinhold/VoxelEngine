@@ -47,5 +47,11 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
   </ItemGroup>
-
+	
+    <Target Name="BuildPackAssets" AfterTargets="AfterBuild">
+		<Exec Command="$(SolutionDir)AssetsBundler\bin\Debug\net6.0\AssetsBundler.exe -m gen -p $(TargetDir)assets\" />
+	</Target>
+	<Target Name="PublishPackAssets" AfterTargets="Publish">
+		<Exec Command="$(SolutionDir)AssetsBundler\bin\Debug\net6.0\AssetsBundler.exe -m gen -p $(ProjectDir)$(PublishDir)assets\" />
+	</Target>
 </Project>
