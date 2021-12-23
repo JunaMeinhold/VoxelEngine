@@ -1,7 +1,0 @@
-﻿[*.cs]
-
-# CA1707: Bezeichner dürfen keine Unterstriche enthalten
-dotnet_diagnostic.CA1707.severity = none
-
-[*.{cs,vb}]
-dotnet_diagnostic.CA1069.severity=silent

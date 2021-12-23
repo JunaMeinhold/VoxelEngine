@@ -1,33 +1,14 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
+
   <PropertyGroup>
     <TargetFramework>net5.0</TargetFramework>
-    <AssemblyTitle>DirectXTexNet</AssemblyTitle>
-    <Company>Dennis Gocke</Company>
-    <Product>DirectXTexNet</Product>
-    <Description>.NET wrapper for DirectXTex</Description>
-    <Copyright>Copyright © 2021 Dennis Gocke</Copyright>
-    <Version>1.0.3</Version>
-    <AssemblyVersion>1.0.3.0</AssemblyVersion>
-    <FileVersion>1.0.3.0</FileVersion>
-    <DocumentationFile></DocumentationFile>
-    <OutputPath>..\bin\$(Configuration)\</OutputPath>
-    <NoWarn>1591</NoWarn>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <Platforms>AnyCPU;x64</Platforms>
+	<LangVersion>10.0</LangVersion>
   </PropertyGroup>
-  <PropertyGroup>
-    <SignAssembly>true</SignAssembly>
-  </PropertyGroup>
-  <PropertyGroup>
-    <AssemblyOriginatorKeyFile>DirectXTexNet.snk</AssemblyOriginatorKeyFile>
-  </PropertyGroup>
-  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
-    <DebugType>embedded</DebugType>
-    <DebugSymbols>true</DebugSymbols>
-  </PropertyGroup>
-  <ItemGroup>
-    <None Include="..\.editorconfig" Link=".editorconfig" />
-  </ItemGroup>
-  <ItemGroup>
-    <PackageReference Include="Vortice.Direct3D11" Version="1.9.143" />
-    <PackageReference Include="Vortice.DXGI" Version="1.9.143" />
-  </ItemGroup>
+	<ItemGroup>
+		<PackageReference Include="Vortice.Direct3D11" Version="1.9.143" />
+		<PackageReference Include="Vortice.DXGI" Version="1.9.143" />
+	</ItemGroup>
 </Project>
