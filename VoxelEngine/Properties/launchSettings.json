@@ -1,0 +1,8 @@
+{
+  "profiles": {
+    "Voxely": {
+      "commandName": "Project",
+      "nativeDebugging": true
+    }
+  }
+}

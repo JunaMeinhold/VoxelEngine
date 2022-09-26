@@ -1,0 +1,12 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+		<TargetFramework>net5.0</TargetFramework>
+		<DebugType>embedded</DebugType>
+    <Platforms>x64</Platforms>
+  </PropertyGroup>
+	<ItemGroup>
+		<PackageReference Include="Vortice.Direct3D11" Version="2.1.2" PrivateAssets="all" />
+		<PackageReference Include="Vortice.DXGI" Version="2.1.2" PrivateAssets="all" />
+	</ItemGroup>
+</Project>
