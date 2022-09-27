@@ -39,6 +39,7 @@
         {
             data = default;
             pointerSize = default;
+            return false;
             if (!Nucleus.Settings.ShaderCache)
             {
                 return false;

@@ -32,7 +32,7 @@
 
         public static float GameTimeNormalized => gameTimeNormalized;
 
-        public static float TimeScale = 10;
+        public static float TimeScale = 60 * 10;
 
         public static event EventHandler FixedUpdate;
 

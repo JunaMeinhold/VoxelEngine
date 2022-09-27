@@ -92,7 +92,7 @@ namespace App.Renderers
                 }
                 else
                 {
-                    Time.TimeScale = 10;
+                    Time.TimeScale = 60 * 10;
                 }
             }
         }

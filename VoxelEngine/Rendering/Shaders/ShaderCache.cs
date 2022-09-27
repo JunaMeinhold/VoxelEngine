@@ -43,7 +43,7 @@
             {
                 return false;
             }
-
+            return false;
             if (cache.TryGetValue(path, out KeyValuePair<DateTime, byte[]> pair))
             {
                 DateTime datetime = File.GetLastWriteTime(path);

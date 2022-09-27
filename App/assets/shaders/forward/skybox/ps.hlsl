@@ -19,12 +19,12 @@ TextureCube nightMap : register(t1);
 
 SamplerState SkyMapSampler : register(s0);
 
-cbuffer Control
+cbuffer BlendBuffer
 {
     float4 blend;
 };
 
 float4 main(PixelInputType input) : SV_Target
 {
-    return lerp(dayMap.Sample(SkyMapSampler, input.tex), nightMap.Sample(SkyMapSampler, input.tex), blend);
+    return lerp(dayMap.Sample(SkyMapSampler, input.tex), float4(0.529f, 0.807f, 0.921f, 1), blend);
 }

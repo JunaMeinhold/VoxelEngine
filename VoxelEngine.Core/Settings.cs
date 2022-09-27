@@ -17,7 +17,7 @@
         public int ShadowMapSize = 1024 * 8;
 
         [JsonProperty]
-        public bool ShaderCache = true;
+        public bool ShaderCache = false;
 
         [JsonProperty]
         public int ChunkRenderDistance { get; set; } = 8;
