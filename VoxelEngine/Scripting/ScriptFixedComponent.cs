@@ -1,7 +1,7 @@
 ﻿namespace VoxelEngine.Scripting
 {
     using Vortice.Direct3D11;
-    using VoxelEngine;
+    using VoxelEngine.Core;
     using VoxelEngine.Scenes;
 
     /// <summary>
@@ -12,11 +12,11 @@
     {
         /// <summary>
         /// Initializes the component.<br />
-        /// Called by <see cref="SceneElement.Initialize" /> ... <see cref="Scene.Initialize" /> ... <see cref="SceneManager.Load(Scene)" /><br />
-        /// Called by <see cref="SceneElement.Initialize" /> ... <see cref="Scene.Add(SceneElement)" /><see cref="Scene.initialized" /> == <see langword="true" /><br />
+        /// Called by <see cref="GameObject.Initialize" /> ... <see cref="Scene.Initialize" /> ... <see cref="SceneManager.Load(Scene)" /><br />
+        /// Called by <see cref="GameObject.Initialize" /> ... <see cref="Scene.Add(GameObject)" /><see cref="Scene.initialized" /> == <see langword="true" /><br />
         /// </summary>
         /// <param name="element">The element.</param>
-        public void Initialize(ID3D11Device device, SceneElement element)
+        public void Initialize(ID3D11Device device, GameObject element)
         {
             Parent = element;
             Time.FixedUpdate += Time_FixedUpdate;
@@ -25,7 +25,7 @@
 
         /// <summary>
         /// Uninitializes the component.<br />
-        /// Called by <see cref="SceneElement.Uninitialize" /> ... <see cref="Scene.Dispose" /> ... <see cref="SceneManager.Unload" /><br />
+        /// Called by <see cref="GameObject.Uninitialize" /> ... <see cref="Scene.Dispose" /> ... <see cref="SceneManager.Unload" /><br />
         /// </summary>
         public void Uninitialize()
         {
@@ -45,14 +45,14 @@
 
         /// <summary>
         /// Initializes the script.<br />
-        /// Called by <see cref="SceneElement.Initialize" /> ... <see cref="Scene.Initialize" /> ... <see cref="SceneManager.Load(Scene)" /><br />
-        /// Called by <see cref="SceneElement.Initialize" /> ... <see cref="Scene.Add(SceneElement)" /><see cref="Scene.initialized" /> == <see langword="true" /><br />
+        /// Called by <see cref="GameObject.Initialize" /> ... <see cref="Scene.Initialize" /> ... <see cref="SceneManager.Load(Scene)" /><br />
+        /// Called by <see cref="GameObject.Initialize" /> ... <see cref="Scene.Add(GameObject)" /><see cref="Scene.initialized" /> == <see langword="true" /><br />
         /// </summary>
         public abstract void Awake();
 
         /// <summary>
         /// Uninitializes the script.<br />
-        /// Called by <see cref="SceneElement.Uninitialize" /> ... <see cref="Scene.Dispose" /> ... <see cref="SceneManager.Unload" /><br />
+        /// Called by <see cref="GameObject.Uninitialize" /> ... <see cref="Scene.Dispose" /> ... <see cref="SceneManager.Unload" /><br />
         /// </summary>
         public abstract void Destroy();
 
@@ -67,7 +67,7 @@
         /// <value>
         /// The parent.
         /// </value>
-        public SceneElement Parent { get; private set; }
+        public GameObject Parent { get; private set; }
 
         /// <summary>
         /// Gets the scene.

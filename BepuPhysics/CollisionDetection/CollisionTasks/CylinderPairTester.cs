@@ -1,8 +1,10 @@
-﻿using System;
+﻿using BepuPhysics.Collidables;
+using BepuPhysics.CollisionDetection.SweepTasks;
+using BepuUtilities;
+using System;
+using System.Diagnostics;
 using System.Numerics;
 using System.Runtime.CompilerServices;
-using BepuPhysics.Collidables;
-using BepuUtilities;
 
 namespace BepuPhysics.CollisionDetection.CollisionTasks
 {
@@ -91,7 +93,7 @@ namespace BepuPhysics.CollisionDetection.CollisionTasks
             Matrix3x3Wide.TransformWithoutOverlap(localAToContact, orientationB, out aToContact);
             contactExists = Vector.BitwiseAnd(contactExists, Vector.GreaterThanOrEqual(depth, negativeSpeculativeMargin));
         }
-
+        
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Test(
             ref CylinderWide a, ref CylinderWide b, ref Vector<float> speculativeMargin,
@@ -248,7 +250,7 @@ namespace BepuPhysics.CollisionDetection.CollisionTasks
                     horizontalOffsetDirection.X = Vector.ConditionalSelect(useBothParallelFallback, Vector<float>.One, horizontalOffsetDirection.X);
                     horizontalOffsetDirection.Y = Vector.ConditionalSelect(useBothParallelFallback, Vector<float>.Zero, horizontalOffsetDirection.Y);
                     Vector2Wide.Scale(horizontalOffsetDirection, b.Radius, out var initialLineStart);
-
+                                       
                     Vector2Wide.Negate(initialLineStart, out var contact1LineEndpoint);
                     //The above created a line stating at contact0 and pointing to the other side of the cap that contact0 was generated from.
                     //That is, if the extreme point from A was used, then the line direction is localNormal projected on capA.

@@ -1,15 +1,25 @@
-﻿using System;
+﻿
+
+
+
+
+
+using BepuPhysics.CollisionDetection;
+using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
-using BepuPhysics.CollisionDetection;
 using BepuUtilities;
 namespace BepuPhysics.Constraints.Contact
-{
+{  
+
     public struct Contact2Nonconvex : INonconvexTwoBodyContactConstraintDescription<Contact2Nonconvex>
     {
         public NonconvexTwoBodyManifoldConstraintProperties Common;
+
         public NonconvexConstraintContactData Contact0;
+
         public NonconvexConstraintContactData Contact1;
+
 
         public void ApplyDescription(ref TypeBatch batch, int bundleIndex, int innerIndex)
         {
@@ -59,8 +69,11 @@ namespace BepuPhysics.Constraints.Contact
         //Note that this layout is defined by the execution order in the prestep. The function accesses it sequentially to ensure the prefetcher can do its job.
         public MaterialPropertiesWide MaterialProperties;
         public Vector3Wide OffsetB;
+
         public NonconvexContactPrestepData Contact0;
+
         public NonconvexContactPrestepData Contact1;
+
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public ref MaterialPropertiesWide GetMaterialProperties(ref Contact2NonconvexPrestepData prestep)
@@ -79,15 +92,18 @@ namespace BepuPhysics.Constraints.Contact
         {
             return ref Unsafe.Add(ref prestep.Contact0, index);
         }
-
+        
         public readonly int ContactCount => 2;
         public readonly int BodyCount => 2;
     }
 
     public struct Contact2NonconvexAccumulatedImpulses : INonconvexContactAccumulatedImpulses<Contact2NonconvexAccumulatedImpulses>
     {
+
         public NonconvexAccumulatedImpulses Contact0;
+
         public NonconvexAccumulatedImpulses Contact1;
+
         public readonly int ContactCount => 2;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -96,7 +112,7 @@ namespace BepuPhysics.Constraints.Contact
             return ref Unsafe.Add(ref impulses.Contact0, index);
         }
     }
-
+        
     /// <summary>
     /// Handles the solve iterations of a bunch of 2-contact nonconvex two body manifold constraints.
     /// </summary>
@@ -111,8 +127,11 @@ namespace BepuPhysics.Constraints.Contact
     public struct Contact2NonconvexOneBody : INonconvexOneBodyContactConstraintDescription<Contact2NonconvexOneBody>
     {
         public NonconvexOneBodyManifoldConstraintProperties Common;
+
         public NonconvexConstraintContactData Contact0;
+
         public NonconvexConstraintContactData Contact1;
+
 
         public void ApplyDescription(ref TypeBatch batch, int bundleIndex, int innerIndex)
         {
@@ -156,12 +175,15 @@ namespace BepuPhysics.Constraints.Contact
 
     }
 
-    public struct Contact2NonconvexOneBodyPrestepData : INonconvexContactPrestep<Contact2NonconvexOneBodyPrestepData>
+    public struct Contact2NonconvexOneBodyPrestepData : INonconvexContactPrestep<Contact2NonconvexOneBodyPrestepData>    
     {
         //Note that this layout is defined by the execution order in the prestep. The function accesses it sequentially to ensure the prefetcher can do its job.
         public MaterialPropertiesWide MaterialProperties;
+
         public NonconvexContactPrestepData Contact0;
+
         public NonconvexContactPrestepData Contact1;
+
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public ref MaterialPropertiesWide GetMaterialProperties(ref Contact2NonconvexOneBodyPrestepData prestep)
@@ -174,10 +196,10 @@ namespace BepuPhysics.Constraints.Contact
         {
             return ref Unsafe.Add(ref prestep.Contact0, index);
         }
-
+                
         public readonly int ContactCount => 2;
         public readonly int BodyCount => 1;
-    }
+    }    
 
     /// <summary>
     /// Handles the solve iterations of a bunch of 2-contact nonconvex one body manifold constraints.
@@ -191,12 +213,17 @@ namespace BepuPhysics.Constraints.Contact
     }
 
 
+
     public struct Contact3Nonconvex : INonconvexTwoBodyContactConstraintDescription<Contact3Nonconvex>
     {
         public NonconvexTwoBodyManifoldConstraintProperties Common;
+
         public NonconvexConstraintContactData Contact0;
+
         public NonconvexConstraintContactData Contact1;
+
         public NonconvexConstraintContactData Contact2;
+
 
         public void ApplyDescription(ref TypeBatch batch, int bundleIndex, int innerIndex)
         {
@@ -246,9 +273,13 @@ namespace BepuPhysics.Constraints.Contact
         //Note that this layout is defined by the execution order in the prestep. The function accesses it sequentially to ensure the prefetcher can do its job.
         public MaterialPropertiesWide MaterialProperties;
         public Vector3Wide OffsetB;
+
         public NonconvexContactPrestepData Contact0;
+
         public NonconvexContactPrestepData Contact1;
+
         public NonconvexContactPrestepData Contact2;
+
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public ref MaterialPropertiesWide GetMaterialProperties(ref Contact3NonconvexPrestepData prestep)
@@ -267,16 +298,20 @@ namespace BepuPhysics.Constraints.Contact
         {
             return ref Unsafe.Add(ref prestep.Contact0, index);
         }
-
+        
         public readonly int ContactCount => 3;
         public readonly int BodyCount => 2;
     }
 
     public struct Contact3NonconvexAccumulatedImpulses : INonconvexContactAccumulatedImpulses<Contact3NonconvexAccumulatedImpulses>
     {
+
         public NonconvexAccumulatedImpulses Contact0;
+
         public NonconvexAccumulatedImpulses Contact1;
+
         public NonconvexAccumulatedImpulses Contact2;
+
         public readonly int ContactCount => 3;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -285,7 +320,7 @@ namespace BepuPhysics.Constraints.Contact
             return ref Unsafe.Add(ref impulses.Contact0, index);
         }
     }
-
+        
     /// <summary>
     /// Handles the solve iterations of a bunch of 3-contact nonconvex two body manifold constraints.
     /// </summary>
@@ -300,9 +335,13 @@ namespace BepuPhysics.Constraints.Contact
     public struct Contact3NonconvexOneBody : INonconvexOneBodyContactConstraintDescription<Contact3NonconvexOneBody>
     {
         public NonconvexOneBodyManifoldConstraintProperties Common;
+
         public NonconvexConstraintContactData Contact0;
+
         public NonconvexConstraintContactData Contact1;
+
         public NonconvexConstraintContactData Contact2;
+
 
         public void ApplyDescription(ref TypeBatch batch, int bundleIndex, int innerIndex)
         {
@@ -346,13 +385,17 @@ namespace BepuPhysics.Constraints.Contact
 
     }
 
-    public struct Contact3NonconvexOneBodyPrestepData : INonconvexContactPrestep<Contact3NonconvexOneBodyPrestepData>
+    public struct Contact3NonconvexOneBodyPrestepData : INonconvexContactPrestep<Contact3NonconvexOneBodyPrestepData>    
     {
         //Note that this layout is defined by the execution order in the prestep. The function accesses it sequentially to ensure the prefetcher can do its job.
         public MaterialPropertiesWide MaterialProperties;
+
         public NonconvexContactPrestepData Contact0;
+
         public NonconvexContactPrestepData Contact1;
+
         public NonconvexContactPrestepData Contact2;
+
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public ref MaterialPropertiesWide GetMaterialProperties(ref Contact3NonconvexOneBodyPrestepData prestep)
@@ -365,10 +408,10 @@ namespace BepuPhysics.Constraints.Contact
         {
             return ref Unsafe.Add(ref prestep.Contact0, index);
         }
-
+                
         public readonly int ContactCount => 3;
         public readonly int BodyCount => 1;
-    }
+    }    
 
     /// <summary>
     /// Handles the solve iterations of a bunch of 3-contact nonconvex one body manifold constraints.
@@ -382,13 +425,19 @@ namespace BepuPhysics.Constraints.Contact
     }
 
 
+
     public struct Contact4Nonconvex : INonconvexTwoBodyContactConstraintDescription<Contact4Nonconvex>
     {
         public NonconvexTwoBodyManifoldConstraintProperties Common;
+
         public NonconvexConstraintContactData Contact0;
+
         public NonconvexConstraintContactData Contact1;
+
         public NonconvexConstraintContactData Contact2;
+
         public NonconvexConstraintContactData Contact3;
+
 
         public void ApplyDescription(ref TypeBatch batch, int bundleIndex, int innerIndex)
         {
@@ -438,10 +487,15 @@ namespace BepuPhysics.Constraints.Contact
         //Note that this layout is defined by the execution order in the prestep. The function accesses it sequentially to ensure the prefetcher can do its job.
         public MaterialPropertiesWide MaterialProperties;
         public Vector3Wide OffsetB;
+
         public NonconvexContactPrestepData Contact0;
+
         public NonconvexContactPrestepData Contact1;
+
         public NonconvexContactPrestepData Contact2;
+
         public NonconvexContactPrestepData Contact3;
+
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public ref MaterialPropertiesWide GetMaterialProperties(ref Contact4NonconvexPrestepData prestep)
@@ -460,17 +514,22 @@ namespace BepuPhysics.Constraints.Contact
         {
             return ref Unsafe.Add(ref prestep.Contact0, index);
         }
-
+        
         public readonly int ContactCount => 4;
         public readonly int BodyCount => 2;
     }
 
     public struct Contact4NonconvexAccumulatedImpulses : INonconvexContactAccumulatedImpulses<Contact4NonconvexAccumulatedImpulses>
     {
+
         public NonconvexAccumulatedImpulses Contact0;
+
         public NonconvexAccumulatedImpulses Contact1;
+
         public NonconvexAccumulatedImpulses Contact2;
+
         public NonconvexAccumulatedImpulses Contact3;
+
         public readonly int ContactCount => 4;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -479,7 +538,7 @@ namespace BepuPhysics.Constraints.Contact
             return ref Unsafe.Add(ref impulses.Contact0, index);
         }
     }
-
+        
     /// <summary>
     /// Handles the solve iterations of a bunch of 4-contact nonconvex two body manifold constraints.
     /// </summary>
@@ -494,10 +553,15 @@ namespace BepuPhysics.Constraints.Contact
     public struct Contact4NonconvexOneBody : INonconvexOneBodyContactConstraintDescription<Contact4NonconvexOneBody>
     {
         public NonconvexOneBodyManifoldConstraintProperties Common;
+
         public NonconvexConstraintContactData Contact0;
+
         public NonconvexConstraintContactData Contact1;
+
         public NonconvexConstraintContactData Contact2;
+
         public NonconvexConstraintContactData Contact3;
+
 
         public void ApplyDescription(ref TypeBatch batch, int bundleIndex, int innerIndex)
         {
@@ -541,14 +605,19 @@ namespace BepuPhysics.Constraints.Contact
 
     }
 
-    public struct Contact4NonconvexOneBodyPrestepData : INonconvexContactPrestep<Contact4NonconvexOneBodyPrestepData>
+    public struct Contact4NonconvexOneBodyPrestepData : INonconvexContactPrestep<Contact4NonconvexOneBodyPrestepData>    
     {
         //Note that this layout is defined by the execution order in the prestep. The function accesses it sequentially to ensure the prefetcher can do its job.
         public MaterialPropertiesWide MaterialProperties;
+
         public NonconvexContactPrestepData Contact0;
+
         public NonconvexContactPrestepData Contact1;
+
         public NonconvexContactPrestepData Contact2;
+
         public NonconvexContactPrestepData Contact3;
+
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public ref MaterialPropertiesWide GetMaterialProperties(ref Contact4NonconvexOneBodyPrestepData prestep)
@@ -561,10 +630,10 @@ namespace BepuPhysics.Constraints.Contact
         {
             return ref Unsafe.Add(ref prestep.Contact0, index);
         }
-
+                
         public readonly int ContactCount => 4;
         public readonly int BodyCount => 1;
-    }
+    }    
 
     /// <summary>
     /// Handles the solve iterations of a bunch of 4-contact nonconvex one body manifold constraints.
@@ -576,6 +645,7 @@ namespace BepuPhysics.Constraints.Contact
         //Matches UpdateConstraintForManifold's manifoldTypeAsConstraintType computation.
         public const int BatchTypeId = 10;
     }
+
 
 
 }

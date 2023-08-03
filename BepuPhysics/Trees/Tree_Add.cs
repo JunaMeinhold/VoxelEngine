@@ -1,8 +1,8 @@
-﻿using System;
-using System.Diagnostics;
+﻿using BepuUtilities;
 using System.Numerics;
 using System.Runtime.CompilerServices;
-using BepuUtilities;
+using System;
+using System.Diagnostics;
 using BepuUtilities.Memory;
 
 namespace BepuPhysics.Trees

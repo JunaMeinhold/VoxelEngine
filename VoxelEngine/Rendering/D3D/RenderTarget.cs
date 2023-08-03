@@ -7,7 +7,7 @@
 
     public class RenderTarget : Resource, IRenderTarget
     {
-        private ID3D11RenderTargetView view;
+        public readonly ID3D11RenderTargetView RTV;
         public DepthStencil DepthStencil;
 
         public Color4 ClearColor;
@@ -19,33 +19,37 @@
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal RenderTarget(ID3D11RenderTargetView view, float width, float height)
         {
-            this.view = view;
+            RTV = view;
             Width = width;
             Height = height;
+            Viewport = new(width, height);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal RenderTarget(ID3D11Device device, ID3D11Resource resource, float width, float height)
         {
-            view = device.CreateRenderTargetView(resource);
-            view.DebugName = nameof(RenderTarget);
+            RTV = device.CreateRenderTargetView(resource);
+            RTV.DebugName = nameof(RenderTarget);
             Width = width;
             Height = height;
+            Viewport = new(width, height);
         }
 
-        public string DebugName { get => view.DebugName; set => view.DebugName = value; }
+        public string DebugName { get => RTV.DebugName; set => RTV.DebugName = value; }
+
+        public Viewport Viewport { get; set; }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void SetTarget(ID3D11DeviceContext context)
         {
-            context.OMSetRenderTargets(view, DepthStencil?.DepthStencilView);
+            context.OMSetRenderTargets(RTV, DepthStencil?.DSV);
             context.RSSetViewport(X, Y, Width, Height, 0, 1);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void ClearTarget(ID3D11DeviceContext context)
         {
-            context.ClearRenderTargetView(view, ClearColor);
+            context.ClearRenderTargetView(RTV, ClearColor);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -57,8 +61,7 @@
 
         protected override void Dispose(bool disposing)
         {
-            view.Dispose();
-            view = null;
+            RTV.Dispose();
             DepthStencil?.Dispose();
             DepthStencil = null;
         }

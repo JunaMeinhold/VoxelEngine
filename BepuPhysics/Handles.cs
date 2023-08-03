@@ -1,6 +1,6 @@
-﻿using System;
+﻿using BepuUtilities.Collections;
+using System;
 using System.Runtime.CompilerServices;
-using BepuUtilities.Collections;
 
 namespace BepuPhysics
 {

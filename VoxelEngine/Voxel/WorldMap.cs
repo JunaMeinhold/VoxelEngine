@@ -4,7 +4,7 @@
     using VoxelEngine.Mathematics;
     using VoxelEngine.Scenes;
 
-    public class WorldMap : SceneElement
+    public class WorldMap : GameObject
     {
         public ChunkArray Chunks;
         public const byte SHIFT = 5;

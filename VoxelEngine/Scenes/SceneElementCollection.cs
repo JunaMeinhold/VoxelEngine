@@ -7,10 +7,10 @@
     using VoxelEngine.Physics;
     using VoxelEngine.Scripting;
 
-    public class SceneElementCollection : IList<SceneElement>, IDisposable
+    public class SceneElementCollection : IList<GameObject>, IDisposable
     {
         private Scene parent;
-        private List<SceneElement> elements = new();
+        private List<GameObject> elements = new();
         private List<IForwardRenderComponent> forwardComponents = new();
         private List<IDeferredRenderComponent> deferredComponents = new();
         private List<IDepthRenderComponent> depthComponents = new();
@@ -23,7 +23,7 @@
 
         /// <summary>
         /// Initializes a new instance of the <see cref="SceneElementCollection"/> class.<br/>
-        /// Automatically sets <paramref name="parent"/> for all <see cref="SceneElement.Scene"/>
+        /// Automatically sets <paramref name="parent"/> for all <see cref="GameObject.Scene"/>
         /// </summary>
         /// <param name="parent">The parent scene.</param>
         public SceneElementCollection(Scene parent)
@@ -96,22 +96,22 @@
         public IReadOnlyList<IDirectionalLightComponent> DirectionalLights => directionalLightsComponents;
 
         /// <summary>
-        /// Gets or sets the <see cref="SceneElement"/> at the specified index.
+        /// Gets or sets the <see cref="GameObject"/> at the specified index.
         /// </summary>
         /// <value>
-        /// The <see cref="SceneElement"/>.
+        /// The <see cref="GameObject"/>.
         /// </value>
         /// <param name="index">The index.</param>
         /// <returns></returns>
-        public SceneElement this[int index] { get => ((IList<SceneElement>)elements)[index]; set => ((IList<SceneElement>)elements)[index] = value; }
+        public GameObject this[int index] { get => ((IList<GameObject>)elements)[index]; set => ((IList<GameObject>)elements)[index] = value; }
 
         /// <summary>
         /// Executes an <paramref name="action"/> foreach element in this collection.
         /// </summary>
         /// <param name="action">The action.</param>
-        public void ForEach(Action<SceneElement> action)
+        public void ForEach(Action<GameObject> action)
         {
-            foreach (SceneElement element in elements)
+            foreach (GameObject element in elements)
             {
                 action(element);
             }
@@ -120,12 +120,12 @@
         /// <summary>
         /// Gets the number of elements contained in the <see cref="T:System.Collections.Generic.ICollection`1" />.
         /// </summary>
-        public int Count => ((ICollection<SceneElement>)elements).Count;
+        public int Count => ((ICollection<GameObject>)elements).Count;
 
         /// <summary>
         /// Gets a value indicating whether the <see cref="T:System.Collections.Generic.ICollection`1" /> is read-only.
         /// </summary>
-        public bool IsReadOnly => ((ICollection<SceneElement>)elements).IsReadOnly;
+        public bool IsReadOnly => ((ICollection<GameObject>)elements).IsReadOnly;
 
         /// <summary>
         /// Adds an item to the <see cref="T:System.Collections.Generic.ICollection`1" />.
@@ -133,7 +133,7 @@
         /// <param name="item">The object to add to the <see cref="T:System.Collections.Generic.ICollection`1" />.</param>
         /// <exception cref="ArgumentNullException">item</exception>
         /// <exception cref="ArgumentException">Element is already in a scene</exception>
-        public void Add(SceneElement item)
+        public void Add(GameObject item)
         {
             if (item == null)
             {
@@ -155,7 +155,7 @@
             directionalLightsComponents.AddAllComponents(item);
 
             item.Scene = parent;
-            ((ICollection<SceneElement>)elements).Add(item);
+            ((ICollection<GameObject>)elements).Add(item);
         }
 
         /// <summary>
@@ -171,7 +171,7 @@
             scriptFixedComponents.Clear();
             scriptFrameComponents.Clear();
             directionalLightsComponents.Clear();
-            ((ICollection<SceneElement>)elements).Clear();
+            ((ICollection<GameObject>)elements).Clear();
         }
 
         /// <summary>
@@ -181,9 +181,9 @@
         /// <returns>
         ///   <see langword="true" /> if <paramref name="item" /> is found in the <see cref="T:System.Collections.Generic.ICollection`1" />; otherwise, <see langword="false" />.
         /// </returns>
-        public bool Contains(SceneElement item)
+        public bool Contains(GameObject item)
         {
-            return ((ICollection<SceneElement>)elements).Contains(item);
+            return ((ICollection<GameObject>)elements).Contains(item);
         }
 
         /// <summary>
@@ -191,9 +191,9 @@
         /// </summary>
         /// <param name="array">The one-dimensional <see cref="T:System.Array" /> that is the destination of the elements copied from <see cref="T:System.Collections.Generic.ICollection`1" />. The <see cref="T:System.Array" /> must have zero-based indexing.</param>
         /// <param name="arrayIndex">The zero-based index in <paramref name="array" /> at which copying begins.</param>
-        public void CopyTo(SceneElement[] array, int arrayIndex)
+        public void CopyTo(GameObject[] array, int arrayIndex)
         {
-            ((ICollection<SceneElement>)elements).CopyTo(array, arrayIndex);
+            ((ICollection<GameObject>)elements).CopyTo(array, arrayIndex);
         }
 
         /// <summary>
@@ -202,9 +202,9 @@
         /// <returns>
         /// An enumerator that can be used to iterate through the collection.
         /// </returns>
-        public IEnumerator<SceneElement> GetEnumerator()
+        public IEnumerator<GameObject> GetEnumerator()
         {
-            return ((IEnumerable<SceneElement>)elements).GetEnumerator();
+            return ((IEnumerable<GameObject>)elements).GetEnumerator();
         }
 
         /// <summary>
@@ -214,9 +214,9 @@
         /// <returns>
         /// The index of <paramref name="item" /> if found in the list; otherwise, -1.
         /// </returns>
-        public int IndexOf(SceneElement item)
+        public int IndexOf(GameObject item)
         {
-            return ((IList<SceneElement>)elements).IndexOf(item);
+            return ((IList<GameObject>)elements).IndexOf(item);
         }
 
         /// <summary>
@@ -226,7 +226,7 @@
         /// <param name="item">The object to insert into the <see cref="T:System.Collections.Generic.IList`1" />.</param>
         /// <exception cref="ArgumentNullException">item</exception>
         /// <exception cref="ArgumentException">Element is already in a scene</exception>
-        public void Insert(int index, SceneElement item)
+        public void Insert(int index, GameObject item)
         {
             if (item == null)
             {
@@ -247,7 +247,7 @@
             scriptFrameComponents.AddAllComponents(item);
             directionalLightsComponents.AddAllComponents(item);
             item.Scene = parent;
-            ((IList<SceneElement>)elements).Insert(index, item);
+            ((IList<GameObject>)elements).Insert(index, item);
         }
 
         /// <summary>
@@ -257,7 +257,7 @@
         /// <returns>
         ///   <see langword="true" /> if <paramref name="item" /> was successfully removed from the <see cref="T:System.Collections.Generic.ICollection`1" />; otherwise, <see langword="false" />. This method also returns <see langword="false" /> if <paramref name="item" /> is not found in the original <see cref="T:System.Collections.Generic.ICollection`1" />.
         /// </returns>
-        public bool Remove(SceneElement item)
+        public bool Remove(GameObject item)
         {
             item.Parent = null;
             forwardComponents.RemoveAllComponents(item);
@@ -269,7 +269,7 @@
             scriptFrameComponents.RemoveAllComponents(item);
             directionalLightsComponents.RemoveAllComponents(item);
 
-            return ((ICollection<SceneElement>)elements).Remove(item);
+            return ((ICollection<GameObject>)elements).Remove(item);
         }
 
         /// <summary>
@@ -278,7 +278,7 @@
         /// <param name="index">The zero-based index of the item to remove.</param>
         public void RemoveAt(int index)
         {
-            SceneElement item = elements[index];
+            GameObject item = elements[index];
             item.Parent = null;
             forwardComponents.RemoveAllComponents(item);
             deferredComponents.RemoveAllComponents(item);
@@ -289,7 +289,7 @@
             scriptFrameComponents.RemoveAllComponents(item);
             directionalLightsComponents.RemoveAllComponents(item);
 
-            ((IList<SceneElement>)elements).RemoveAt(index);
+            ((IList<GameObject>)elements).RemoveAt(index);
         }
 
         /// <summary>

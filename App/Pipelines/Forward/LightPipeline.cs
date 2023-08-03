@@ -21,18 +21,18 @@
             PixelShader = "deferred/light/ps.hlsl",
             Rasterizer = RasterizerDescription.CullBack,
             DepthStencil = DepthStencilDescription.Default,
-            Blend = BlendDescription.Opaque,
+            Blend = BlendDescription.Additive,
             Topology = PrimitiveTopology.TriangleList,
         })
         {
-            cameraBuffer = device.CreateBuffer(Marshal.SizeOf<CameraData>(), BindFlags.ConstantBuffer, ResourceUsage.Dynamic, CpuAccessFlags.Write);
+            cameraBuffer = device.CreateBuffer(Marshal.SizeOf<CBCamera>(), BindFlags.ConstantBuffer, ResourceUsage.Dynamic, CpuAccessFlags.Write);
             directionalLightBuffer = device.CreateBuffer(Marshal.SizeOf<CBDirectionalLightSD>(), BindFlags.ConstantBuffer, ResourceUsage.Dynamic, CpuAccessFlags.Write);
-            ConstantBuffers.Append(cameraBuffer, ShaderStage.Pixel);
             ConstantBuffers.Append(directionalLightBuffer, ShaderStage.Pixel);
+            ConstantBuffers.Append(cameraBuffer, ShaderStage.Pixel);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Update(ID3D11DeviceContext context, CameraData camera, CBDirectionalLightSD light)
+        public void Update(ID3D11DeviceContext context, CBCamera camera, CBDirectionalLightSD light)
         {
             DeviceHelper.Write(context, cameraBuffer, camera);
             DeviceHelper.Write(context, directionalLightBuffer, light);

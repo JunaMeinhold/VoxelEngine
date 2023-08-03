@@ -1,4 +1,8 @@
-﻿namespace BepuPhysics.CollisionDetection
+﻿using System;
+using System.Collections.Generic;
+using System.Text;
+
+namespace BepuPhysics.CollisionDetection
 {
     public interface IPairCacheEntry
     {

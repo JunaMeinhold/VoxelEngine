@@ -1,8 +1,9 @@
-﻿using System;
+﻿using BepuPhysics.Collidables;
+using BepuPhysics.CollisionDetection.SweepTasks;
+using BepuUtilities;
+using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
-using BepuPhysics.Collidables;
-using BepuUtilities;
 
 namespace BepuPhysics.CollisionDetection.CollisionTasks
 {
@@ -61,6 +62,7 @@ namespace BepuPhysics.CollisionDetection.CollisionTasks
 
                 //Deactivated lanes should not be updated; if iteration counts are sensitive to the behavior of a bundle, it creates a dependency on bundle order and kills determinism.
                 t = Vector.ConditionalSelect(laneDeactivated, t, newT);
+
             }
             Bounce(lineOrigin, lineDirection, t, b, radiusSquared, out var pointOnLine, out var clampedToCylinder);
             Vector3Wide.Subtract(pointOnLine, clampedToCylinder, out offsetFromCylinderToLineSegment);
@@ -95,7 +97,6 @@ namespace BepuPhysics.CollisionDetection.CollisionTasks
             contactTMin = intervalWeight * tbMin + weightedTb;
             contactTMax = intervalWeight * tbMax + weightedTb;
         }
-
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void GetClosestPointsBetweenSegments(in Vector3Wide da, in Vector3Wide localOffsetB, in Vector<float> aHalfLength, in Vector<float> bHalfLength,
             out Vector<float> ta, out Vector<float> taMin, out Vector<float> taMax, out Vector<float> tb, out Vector<float> tbMin, out Vector<float> tbMax)
@@ -252,7 +253,7 @@ namespace BepuPhysics.CollisionDetection.CollisionTasks
             {
                 //At least one lane requires a cap contact.
                 //An important note: for highest quality, all clipping takes place on the *normal plane*. So segment-cap doesn't merely set the y component to zero (projecting along B's Y axis).
-                //Instead, the endpoints are casted along the normal to the cap plane.
+                //Instead, the endpoints are casted along the normal to the cap plane.            
                 //t = dot(capsuleOrigin +- capsuleDirection * a.HalfLength - (0, normal.Y > 0 ? b.HalfLength : a.HalfLength, 0), cylinderY) / dot(normal, cylinderY)
                 //t = (capsuleOrigin.Y +- capsuleDirection.Y * a.HalfLength - (normal.Y > 0 ? b.HalfLength : a.HalfLength)) / normal.Y
                 //Note that the cap will only be chosen as a representative if normal.Y dominates the horizontal direction, so there is no need to test for division by zero.
@@ -308,7 +309,7 @@ namespace BepuPhysics.CollisionDetection.CollisionTasks
             //While we have computed a global depth, each contact has its own depth.
             //Project the contact on B along the contact normal to the 'face' of A.
             //A is a capsule, but we can treat it as having a faceNormalA = (localNormal x capsuleAxis) x capsuleAxis.
-            //The full computation is:
+            //The full computation is: 
             //t = dot(contact + localOffsetB, faceNormalA) / dot(faceNormalA, localNormal)
             //depth = dot(t * localNormal, localNormal) = t
             Vector3Wide.CrossWithoutOverlap(localNormal, capsuleAxis, out var capsuleTangent);
@@ -342,6 +343,7 @@ namespace BepuPhysics.CollisionDetection.CollisionTasks
             manifold.FeatureId0 = Vector<int>.Zero;
             manifold.FeatureId1 = Vector<int>.One;
         }
+
 
         public void Test(ref CapsuleWide a, ref CylinderWide b, ref Vector<float> speculativeMargin, ref Vector3Wide offsetB, ref QuaternionWide orientationB, int pairCount, out Convex2ContactManifoldWide manifold)
         {

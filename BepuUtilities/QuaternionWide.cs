@@ -1,4 +1,5 @@
-﻿using System.Numerics;
+﻿using System;
+using System.Numerics;
 using System.Runtime.CompilerServices;
 
 namespace BepuUtilities
@@ -614,7 +615,7 @@ namespace BepuUtilities
             GatherScatter.GetFirst(ref targetSlot.Y) = source.Y;
             GatherScatter.GetFirst(ref targetSlot.Z) = source.Z;
             GatherScatter.GetFirst(ref targetSlot.W) = source.W;
-        }
+        }       
 
         /// <summary>
         /// Writes a value into a slot of the target bundle.

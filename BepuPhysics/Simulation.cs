@@ -1,11 +1,13 @@
-﻿using System;
-using System.Diagnostics;
-using System.Runtime.CompilerServices;
+﻿using BepuUtilities;
+using BepuUtilities.Collections;
+using BepuUtilities.Memory;
 using BepuPhysics.Collidables;
 using BepuPhysics.CollisionDetection;
+using BepuPhysics.Constraints;
+using System;
+using System.Diagnostics;
+using System.Runtime.CompilerServices;
 using BepuPhysics.Trees;
-using BepuUtilities;
-using BepuUtilities.Memory;
 
 #if !DEBUG
 [module: SkipLocalsInit]
@@ -30,13 +32,11 @@ namespace BepuPhysics
         public CollidableOverlapFinder BroadPhaseOverlapFinder { get; private set; }
         public NarrowPhase NarrowPhase { get; private set; }
 
-        private SimulationProfiler profiler = new(13);
-
+        SimulationProfiler profiler = new(13);
         /// <summary>
         /// Gets the simulation profiler. Note that the SimulationProfiler implementation only exists when the library is compiled with the PROFILE compilation symbol; if not defined, returned times are undefined.
         /// </summary>
-        public SimulationProfiler Profiler
-        { get { return profiler; } }
+        public SimulationProfiler Profiler { get { return profiler; } }
 
         //Helpers shared across at least two stages.
         internal ConstraintRemover constraintRemover;
@@ -129,6 +129,8 @@ namespace BepuPhysics
             return simulation;
         }
 
+
+
         private static int ValidateAndCountShapefulBodies(ref BodySet bodySet, ref Tree tree, ref Buffer<CollidableReference> leaves)
         {
             int shapefulBodyCount = 0;
@@ -184,6 +186,7 @@ namespace BepuPhysics
                     Debug.Assert(BroadPhase.staticLeaves[j].Packed != activeLeaf.Packed);
                 }
             }
+
         }
 
         //These functions act as convenience wrappers around common execution patterns. They can be mixed and matched in custom timesteps, or for certain advanced use cases, called directly.
@@ -286,7 +289,7 @@ namespace BepuPhysics
         }
 
         /// <summary>
-        /// Clears the simulation of every object, only returning memory to the pool that would be returned by sequential removes.
+        /// Clears the simulation of every object, only returning memory to the pool that would be returned by sequential removes. 
         /// Other persistent allocations, like those in the Bodies set, will remain.
         /// </summary>
         public void Clear()
@@ -328,6 +331,7 @@ namespace BepuPhysics
             Shapes.EnsureBatchCapacities(allocationTarget.ShapesPerType);
             BroadPhase.EnsureCapacity(allocationTarget.Bodies, allocationTarget.Bodies + allocationTarget.Statics);
         }
+
 
         /// <summary>
         /// Increases the allocation size of any buffers too small to hold the allocation target, and decreases the allocation size of any buffers that are unnecessarily large.

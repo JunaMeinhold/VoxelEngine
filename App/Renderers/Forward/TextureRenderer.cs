@@ -5,7 +5,6 @@ namespace App.Renderers.Forward
     using System.Numerics;
     using System.Runtime.CompilerServices;
     using App.Pipelines.Forward;
-    using BepuUtilities;
     using Vortice.Direct3D11;
     using VoxelEngine.Mathematics;
     using VoxelEngine.Rendering.D3D;
@@ -21,7 +20,7 @@ namespace App.Renderers.Forward
         public string TexturePath;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Initialize(ID3D11Device device, SceneElement element)
+        public void Initialize(ID3D11Device device, GameObject element)
         {
             Texture = new();
             Texture.Load(device, TexturePath);

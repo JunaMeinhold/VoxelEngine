@@ -1,8 +1,8 @@
-﻿using System;
+﻿using BepuPhysics.Collidables;
+using BepuUtilities;
+using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
-using BepuPhysics.Collidables;
-using BepuUtilities;
 
 namespace BepuPhysics.CollisionDetection.CollisionTasks
 {

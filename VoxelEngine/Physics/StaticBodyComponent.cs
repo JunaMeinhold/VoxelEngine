@@ -16,7 +16,7 @@
         private StaticReference reference;
         private bool overwritePosition;
 
-        private SceneElement sceneElement;
+        private GameObject sceneElement;
 
         public StaticBodyComponent(T shape, RigidPose pose, ContinuousDetection continuousDetection)
         {
@@ -44,7 +44,7 @@
         public StaticHandle Handle => handle;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Initialize(ID3D11Device device, SceneElement element)
+        public void Initialize(ID3D11Device device, GameObject element)
         {
             sceneElement = element;
             typedIndex = sceneElement.Scene.Simulation.Shapes.Add(shape);

@@ -1,8 +1,9 @@
-﻿using System;
+﻿using BepuPhysics.Collidables;
+using BepuUtilities;
+using System;
+using System.Diagnostics;
 using System.Numerics;
 using System.Runtime.CompilerServices;
-using BepuPhysics.Collidables;
-using BepuUtilities;
 
 namespace BepuPhysics.CollisionDetection.CollisionTasks
 {
@@ -175,6 +176,7 @@ namespace BepuPhysics.CollisionDetection.CollisionTasks
             Vector3Wide.Scale(manifold.Normal, unexpandedDepth1, out var contactOffset1);
             Vector3Wide.Add(manifold.OffsetA0, contactOffset0, out manifold.OffsetA0);
             Vector3Wide.Add(manifold.OffsetA1, contactOffset1, out manifold.OffsetA1);
+
         }
 
         public void Test(ref CapsuleWide a, ref ConvexHullWide b, ref Vector<float> speculativeMargin, ref Vector3Wide offsetB, ref QuaternionWide orientationB, int pairCount, out Convex2ContactManifoldWide manifold)

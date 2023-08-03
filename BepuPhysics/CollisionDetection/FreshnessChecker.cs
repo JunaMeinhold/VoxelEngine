@@ -1,8 +1,8 @@
-﻿using System;
+﻿using BepuUtilities.Collections;
+using BepuUtilities.Memory;
+using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
-using BepuUtilities.Collections;
-using BepuUtilities.Memory;
 
 namespace BepuPhysics.CollisionDetection
 {
@@ -52,7 +52,7 @@ namespace BepuPhysics.CollisionDetection
             }
         }
 
-
+        
         public void CheckFreshnessInRegion(int workerIndex, int startIndex, int endIndex)
         {
             var count = endIndex - startIndex;

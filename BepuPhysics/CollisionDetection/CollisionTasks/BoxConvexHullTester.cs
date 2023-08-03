@@ -1,8 +1,9 @@
-﻿using System;
+﻿using BepuPhysics.Collidables;
+using BepuUtilities;
+using System;
+using System.Diagnostics;
 using System.Numerics;
 using System.Runtime.CompilerServices;
-using BepuPhysics.Collidables;
-using BepuUtilities;
 
 namespace BepuPhysics.CollisionDetection.CollisionTasks
 {
@@ -46,6 +47,7 @@ namespace BepuPhysics.CollisionDetection.CollisionTasks
                 //No contacts generated.
                 return;
             }
+
 
             //Identify the box face.
             Matrix3x3Wide.TransformByTransposedWithoutOverlap(localNormal, hullLocalBoxOrientation, out var localNormalInA);
@@ -244,6 +246,7 @@ namespace BepuPhysics.CollisionDetection.CollisionTasks
                         candidate.X = Vector3.Dot(point, hullFaceX);
                         candidate.Y = Vector3.Dot(point, hullFaceY);
                         candidate.FeatureId = baseFeatureId + endId;
+
                     }
                     if (latestEntry < earliestExit && latestEntry > 0 && candidateCount < 8)
                     {
@@ -254,6 +257,7 @@ namespace BepuPhysics.CollisionDetection.CollisionTasks
                         candidate.X = Vector3.Dot(point, hullFaceX);
                         candidate.Y = Vector3.Dot(point, hullFaceY);
                         candidate.FeatureId = baseFeatureId + startId;
+
                     }
 
                     previousIndex = index;
@@ -262,7 +266,7 @@ namespace BepuPhysics.CollisionDetection.CollisionTasks
                 if (candidateCount < 8)
                 {
                     //Try adding the box vertex contacts. Project each vertex onto the hull face.
-                    //t = dot(boxVertex - hullFaceVertex, hullFacePlaneNormal) / dot(hullFacePlaneNormal, localNormal)
+                    //t = dot(boxVertex - hullFaceVertex, hullFacePlaneNormal) / dot(hullFacePlaneNormal, localNormal) 
                     var hullFaceOriginX = new Vector4(hullFaceOrigin.X);
                     var hullFaceOriginY = new Vector4(hullFaceOrigin.Y);
                     var hullFaceOriginZ = new Vector4(hullFaceOrigin.Z);

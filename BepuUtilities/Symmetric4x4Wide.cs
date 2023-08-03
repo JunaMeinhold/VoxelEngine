@@ -1,5 +1,8 @@
-﻿using System.Numerics;
+﻿using System;
+using System.Collections.Generic;
+using System.Numerics;
 using System.Runtime.CompilerServices;
+using System.Text;
 
 namespace BepuUtilities
 {
@@ -90,7 +93,7 @@ namespace BepuUtilities
             result.WZ = (-m.WX * s3 + m.WY * s1 - m.WZ * s0) * inverseDeterminant;
             result.WW = (m.ZX * s3 - m.ZY * s1 + m.ZZ * s0) * inverseDeterminant;
         }
-
+        
         /// <summary>
         /// Computes result = v * m.
         /// </summary>

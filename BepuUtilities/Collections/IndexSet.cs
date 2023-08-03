@@ -1,8 +1,8 @@
-﻿using System;
+﻿using BepuUtilities.Memory;
+using System;
 using System.Diagnostics;
 using System.Numerics;
 using System.Runtime.CompilerServices;
-using BepuUtilities.Memory;
 
 namespace BepuUtilities.Collections
 {

@@ -1,74 +1,102 @@
 ﻿namespace VoxelEngine.Core.Input
 {
+    using Silk.NET.SDL;
     using System;
     using System.Collections.Generic;
-    using System.Diagnostics;
     using System.Runtime.CompilerServices;
-    using Silk.NET.SDL;
     using VoxelEngine.Core.Input.Events;
 
     public static class Keyboard
     {
-        private static readonly List<KeyCode> pushed = new();
+#nullable disable
+        private static Sdl sdl;
+#nullable enable
 
-        static Keyboard()
+        private static readonly Key[] keys = Enum.GetValues<Key>();
+        private static readonly string[] keyNames = new string[keys.Length];
+        private static readonly Dictionary<Key, KeyState> states = new();
+        private static readonly KeyboardEventArgs keyboardEventArgs = new();
+        private static readonly KeyboardCharEventArgs keyboardCharEventArgs = new();
+
+        public static IReadOnlyList<Key> Keys => keys;
+
+        public static IReadOnlyList<string> KeyNames => keyNames;
+
+        public static IReadOnlyDictionary<Key, KeyState> States => states;
+
+        internal static unsafe void Init()
         {
-            foreach (KeyCode button in Enum.GetValues(typeof(KeyCode)))
+            sdl = Application.sdl;
+            int numkeys;
+            byte* pKeys = sdl.GetKeyboardState(&numkeys);
+
+            for (int i = 0; i < keys.Length; i++)
             {
-                if (!States.ContainsKey(button))
-                {
-                    States.Add(button, KeyState.Released);
-                }
-            }
-        }
-
-        public static Dictionary<KeyCode, KeyState> States { get; } = new();
-
-        public static bool GlobalInput { get; set; }
-
-        public static event EventHandler<KeyboardEventArgs> OnKeyDown;
-
-        public static event EventHandler<KeyboardEventArgs> OnKeyUp;
-
-        public static event EventHandler<KeyboardCharEventArgs> OnChar;
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Update(KeyboardEventArgs args)
-        {
-            KeyState state = States[args.KeyCode] = args.KeyState;
-            if (state == KeyState.Pressed)
-            {
-                OnKeyDown?.Invoke(null, args);
-                pushed.Add(args.KeyCode);
-            }
-            else if (state == KeyState.Released)
-            {
-                OnKeyUp?.Invoke(null, args);
+                Key key = keys[i];
+                keyNames[i] = sdl.GetKeyNameS((int)key);
+                var scancode = (Key)sdl.GetScancodeFromKey((int)key);
+                states.Add(key, (KeyState)pKeys[(int)scancode]);
             }
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void FrameUpdate()
+        internal static void OnKeyDown(KeyboardEvent keyboardEvent)
         {
-            pushed.Clear();
+            Key keyCode = (Key)sdl.GetKeyFromScancode(keyboardEvent.Keysym.Scancode);
+            states[keyCode] = KeyState.Down;
+            keyboardEventArgs.KeyState = KeyState.Down;
+            keyboardEventArgs.KeyCode = keyCode;
+            keyboardEventArgs.Scancode = keyboardEvent.Keysym.Scancode;
+            KeyDown?.Invoke(null, keyboardEventArgs);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void Update(KeyboardCharEventArgs args)
+        internal static void OnKeyUp(KeyboardEvent keyboardEvent)
         {
-            OnChar?.Invoke(null, args);
+            Key keyCode = (Key)sdl.GetKeyFromScancode(keyboardEvent.Keysym.Scancode);
+            states[keyCode] = KeyState.Up;
+            keyboardEventArgs.KeyState = KeyState.Up;
+            keyboardEventArgs.KeyCode = keyCode;
+            keyboardEventArgs.Scancode = keyboardEvent.Keysym.Scancode;
+            KeyUp?.Invoke(null, keyboardEventArgs);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool IsDown(KeyCode n)
+        internal static void OnTextInput(TextInputEvent textInputEvent)
         {
-            return States[n] == KeyState.Pressed;
+            unsafe
+            {
+                keyboardCharEventArgs.Char = (char)*textInputEvent.Text;
+            }
+            TextInput?.Invoke(null, keyboardCharEventArgs);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static bool WasPushed(KeyCode key)
+        internal static void Flush()
         {
-            return pushed.Contains(key);
+        }
+
+        public static event EventHandler<KeyboardEventArgs>? KeyDown;
+
+        public static event EventHandler<KeyboardEventArgs>? KeyUp;
+
+        public static event EventHandler<KeyboardCharEventArgs>? TextInput;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool IsUp(Key n)
+        {
+            return states[n] == KeyState.Up;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool IsDown(Key n)
+        {
+            return states[n] == KeyState.Down;
+        }
+
+        public static Keymod GetModState()
+        {
+            return sdl.GetModState();
         }
     }
 }

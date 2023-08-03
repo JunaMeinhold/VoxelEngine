@@ -12,42 +12,45 @@ namespace VoxelEngine.Voxel
         };
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void AppendQuadX(BlockVertexBuffer buffer, int x, int yL, int yR, int kL, int kR, int normal, int light)
+        public static void AppendQuadX(IVoxelVertexBuffer buffer, int x, int yL, int yR, int kL, int kR, int normal, int light)
         {
             int shared = x | light | normal;
 
-            buffer.Data[buffer.Used + 1] = yR | kL | shared;
-            buffer.Data[buffer.Used] = buffer.Data[buffer.Used + 4] = yL | kL | shared;
-            buffer.Data[buffer.Used + 2] = buffer.Data[buffer.Used + 5] = yR | kR | shared;
-            buffer.Data[buffer.Used + 3] = yL | kR | shared;
+            int index = buffer.Count;
+            buffer.Increase(6);
 
-            buffer.Used += 6;
+            buffer[index + 1] = yR | kL | shared;
+            buffer[index] = buffer[index + 4] = yL | kL | shared;
+            buffer[index + 2] = buffer[index + 5] = yR | kR | shared;
+            buffer[index + 3] = yL | kR | shared;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void AppendQuadY(BlockVertexBuffer buffer, int xL, int xR, int y, int zL, int zR, int normal, int light)
+        public static void AppendQuadY(IVoxelVertexBuffer buffer, int xL, int xR, int y, int zL, int zR, int normal, int light)
         {
             int shared = y | light | normal;
 
-            buffer.Data[buffer.Used + 1] = xL | zR | shared;
-            buffer.Data[buffer.Used] = buffer.Data[buffer.Used + 4] = xL | zL | shared;
-            buffer.Data[buffer.Used + 2] = buffer.Data[buffer.Used + 5] = xR | zR | shared;
-            buffer.Data[buffer.Used + 3] = xR | zL | shared;
+            int index = buffer.Count;
+            buffer.Increase(6);
 
-            buffer.Used += 6;
+            buffer[index + 1] = xL | zR | shared;
+            buffer[index] = buffer[index + 4] = xL | zL | shared;
+            buffer[index + 2] = buffer[index + 5] = xR | zR | shared;
+            buffer[index + 3] = xR | zL | shared;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void AppendQuadZ(BlockVertexBuffer buffer, int xL, int xR, int yL, int yR, int z, int normal, int light)
+        public static void AppendQuadZ(IVoxelVertexBuffer buffer, int xL, int xR, int yL, int yR, int z, int normal, int light)
         {
             int shared = z | light | normal;
 
-            buffer.Data[buffer.Used + 1] = xR | yR | shared;
-            buffer.Data[buffer.Used] = buffer.Data[buffer.Used + 4] = xR | yL | shared;
-            buffer.Data[buffer.Used + 2] = buffer.Data[buffer.Used + 5] = xL | yR | shared;
-            buffer.Data[buffer.Used + 3] = xL | yL | shared;
+            int index = buffer.Count;
+            buffer.Increase(6);
 
-            buffer.Used += 6;
+            buffer[index + 1] = xR | yR | shared;
+            buffer[index] = buffer[index + 4] = xR | yL | shared;
+            buffer[index + 2] = buffer[index + 5] = xL | yR | shared;
+            buffer[index + 3] = xL | yL | shared;
         }
     }
 }

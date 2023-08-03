@@ -1,8 +1,8 @@
-﻿using System;
+﻿using BepuPhysics.Collidables;
+using BepuUtilities;
+using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
-using BepuPhysics.Collidables;
-using BepuUtilities;
 
 namespace BepuPhysics.CollisionDetection.CollisionTasks
 {
@@ -19,7 +19,7 @@ namespace BepuPhysics.CollisionDetection.CollisionTasks
             //Compute the closest points between the two line segments. No clamping to begin with.
             //We want to minimize distance = ||(a + da * ta) - (b + db * tb)||.
             //Taking the derivative with respect to ta and doing some algebra (taking into account ||da|| == ||db|| == 1) to solve for ta yields:
-            //ta = (da * (b - a) + (db * (a - b)) * (da * db)) / (1 - ((da * db) * (da * db))
+            //ta = (da * (b - a) + (db * (a - b)) * (da * db)) / (1 - ((da * db) * (da * db))        
             QuaternionWide.TransformUnitXY(orientationA, out var xa, out var da);
             var db = QuaternionWide.TransformUnitY(orientationB);
             Vector3Wide.Dot(da, offsetB, out var daOffsetB);
@@ -109,7 +109,7 @@ namespace BepuPhysics.CollisionDetection.CollisionTasks
             manifold.Depth0 = combinedRadius - distance0;
             manifold.Depth1 = combinedRadius - distance1;
 
-            //Apply the normal offset to the contact positions.
+            //Apply the normal offset to the contact positions.           
             var negativeOffsetFromA0 = manifold.Depth0 * 0.5f - a.Radius;
             var negativeOffsetFromA1 = manifold.Depth1 * 0.5f - a.Radius;
             Vector3Wide.Scale(manifold.Normal, negativeOffsetFromA0, out var normalPush0);

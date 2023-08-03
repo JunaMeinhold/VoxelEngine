@@ -5,8 +5,8 @@ namespace App.Renderers.Forward
     using System.Numerics;
     using System.Runtime.CompilerServices;
     using App.Pipelines.Forward;
-    using BepuUtilities;
     using Vortice.Direct3D11;
+    using VoxelEngine.Mathematics;
     using VoxelEngine.Objects.Primitives;
     using VoxelEngine.Rendering.D3D;
     using VoxelEngine.Rendering.D3D.Interfaces;
@@ -15,21 +15,21 @@ namespace App.Renderers.Forward
 
     public class SkyboxRenderer : IForwardRenderComponent
     {
-        private SceneElement sceneElement;
+        private GameObject sceneElement;
         private ShaderPipeline<SkyboxPipeline> pipeline;
         public Texture2D Texture;
         public UVSphere sphere;
         public string TexturePath;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Initialize(ID3D11Device device, SceneElement element)
+        public void Initialize(ID3D11Device device, GameObject element)
         {
             sceneElement = element;
             pipeline = new(device);
             sphere = new();
             Texture = new();
             Texture.Load(device, TexturePath);
-            Texture.Sampler = device.CreateSamplerState(SamplerDescription.AnisotropicClamp);
+            Texture.Sampler = device.CreateSamplerState(SamplerDescription.LinearClamp);
             Texture.Add(new(ShaderStage.Pixel, 0));
             pipeline.ShaderResources.Add(Texture);
         }

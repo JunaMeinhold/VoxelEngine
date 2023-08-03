@@ -99,6 +99,80 @@
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public RenderTextureArray(ID3D11Device device, int width, int height, params Format[] formats)
+        {
+            Count = formats.Length;
+            Width = width;
+            Height = height;
+            textures = new ID3D11Texture2D[formats.Length];
+            resourceViews = new ID3D11ShaderResourceView[formats.Length];
+            for (int i = 0; i < formats.Length; i++)
+            {
+                ID3D11Texture2D texture;
+                ID3D11ShaderResourceView resourceView;
+                if (Nucleus.Settings.MSAA)
+                {
+                    Texture2DDescription textureDesc = new()
+                    {
+                        Width = Width,
+                        Height = Height,
+                        MipLevels = 1,
+                        ArraySize = 1,
+                        Format = formats[i],
+                        SampleDescription = new SampleDescription(Nucleus.Settings.MSAASampleCount, Nucleus.Settings.MSAASampleQuality),
+                        Usage = ResourceUsage.Default,
+                        BindFlags = BindFlags.RenderTarget | BindFlags.ShaderResource,
+                        CPUAccessFlags = CpuAccessFlags.None,
+                        MiscFlags = ResourceOptionFlags.None
+                    };
+
+                    texture = device.CreateTexture2D(textureDesc);
+
+                    ShaderResourceViewDescription srvDesc = new()
+                    {
+                        Format = texture.Description.Format,
+                        ViewDimension = ShaderResourceViewDimension.Texture2DMultisampled,
+                    };
+
+                    resourceView = device.CreateShaderResourceView(texture, srvDesc);
+                }
+                else
+                {
+                    Texture2DDescription textureDesc = new()
+                    {
+                        Width = Width,
+                        Height = Height,
+                        MipLevels = 1,
+                        ArraySize = 1,
+                        Format = formats[i],
+                        SampleDescription = new SampleDescription(1, 0),
+                        Usage = ResourceUsage.Default,
+                        BindFlags = BindFlags.RenderTarget | BindFlags.ShaderResource,
+                        CPUAccessFlags = CpuAccessFlags.None,
+                        MiscFlags = ResourceOptionFlags.None
+                    };
+
+                    texture = device.CreateTexture2D(textureDesc);
+
+                    ShaderResourceViewDescription srvDesc = new()
+                    {
+                        Format = texture.Description.Format,
+                        ViewDimension = ShaderResourceViewDimension.Texture2D,
+                    };
+
+                    srvDesc.Texture2D.MipLevels = 1;
+                    srvDesc.Texture2D.MostDetailedMip = 0;
+
+                    resourceView = device.CreateShaderResourceView(texture, srvDesc);
+                }
+                textures[i] = texture;
+                resourceViews[i] = resourceView;
+            }
+
+            RenderTargets = new(device, textures, width, height);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Add(ShaderResourceBinding binding)
         {
             bindings.Add(binding);

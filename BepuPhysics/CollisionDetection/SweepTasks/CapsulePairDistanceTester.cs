@@ -1,6 +1,6 @@
-﻿using System.Numerics;
-using BepuPhysics.Collidables;
+﻿using BepuPhysics.Collidables;
 using BepuUtilities;
+using System.Numerics;
 
 namespace BepuPhysics.CollisionDetection.SweepTasks
 {

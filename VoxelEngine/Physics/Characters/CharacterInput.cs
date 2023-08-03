@@ -24,12 +24,12 @@ namespace VoxelEngine.Physics.Characters
         private readonly CharacterControllers characters;
         private readonly float speed;
         private Capsule shape;
-        private static KeyCode moveForward = KeyCode.KW;
-        private static KeyCode moveBackward = KeyCode.KS;
-        private static KeyCode moveRight = KeyCode.KD;
-        private static KeyCode moveLeft = KeyCode.KA;
-        private static KeyCode sprint = KeyCode.KLshift;
-        private static KeyCode jump = KeyCode.KSpace;
+        private static Key moveForward = Key.W;
+        private static Key moveBackward = Key.S;
+        private static Key moveRight = Key.D;
+        private static Key moveLeft = Key.A;
+        private static Key sprint = Key.LShift;
+        private static Key jump = Key.Space;
 
         public BodyHandle BodyHandle => bodyHandle;
 
@@ -53,12 +53,12 @@ namespace VoxelEngine.Physics.Characters
             this.shape = shape;
         }
 
-        public static KeyCode MoveForward { get => moveForward; set => moveForward = value; }
-        public static KeyCode MoveBackward { get => moveBackward; set => moveBackward = value; }
-        public static KeyCode MoveRight { get => moveRight; set => moveRight = value; }
-        public static KeyCode MoveLeft { get => moveLeft; set => moveLeft = value; }
-        public static KeyCode Sprint { get => sprint; set => sprint = value; }
-        public static KeyCode Jump { get => jump; set => jump = value; }
+        public static Key MoveForward { get => moveForward; set => moveForward = value; }
+        public static Key MoveBackward { get => moveBackward; set => moveBackward = value; }
+        public static Key MoveRight { get => moveRight; set => moveRight = value; }
+        public static Key MoveLeft { get => moveLeft; set => moveLeft = value; }
+        public static Key Sprint { get => sprint; set => sprint = value; }
+        public static Key Jump { get => jump; set => jump = value; }
 
         public void UpdateCharacterGoals(Camera camera, float simulationTimestepDuration)
         {

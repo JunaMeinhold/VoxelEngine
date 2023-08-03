@@ -2,17 +2,13 @@
 {
     public class MouseMotionEventArgs : EventArgs
     {
-        public MouseMotionEventArgs(int x, int y, int relX, int relY)
+        public MouseMotionEventArgs()
         {
-            X = x;
-            Y = y;
-            RelX = relX;
-            RelY = relY;
         }
 
-        public int X;
-        public int Y;
-        public int RelX;
-        public int RelY;
+        public float X { get; internal set; }
+        public float Y { get; internal set; }
+        public float RelX { get; internal set; }
+        public float RelY { get; internal set; }
     }
 }

@@ -8,7 +8,7 @@
     using System.Runtime.CompilerServices;
     using System.Runtime.InteropServices;
     using System.Text;
-    using ImGuiNET;
+    using HexaEngine.ImGuiNET;
     using VoxelEngine.Debugging.Collections;
 
     public struct ConsoleMessage

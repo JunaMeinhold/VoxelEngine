@@ -6,15 +6,19 @@
     [StructLayout(LayoutKind.Sequential)]
     public struct Block
     {
-        public byte Health;
-        public byte Type;
+        public ushort Type;
+
+        public Block(ushort type)
+        {
+            Type = type;
+        }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public override bool Equals(object obj)
+        public override readonly bool Equals(object obj)
         {
             if (obj is Block b)
             {
-                return b.Type != Type || b.Health != Health;
+                return b.Type != Type;
             }
 
             return false;
@@ -33,9 +37,9 @@
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public override int GetHashCode()
+        public override readonly int GetHashCode()
         {
-            return Type.GetHashCode() + Health.GetHashCode();
+            return Type.GetHashCode();
         }
     }
 }

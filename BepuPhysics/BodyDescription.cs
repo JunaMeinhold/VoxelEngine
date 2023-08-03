@@ -1,4 +1,9 @@
 ﻿using BepuPhysics.Collidables;
+using BepuPhysics.Constraints;
+using BepuUtilities;
+using BepuUtilities.Memory;
+using System.Numerics;
+using System.Runtime.CompilerServices;
 
 namespace BepuPhysics
 {

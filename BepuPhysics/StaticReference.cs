@@ -1,8 +1,8 @@
-﻿using System.Diagnostics;
+﻿using BepuPhysics.Collidables;
+using BepuUtilities;
+using System.Diagnostics;
 using System.Numerics;
 using System.Runtime.CompilerServices;
-using BepuPhysics.Collidables;
-using BepuUtilities;
 
 namespace BepuPhysics
 {

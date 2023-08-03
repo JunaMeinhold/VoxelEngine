@@ -1,27 +1,10 @@
-// Copyright (c) 2022 Juna Meinhold
-//
-// Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
-// documentation files (the "Software"), to deal in the Software without restriction, including without limitation
-// the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
-// and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-//
-// The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
-//
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
-// WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-
-#include "../../common.hlsl"
+ #include "../../common.hlsl"
 #include "../../gbuffer.hlsl"
 #include "../../lights.hlsl"
+#include "../../camera.hlsl"
 #include "defs.hlsl"
 
-cbuffer cameraData : register(b0)
-{
-    Camera camera;
-};
-
-cbuffer directionalLightBuffer : register(b1)
+cbuffer directionalLightBuffer : register(b0)
 {
     DirectionalLightSD directionalLight;
 };
@@ -30,22 +13,25 @@ Texture2D<float4> albedoTexture : register(t0);
 Texture2D<float4> positionTexture : register(t1);
 Texture2D<float4> normalTexture : register(t2);
 Texture2D<float4> specularTexture : register(t3);
+Texture2D<float> depthTexture : register(t4);
 
-Texture2DArray lightDepthMap : register(t4);
+Texture2DArray lightDepthMap : register(t5);
+
+SamplerState samplerLinearClamp : register(s0);
 SamplerState samplerDepth : register(s4);
 
 float ShadowCalculation(DirectionalLightSD light, float3 fragPosWorldSpace, float3 normal, Texture2DArray depthTex, SamplerState state)
 {
     float cascadePlaneDistances[16] = (float[16]) light.cascades;
     float farPlane = 100;
-    
+
     float w;
     float h;
     uint cascadeCount;
     depthTex.GetDimensions(w, h, cascadeCount);
 
     // select cascade layer
-    float4 fragPosViewSpace = mul(float4(fragPosWorldSpace, 1.0), camera.view);
+    float4 fragPosViewSpace = mul(float4(fragPosWorldSpace, 1.0), view);
     float depthValue = abs(fragPosViewSpace.z);
     float cascadePlaneDistance;
     uint layer = cascadeCount;
@@ -99,7 +85,7 @@ float ShadowCalculation(DirectionalLightSD light, float3 fragPosWorldSpace, floa
     {
         shadow = 0.0;
     }
-        
+
     return shadow;
 }
 
@@ -107,14 +93,14 @@ float ShadowCalculationDebug(DirectionalLightSD light, float3 fragPosWorldSpace,
 {
     float cascadePlaneDistances[16] = (float[16]) light.cascades;
     float farPlane = 100;
-    
+
     float w;
     float h;
     uint cascadeCount;
     depthTex.GetDimensions(w, h, cascadeCount);
 
     // select cascade layer
-    float4 fragPosViewSpace = mul(float4(fragPosWorldSpace, 1.0), camera.view);
+    float4 fragPosViewSpace = mul(float4(fragPosWorldSpace, 1.0), view);
     float depthValue = abs(fragPosViewSpace.z);
     float cascadePlaneDistance;
     uint layer = cascadeCount;
@@ -128,39 +114,59 @@ float ShadowCalculationDebug(DirectionalLightSD light, float3 fragPosWorldSpace,
         }
     }
 
-    return (float)layer / cascadeCount;
+    return (float) layer / cascadeCount;
 }
 
+#define PI 3.14159265358979323846
 
-float3 ComputeDirectionalLight(GeometryAttributes attrs, DirectionalLightSD light)
+float Attenuation(float distance, float range)
 {
-    float3 color = (float3)light.color;
-    float3 position = (float3)attrs.pos;
-    float3 normal = normalize(attrs.normal);;
+    float att = saturate(1.0f - (distance * distance / (range * range)));
+    return att * att;
+}
 
-    // Ambient
-    float3 ambient = 0.4f * color;
+float3 BlinnPhong(float3 radiance, float3 L, float3 V, float3 N, float3 baseColor, float shininess)
+{
+    float NdotL = max(0, dot(N, L));
+    float3 diffuse = radiance * NdotL;
 
-    // Diffuse
-    float3 lightDir = normalize(-light.dir);
-    float diff = max(dot(lightDir, normal), 0.0);
-    float3 diffuse = diff * color;
+    const float kEnergyConservation = (8.0 + shininess) / (8.0 * PI);
+    float3 halfwayDir = normalize(L + V);
+    float spec = kEnergyConservation * pow(max(dot(N, halfwayDir), 0.0), shininess);
 
-    // Specular
-    float3 viewDir = normalize(camera.position - position);
-    float3 halfwayDir = normalize(lightDir + viewDir);
-    float spec = pow(max(dot(normal, halfwayDir), 0.0), 32);
-    float3 specular = spec * color * 0.5f;
+    float3 specular = radiance * spec;
 
-    // Shadow
-    float bias = max(0.05f * (1.0 - dot(normal, lightDir)), 0.005f);
-    float shadow = ShadowCalculation(light, position, normal, lightDepthMap, samplerDepth);
-    
-    float debug = ShadowCalculationDebug(light, position, lightDepthMap);
-    
-    //return float3(debug, shadow, 0);
+    return (diffuse + specular) * baseColor;
+}
 
-    return ambient + (1.0 - shadow) * (diffuse + specular);
+float3 ComputeDirectionalLight(GeometryAttributes attrs, float3 position, float3 V, DirectionalLightSD light)
+{
+    float3 radiance = (float3) light.color;
+    float3 L = normalize(-light.dir);
+    float3 N = normalize(attrs.normal);
+
+    float shadow = 0;
+
+    if (light.castsShadows)
+    {
+        // Shadow
+        float bias = max(0.05f * (1.0 - dot(N, L)), 0.005f);
+        shadow = ShadowCalculation(light, position, N, lightDepthMap, samplerDepth);
+    }
+
+    return (1.0 - shadow) * BlinnPhong(radiance, L, V, N, attrs.albedo, 32);
+}
+
+float3 ComputePointLight(GeometryAttributes attrs, float3 position, float3 V, PointLight light)
+{
+    float3 N = attrs.normal;
+    float3 LN = light.position.xyz - position;
+    float distance = length(LN);
+    float3 L = normalize(LN);
+
+    float attenuation = Attenuation(distance, light.range);
+    float3 radiance = light.color.rgb * attenuation;
+    return BlinnPhong(radiance, L, V, N, attrs.albedo, 32);
 }
 
 float3 Tonemap_ACES(const float3 x)
@@ -174,21 +180,28 @@ float3 Tonemap_ACES(const float3 x)
     return (x * (a * x + b)) / (x * (c * x + d) + e);
 }
 
+float3 ReinhardTonemapping(float3 hdrColor, float exposure)
+{
+    return hdrColor / (hdrColor + 1.0f) * exposure;
+}
+
 float3 OECF_sRGBFast(float3 color)
 {
-    float gamma = 2.2;
+    float gamma = 2.0;
     return pow(color.rgb, float3(1.0 / gamma, 1.0 / gamma, 1.0 / gamma));
 }
 
 float4 main(PixelInput input) : SV_TARGET
 {
     GeometryAttributes attrs;
-    ExtractGeometryData((int3)input.pos, albedoTexture, positionTexture, normalTexture, specularTexture, attrs);
+    ExtractGeometryData(input.tex, albedoTexture, positionTexture, normalTexture, specularTexture, samplerLinearClamp, attrs);
+    float depth = depthTexture.SampleLevel(samplerLinearClamp, input.tex, 0);
+    float3 position = GetPositionWS(input.tex, depth);
+    float3 V = normalize(GetCameraPos() - position);
 
-    float3 color = ComputeDirectionalLight(attrs, directionalLight) * attrs.albedo;
+    float3 color = ComputeDirectionalLight(attrs, position, V, directionalLight) * attrs.albedo;
 
-    color = OECF_sRGBFast(color);
-    color = Tonemap_ACES(color);
+    color += attrs.albedo * 0.2f;
 
-    return float4(color, dot(color.rgb, float3(0.299, 0.587, 0.114)));
+    return float4(color, 1);
 }

@@ -1,9 +1,12 @@
-﻿using System;
+﻿using BepuPhysics;
+using BepuPhysics.CollisionDetection;
+using BepuPhysics.Constraints;
+using BepuUtilities;
+using BepuUtilities.Memory;
+using System;
 using System.Diagnostics;
 using System.Numerics;
 using System.Runtime.CompilerServices;
-using BepuUtilities;
-using BepuUtilities.Memory;
 using static BepuUtilities.GatherScatter;
 
 namespace BepuPhysics.Constraints

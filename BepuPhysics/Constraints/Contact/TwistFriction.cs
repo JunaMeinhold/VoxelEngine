@@ -1,6 +1,7 @@
-﻿using System.Numerics;
+﻿using BepuUtilities;
+using System.Diagnostics;
+using System.Numerics;
 using System.Runtime.CompilerServices;
-using BepuUtilities;
 
 namespace BepuPhysics.Constraints.Contact
 {

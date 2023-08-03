@@ -1,9 +1,9 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Diagnostics;
-using System.Numerics;
-using System.Runtime.CompilerServices;
 using BepuUtilities.Memory;
+using System.Collections.Generic;
+using System.Runtime.CompilerServices;
+using System.Numerics;
 
 namespace BepuUtilities.Collections
 {
@@ -237,7 +237,7 @@ namespace BepuUtilities.Collections
             Span[(FirstIndex = ((FirstIndex - 1) & CapacityMask))] = element;
             ++Count;
         }
-
+        
         /// <summary>
         /// Enqueues the element to the end of the queue, incrementing the last index.
         /// </summary>

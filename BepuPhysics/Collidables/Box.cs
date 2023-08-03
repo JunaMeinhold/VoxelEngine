@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
-using BepuPhysics.CollisionDetection;
-using BepuUtilities;
 using BepuUtilities.Memory;
+using BepuUtilities;
+using BepuPhysics.CollisionDetection;
 
 namespace BepuPhysics.Collidables
 {
@@ -16,12 +16,10 @@ namespace BepuPhysics.Collidables
         /// Half of the box's width along its local X axis.
         /// </summary>
         public float HalfWidth;
-
         /// <summary>
         /// Half of the box's height along its local Y axis.
         /// </summary>
         public float HalfHeight;
-
         /// <summary>
         /// Half of the box's length along its local Z axis.
         /// </summary>
@@ -31,12 +29,10 @@ namespace BepuPhysics.Collidables
         /// Gets or sets the width of the box along its local X axis.
         /// </summary>
         public float Width { get { return HalfWidth * 2; } set { HalfWidth = value * 0.5f; } }
-
         /// <summary>
         /// Gets or sets the height of the box along its local Y axis.
         /// </summary>
         public float Height { get { return HalfHeight * 2; } set { HalfHeight = value * 0.5f; } }
-
         /// <summary>
         /// Gets or sets the length of the box along its local Z axis.
         /// </summary>
@@ -175,9 +171,9 @@ namespace BepuPhysics.Collidables
         /// Type id of box shapes.
         /// </summary>
         public const int Id = 2;
-
         public readonly int TypeId { [MethodImpl(MethodImplOptions.AggressiveInlining)] get { return Id; } }
     }
+
 
     public struct BoxWide : IShapeWide<Box>
     {
@@ -203,9 +199,7 @@ namespace BepuPhysics.Collidables
 
         public bool AllowOffsetMemoryAccess => true;
         public int InternalAllocationSize => 0;
-
-        public void Initialize(in Buffer<byte> memory)
-        { }
+        public void Initialize(in Buffer<byte> memory) { }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void WriteSlot(int index, in Box source)

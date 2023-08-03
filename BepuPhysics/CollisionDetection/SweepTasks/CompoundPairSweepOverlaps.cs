@@ -1,6 +1,6 @@
-﻿using System.Runtime.CompilerServices;
-using BepuPhysics.CollisionDetection.CollisionTasks;
+﻿using BepuPhysics.CollisionDetection.CollisionTasks;
 using BepuUtilities.Memory;
+using System.Runtime.CompilerServices;
 
 namespace BepuPhysics.CollisionDetection.SweepTasks
 {
@@ -15,7 +15,7 @@ namespace BepuPhysics.CollisionDetection.SweepTasks
             //We rely on the length being zero to begin with for lazy initialization.
             childOverlaps.Clear(0, childCount);
         }
-
+        
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public ref ChildOverlapsCollection GetOverlapsForChild(int pairIndex)
         {

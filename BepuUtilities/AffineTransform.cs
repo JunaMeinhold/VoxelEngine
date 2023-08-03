@@ -67,7 +67,7 @@ namespace BepuUtilities
             Translation = translation;
         }
 
-        ///<summary>
+         ///<summary>
         /// Constructs a new affine transform.
         ///</summary>
         ///<param name="linearTransform">The linear transform component.</param>

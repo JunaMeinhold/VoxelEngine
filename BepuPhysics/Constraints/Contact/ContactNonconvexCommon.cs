@@ -1,10 +1,10 @@
-﻿using System.Diagnostics;
+﻿using BepuPhysics.CollisionDetection;
+using BepuUtilities.Memory;
+using System.Diagnostics;
 using System.Numerics;
 using System.Runtime.CompilerServices;
-using BepuPhysics.CollisionDetection;
-using BepuUtilities;
-using BepuUtilities.Memory;
 using static BepuUtilities.GatherScatter;
+using BepuUtilities;
 
 namespace BepuPhysics.Constraints.Contact
 {

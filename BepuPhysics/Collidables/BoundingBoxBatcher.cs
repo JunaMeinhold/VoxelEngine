@@ -1,18 +1,23 @@
-﻿using System;
+﻿using BepuPhysics.Collidables;
+using BepuPhysics.CollisionDetection;
+using BepuPhysics.Constraints;
+using BepuUtilities;
+using BepuUtilities.Collections;
+using BepuUtilities.Memory;
+using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Numerics;
 using System.Runtime.CompilerServices;
-using BepuPhysics.CollisionDetection;
-using BepuUtilities;
-using BepuUtilities.Memory;
+using System.Text;
 
-namespace BepuPhysics.Collidables
+namespace BepuPhysics
 {
     public struct BoundsContinuation
     {
         //Bits 0-30: body index
         //Bit 31: compound flag; if set, the continuation should merge into the target slot rather than merely setting it.
-        private uint packed;
+        uint packed;
 
         /// <summary>
         /// Gets the index of the body associated with this continuation.
@@ -34,7 +39,7 @@ namespace BepuPhysics.Collidables
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
             {
-                return (packed & 1u << 31) > 0;
+                return (packed & (1u << 31)) > 0;
             }
         }
 
@@ -49,7 +54,6 @@ namespace BepuPhysics.Collidables
             toReturn.packed = (uint)bodyIndex;
             return toReturn;
         }
-
         /// <summary>
         /// Creates a bounding box calculation continuation for a given compound body.
         /// </summary>
@@ -58,10 +62,11 @@ namespace BepuPhysics.Collidables
         {
             Debug.Assert(compoundBodyIndex >= 0);
             BoundsContinuation toReturn;
-            toReturn.packed = 1u << 31 | (uint)compoundBodyIndex;
+            toReturn.packed = (1u << 31) | (uint)compoundBodyIndex;
             return toReturn;
         }
     }
+
 
     public struct BoundingBoxInstance
     {
@@ -84,7 +89,6 @@ namespace BepuPhysics.Collidables
             pool.Take(initialCapacity, out MotionStates);
             Count = 0;
         }
-
         internal void Add(int shapeIndex, RigidPose pose, BodyVelocity velocity, BoundsContinuation continuation)
         {
             ShapeIndices[Count] = shapeIndex;
@@ -105,6 +109,7 @@ namespace BepuPhysics.Collidables
                 Count = 0;
             }
         }
+
     }
 
     public struct BoundingBoxBatcher
@@ -115,8 +120,8 @@ namespace BepuPhysics.Collidables
         internal BroadPhase broadPhase;
         internal float dt;
 
-        private int minimumBatchIndex, maximumBatchIndex;
-        private Buffer<BoundingBoxBatch> batches;
+        int minimumBatchIndex, maximumBatchIndex;
+        Buffer<BoundingBoxBatch> batches;
 
         /// <summary>
         /// The number of bodies to accumulate per type before executing an AABB update. The more bodies per batch, the less virtual overhead and execution divergence.
@@ -285,8 +290,9 @@ namespace BepuPhysics.Collidables
             }
         }
 
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void Add(TypedIndex shapeIndex, RigidPose pose, BodyVelocity velocity, BoundsContinuation continuation)
+        void Add(TypedIndex shapeIndex, RigidPose pose, BodyVelocity velocity, BoundsContinuation continuation)
         {
             var typeIndex = shapeIndex.Type;
             Debug.Assert(typeIndex >= 0 && typeIndex < batches.Length, "The preallocated type batch array should be able to hold every type index. Is the type index broken?");
@@ -300,9 +306,9 @@ namespace BepuPhysics.Collidables
                 if (typeIndex > maximumBatchIndex)
                     maximumBatchIndex = typeIndex;
             }
-            //TODO: Arguably, batching up compounds is silly.
+            //TODO: Arguably, batching up compounds is silly. 
             //It technically opens the door for vectorizing their child pose calculations, but those are almost certainly not worth vectorizing anyway.
-            //May want to consider directly triggering a bounds dispatch for compounds here.
+            //May want to consider directly triggering a bounds dispatch for compounds here. 
             //(Doing so WOULD be more complicated, though.)
             batchSlot.Add(shapeIndex.Index, pose, velocity, continuation);
             if (batchSlot.Count == CollidablesPerFlush)
@@ -321,9 +327,10 @@ namespace BepuPhysics.Collidables
             //But then you'd be evicting everything from cache L1/L2. And, 99.99% of the time, bodies are going to have shapes, so this isn't going to be a difficult branch to predict.
             //Even if it was 50%, the cache benefit of executing alongside the just-touched data source would outweigh the misprediction.
             if (collidable.Shape.Exists)
+            {
                 Add(collidable.Shape, pose, velocity, BoundsContinuation.CreateContinuation(bodyIndex));
+            }
         }
-
         public void AddCompoundChild(int bodyIndex, TypedIndex shapeIndex, in RigidPose pose, in BodyVelocity velocity)
         {
             Add(shapeIndex, pose, velocity, BoundsContinuation.CreateCompoundChildContinuation(bodyIndex));
@@ -340,10 +347,16 @@ namespace BepuPhysics.Collidables
             {
                 var batch = shapes[i];
                 if (batch != null)
+                {
                     if (compoundEncountered)
+                    {
                         Debug.Assert(batch.Compound, "If a compound shape batch has been found, all subsequent batches must also be compound to avoid cycles.");
+                    }
                     else if (batch.Compound)
+                    {
                         compoundEncountered = true;
+                    }
+                }
             }
 #endif
             //Note reverse iteration. Execute all compound batches first.
@@ -351,7 +364,9 @@ namespace BepuPhysics.Collidables
             {
                 ref var batch = ref batches[i];
                 if (batch.Count > 0)
+                {
                     shapes[i].ComputeBounds(ref this);
+                }
                 //Dispose of the batch and any associated buffers; since the flush is one pass, we won't be needing this again.
                 batch.Dispose(pool);
             }

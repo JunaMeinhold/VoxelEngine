@@ -2,12 +2,10 @@
 {
     using System.Numerics;
     using System.Runtime.CompilerServices;
-    using System.Runtime.InteropServices;
     using BepuPhysics;
     using BepuPhysics.Collidables;
     using BepuUtilities.Memory;
     using VoxelEngine.Voxel;
-    using static BepuPhysics.Collidables.CompoundBuilder;
 
     public struct ChunkStaticHandle
     {
@@ -21,7 +19,7 @@
         {
             IsEmpty = false;
             Box box = new(1, 1, 1);
-            CompoundBuilder compoundBuilder = new(pool, simulation.Shapes, Chunk.CHUNK_SIZE_CUBED * Marshal.SizeOf<Child>());
+            CompoundBuilder compoundBuilder = new(pool, simulation.Shapes, Chunk.CHUNK_SIZE_CUBED);
             for (int k = 0; k < Chunk.CHUNK_SIZE; k++)
             {
                 // Calculate this once, rather than multiple times in the inner loop
@@ -66,26 +64,25 @@
                 IsEmpty = true;
                 return;
             }
+            compoundBuilder.BuildKinematicCompound(out Buffer<CompoundChild> compoundChildren, out Vector3 offset);
             lock (simulation)
             {
-                compoundBuilder.BuildKinematicCompound(out Buffer<CompoundChild> compoundChildren, out Vector3 offset);
-
                 Compound = new(compoundChildren, simulation.Shapes, pool);
                 Shape = simulation.Shapes.Add(Compound);
                 Handle = simulation.Statics.Add(new StaticDescription(chunk.Position * Chunk.CHUNK_SIZE + offset, Shape));
-                compoundBuilder.Dispose();
             }
+
+            compoundBuilder.Dispose();
         }
 
         public void Free(Simulation simulation, BufferPool pool)
         {
+            if (simulation == null | IsEmpty)
+            {
+                return;
+            }
             lock (simulation)
             {
-                if (simulation == null | IsEmpty)
-                {
-                    return;
-                }
-
                 simulation.Statics.Remove(Handle);
                 Compound.Dispose(pool);
                 simulation.Shapes.Remove(Shape);

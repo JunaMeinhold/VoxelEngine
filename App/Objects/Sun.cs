@@ -2,7 +2,7 @@
 {
     using VoxelEngine.Scenes;
 
-    public class Sun : SceneElement
+    public class Sun : GameObject
     {
     }
 }

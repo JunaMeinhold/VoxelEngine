@@ -8,4 +8,5 @@ Nucleus.Settings.ShaderCache = false;
 #else
 Nucleus.Settings.ShaderCache = true;
 #endif
+Application.Boot();
 Application.Run(new GameWindow(new MainScene()));

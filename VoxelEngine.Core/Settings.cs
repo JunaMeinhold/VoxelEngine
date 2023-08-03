@@ -5,7 +5,7 @@
     public class Settings
     {
         [JsonProperty]
-        public bool VSync;
+        public bool VSync = false;
 
         [JsonProperty]
         public bool LimitFPS = true;
@@ -14,13 +14,13 @@
         public int TargetFPS = 120;
 
         [JsonProperty]
-        public int ShadowMapSize = 1024 * 8;
+        public int ShadowMapSize = 1024 * 2;
 
         [JsonProperty]
         public bool ShaderCache = false;
 
         [JsonProperty]
-        public int ChunkRenderDistance { get; set; } = 8;
+        public int ChunkRenderDistance { get; set; } = 32;
 
         [JsonIgnore]
         public int BufferCount = 2;

@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using BepuUtilities.Memory;
+using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 
 namespace BepuUtilities.Collections

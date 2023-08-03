@@ -2,7 +2,7 @@
   <PropertyGroup>
     <AssemblyName>BepuUtilities</AssemblyName>
     <RootNamespace>BepuUtilities</RootNamespace>
-    <TargetFramework>net6.0</TargetFramework>
+    <TargetFramework>net7.0</TargetFramework>
     <Version>2.4.0</Version>
     <Company>Bepu Entertainment LLC</Company>
     <Authors>Ross Nordby</Authors>
@@ -20,7 +20,7 @@
     <SignAssembly>true</SignAssembly>
     <DelaySign>false</DelaySign>
     <AssemblyOriginatorKeyFile>key.snk</AssemblyOriginatorKeyFile>
-    <GenerateDocumentationFile>False</GenerateDocumentationFile>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <!--<TieredCompilation>false</TieredCompilation>-->
   </PropertyGroup>
 

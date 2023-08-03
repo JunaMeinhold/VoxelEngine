@@ -1,8 +1,8 @@
-﻿using System;
+﻿using BepuPhysics.Collidables;
+using BepuUtilities;
+using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
-using BepuPhysics.Collidables;
-using BepuUtilities;
 
 namespace BepuPhysics.CollisionDetection.CollisionTasks
 {
@@ -149,7 +149,7 @@ namespace BepuPhysics.CollisionDetection.CollisionTasks
         static void Select(
             ref Vector<float> depth, ref Vector<float> ta,
             ref Vector<float> localNormalX, ref Vector<float> localNormalY, ref Vector<float> localNormalZ,
-            ref Vector<float> depthCandidate, ref Vector<float> taCandidate,
+            ref Vector<float> depthCandidate, ref Vector<float> taCandidate, 
             ref Vector<float> localNormalCandidateX, ref Vector<float> localNormalCandidateY, ref Vector<float> localNormalCandidateZ)
         {
             var useCandidate = Vector.LessThan(depthCandidate, depth);

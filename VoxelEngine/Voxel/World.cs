@@ -32,6 +32,12 @@
 
         public IReadOnlyList<Chunk> LoadedChunks => WorldLoader.LoadedChunks;
 
+        public IReadOnlyList<ChunkRegion> LoadedChunkRegions => WorldLoader.LoadedChunkRegions;
+
+#if !USE_LEGACY_LOADER
+        public IReadOnlyList<RenderRegion> LoadedRenderRegions => WorldLoader.LoadedRenderRegions;
+#endif
+
         public WorldLoader WorldLoader;
 
         public static int Mod(int x, int m)

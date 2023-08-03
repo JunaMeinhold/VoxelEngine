@@ -1,5 +1,5 @@
-﻿using System;
-using BepuUtilities.Memory;
+﻿using BepuUtilities.Memory;
+using System;
 
 namespace BepuPhysics
 {

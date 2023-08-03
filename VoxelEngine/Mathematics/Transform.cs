@@ -4,12 +4,38 @@
     using System.Numerics;
     using Newtonsoft.Json;
 
+    public struct TransformSnapshot
+    {
+        public Transform? Parent;
+        public Vector3 Position;
+        public Vector3 Rotation;
+        public Vector3 Scale;
+        public Quaternion Orientation;
+        public Vector3 GlobalPosition;
+        public Quaternion GlobalOrientation;
+        public Vector3 GlobalScale;
+        public Vector3 Forward;
+        public Vector3 Backward;
+        public Vector3 Left;
+        public Vector3 Right;
+        public Vector3 Up;
+        public Vector3 Down;
+        public Matrix4x4 Global;
+        public Matrix4x4 GlobalInverse;
+        public Matrix4x4 Local;
+        public Matrix4x4 LocalInverse;
+        public Matrix4x4 View;
+        public Matrix4x4 ViewInv;
+        public Vector3 Velocity;
+        public Vector3 OldPos;
+    }
+
     /// <summary>
     /// <see cref="Transform"/> is used for hierachical matrix calculation.
     /// </summary>
     public class Transform
     {
-        protected Transform initial;
+        protected TransformSnapshot initial;
         protected Transform parent;
         protected Vector3 position;
         protected Vector3 rotation;
@@ -32,12 +58,15 @@
         protected Matrix4x4 viewInv;
         protected Vector3 velocity;
         protected Vector3 oldpos;
+        protected bool dirty = true;
 
         public Transform()
         {
             Recalculate();
+            SaveState();
         }
 
+        [JsonIgnore]
         public Transform Parent
         {
             get => parent;
@@ -49,12 +78,13 @@
                     parent.Updated += ParentUpdated;
                 }
 
-                Recalculate();
+                OnChanged();
             }
         }
 
         private void ParentUpdated(object sender, EventArgs e)
         {
+            dirty = true;
             Recalculate();
         }
 
@@ -69,7 +99,7 @@
                 oldpos = position;
                 position = value;
                 velocity = position - oldpos;
-                Recalculate();
+                OnChanged();
             }
         }
 
@@ -84,7 +114,7 @@
             {
                 rotation = value;
                 orientation = value.NormalizeEulerAngleDegrees().ToRad().GetQuaternion();
-                Recalculate();
+                OnChanged();
             }
         }
 
@@ -97,7 +127,7 @@
             set
             {
                 scale = value;
-                Recalculate();
+                OnChanged();
             }
         }
 
@@ -112,7 +142,7 @@
             {
                 orientation = value;
                 rotation = value.GetRotation().ToDeg();
-                Recalculate();
+                OnChanged();
             }
         }
 
@@ -135,7 +165,7 @@
                     position = Vector3.Transform(value, parent.globalInverse);
                 }
 
-                Recalculate();
+                OnChanged();
             }
         }
 
@@ -158,7 +188,7 @@
                     orientation = value / parent.globalOrientation;
                 }
 
-                Recalculate();
+                OnChanged();
             }
         }
 
@@ -181,7 +211,7 @@
                     scale = value / parent.globalScale;
                 }
 
-                Recalculate();
+                OnChanged();
             }
         }
 
@@ -197,7 +227,7 @@
                 oldpos = position;
                 (position, orientation) = value;
                 velocity = position - oldpos;
-                Recalculate();
+                OnChanged();
             }
         }
 
@@ -213,7 +243,7 @@
                 oldpos = position;
                 (position, orientation, scale) = value;
                 velocity = position - oldpos;
-                Recalculate();
+                OnChanged();
             }
         }
 
@@ -298,21 +328,34 @@
         /// <summary>
         /// Notifies that the transform has changed. Used internally for parent child updates.
         /// </summary>
-        public event EventHandler Updated;
+        public event EventHandler? Updated;
+
+        public event EventHandler? Changed;
 
         /// <summary>
         /// Invokes the <see cref="Updated"/> event.
         /// </summary>
-        protected void OnUpdated()
+        protected virtual void OnUpdated()
         {
             Updated?.Invoke(this, EventArgs.Empty);
+        }
+
+        protected void OnChanged()
+        {
+            dirty = true;
+            Changed?.Invoke(this, EventArgs.Empty);
         }
 
         /// <summary>
         /// Recalculates all values of the <see cref="Transform"/>.
         /// </summary>
-        protected virtual void Recalculate()
+        public virtual bool Recalculate()
         {
+            if (!dirty)
+            {
+                return false;
+            }
+
             local = Matrix4x4.CreateScale(scale) * Matrix4x4.CreateFromQuaternion(orientation) * Matrix4x4.CreateTranslation(position);
             Matrix4x4.Invert(local, out localInverse);
             if (parent == null)
@@ -326,6 +369,7 @@
 
             Matrix4x4.Invert(global, out globalInverse);
 
+            // Update other properties based on the new global matrix
             Matrix4x4.Decompose(global, out globalScale, out globalOrientation, out globalPosition);
             forward = Vector3.Transform(Vector3.UnitZ, globalOrientation);
             backward = Vector3.Transform(-Vector3.UnitZ, globalOrientation);
@@ -337,6 +381,8 @@
             view = MathUtil.LookAtLH(globalPosition, forward + globalPosition, up);
             Matrix4x4.Invert(view, out viewInv);
             OnUpdated();
+            dirty = false;
+            return true;
         }
 
         /// <summary>
@@ -349,74 +395,112 @@
             Matrix4x4.Invert(local, out localInverse);
             Matrix4x4.Decompose(local, out scale, out orientation, out position);
             rotation = orientation.GetRotation().ToDeg();
-            if (parent == null)
-            {
-                global = local;
-            }
-            else
-            {
-                global = local * parent.global;
-            }
-
-            Matrix4x4.Invert(global, out globalInverse);
-            Matrix4x4.Decompose(global, out globalScale, out globalOrientation, out globalPosition);
-
-            forward = Vector3.Transform(Vector3.UnitZ, globalOrientation);
-            backward = Vector3.Transform(-Vector3.UnitZ, globalOrientation);
-            right = Vector3.Transform(Vector3.UnitX, globalOrientation);
-            left = Vector3.Transform(-Vector3.UnitX, globalOrientation);
-            up = Vector3.Transform(Vector3.UnitY, globalOrientation);
-            down = Vector3.Transform(-Vector3.UnitY, globalOrientation);
-            view = MathUtil.LookAtLH(globalPosition, forward + globalPosition, up);
-            Matrix4x4.Invert(view, out viewInv);
-
-            OnUpdated();
+            OnChanged();
         }
 
         /// <summary>
         /// Stores the current state. Used internally for the editor.
         /// </summary>
-        public void StoreInitial()
+        public void SaveState()
         {
-            initial = Clone();
+            initial = CreateSnapshot();
         }
 
         /// <summary>
         /// Stores the current state. Used internally for the editor.
         /// </summary>
-        public void RestoreInitial()
+        public void RestoreState()
         {
-            if (initial == null)
-            {
-                return;
-            }
+            backward = initial.Backward;
+            down = initial.Down;
+            forward = initial.Forward;
+            left = initial.Left;
+            global = initial.Global;
+            globalInverse = initial.GlobalInverse;
+            oldpos = initial.OldPos;
+            orientation = initial.Orientation;
+            parent = initial.Parent;
+            position = initial.Position;
+            right = initial.Right;
+            rotation = initial.Rotation;
+            scale = initial.Scale;
+            up = initial.Up;
+            velocity = initial.Velocity;
+            view = initial.View;
+            viewInv = initial.ViewInv;
+        }
 
-            backward = initial.backward;
-            down = initial.down;
-            forward = initial.forward;
-            left = initial.left;
-            global = initial.global;
-            globalInverse = initial.globalInverse;
-            oldpos = initial.oldpos;
-            orientation = initial.orientation;
-            parent = initial.parent;
-            position = initial.position;
-            right = initial.right;
-            rotation = initial.rotation;
-            scale = initial.scale;
-            up = initial.up;
-            velocity = initial.velocity;
-            view = initial.view;
-            viewInv = initial.viewInv;
+        public TransformSnapshot CreateSnapshot()
+        {
+            return new TransformSnapshot()
+            {
+                Backward = backward,
+                Down = down,
+                Forward = forward,
+                Left = left,
+                Global = global,
+                GlobalInverse = globalInverse,
+                OldPos = oldpos,
+                Orientation = orientation,
+                Parent = parent,
+                Position = position,
+                Right = right,
+                Rotation = rotation,
+                Scale = scale,
+                Up = up,
+                Velocity = velocity,
+                View = view,
+                ViewInv = viewInv
+            };
         }
 
         /// <summary>
         /// Clones this <see cref="Transform"/> instance.
         /// </summary>
         /// <returns>Returns a new instance of <see cref="Transform"/> with the values of this <see cref="Transform"/></returns>
-        public Transform Clone()
+        public virtual object Clone()
         {
-            return new Transform() { backward = backward, down = down, forward = forward, initial = initial, left = left, global = global, globalInverse = globalInverse, oldpos = oldpos, orientation = orientation, parent = parent, position = position, right = right, rotation = rotation, scale = scale, up = up, velocity = velocity, view = view, viewInv = viewInv };
+            return new Transform()
+            {
+                backward = backward,
+                down = down,
+                forward = forward,
+                left = left,
+                global = global,
+                globalInverse = globalInverse,
+                oldpos = oldpos,
+                orientation = orientation,
+                parent = parent,
+                position = position,
+                right = right,
+                rotation = rotation,
+                scale = scale,
+                up = up,
+                velocity = velocity,
+                view = view,
+                viewInv = viewInv
+            };
+        }
+
+        public virtual void CopyTo(Transform other)
+        {
+            other.backward = backward;
+            other.down = down;
+            other.forward = forward;
+            other.left = left;
+            other.global = global;
+            other.globalInverse = globalInverse;
+            other.oldpos = oldpos;
+            other.orientation = orientation;
+            other.parent = parent;
+            other.position = position;
+            other.right = right;
+            other.rotation = rotation;
+            other.scale = scale;
+            other.up = up;
+            other.velocity = velocity;
+            other.view = view;
+            other.viewInv = viewInv;
         }
 
         public static implicit operator Matrix4x4(Transform transform) => transform.global;

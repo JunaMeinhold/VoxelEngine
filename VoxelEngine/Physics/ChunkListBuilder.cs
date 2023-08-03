@@ -13,7 +13,7 @@
         {
             QuickList<Vector3> result = new(Chunk.CHUNK_SIZE_CUBED, bufferPool);
             Vector3 globalOffset = chunk.Position * Chunk.CHUNK_SIZE;
-            Parallel.For(0, Chunk.CHUNK_SIZE, k =>
+            for (int k = 0; k < Chunk.CHUNK_SIZE; k++)
             {
                 // Calculate this once, rather than multiple times in the inner loop
                 int kCS2 = k * Chunk.CHUNK_SIZE_SQUARED;
@@ -44,10 +44,8 @@
                         }
                     }
                 }
-            });
-            for (int k = 0; k < Chunk.CHUNK_SIZE; k++)
-            {
             }
+
             return result;
         }
     }

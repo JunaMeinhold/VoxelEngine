@@ -1,9 +1,9 @@
-﻿using BepuPhysics.Collidables;
+﻿using BepuPhysics.Constraints;
 using BepuPhysics.CollisionDetection;
 using BepuPhysics.CollisionDetection.CollisionTasks;
-using BepuPhysics.CollisionDetection.SweepTasks;
-using BepuPhysics.Constraints;
 using BepuPhysics.Constraints.Contact;
+using BepuPhysics.Collidables;
+using BepuPhysics.CollisionDetection.SweepTasks;
 
 namespace BepuPhysics
 {

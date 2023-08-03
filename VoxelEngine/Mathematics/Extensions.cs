@@ -240,6 +240,12 @@
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector2 Floor(this Vector2 vector)
+        {
+            return new(MathF.Floor(vector.X), MathF.Floor(vector.Y));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static Vector3 Floor(this Vector3 vector)
         {
             return new(MathF.Floor(vector.X), MathF.Floor(vector.Y), MathF.Floor(vector.Z));

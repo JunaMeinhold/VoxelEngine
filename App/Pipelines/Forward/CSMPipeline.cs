@@ -27,8 +27,7 @@
         {
             VertexShader = "forward/csm/voxel/vs.hlsl",
             GeometryShader = "forward/csm/voxel/gs.hlsl",
-            PixelShader = "forward/csm/voxel/ps.hlsl",
-            Rasterizer = RasterizerDescription.CullBack,
+            Rasterizer = RasterizerDescription.CullFront,
             DepthStencil = DepthStencilDescription.Default,
             Blend = BlendDescription.Opaque,
             Topology = Vortice.Direct3D.PrimitiveTopology.TriangleList,

@@ -1,9 +1,9 @@
-﻿using System;
+﻿using BepuUtilities.Collections;
+using BepuUtilities.Memory;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using BepuUtilities;
-using BepuUtilities.Collections;
-using BepuUtilities.Memory;
+using System;
 
 namespace BepuPhysics
 {

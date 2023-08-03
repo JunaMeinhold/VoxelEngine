@@ -14,18 +14,17 @@ namespace BepuPhysics.Collidables
         /// Normal of the bounding plane.
         /// </summary>
         public Vector3Wide Normal;
-
         /// <summary>
-        /// Offset from the origin to a point on the plane along the normal.
+        /// Offset from the origin to a point on the plane along the normal. 
         /// </summary>
         public Vector<float> Offset;
     }
+
 
     public struct HullVertexIndex
     {
         //This means you can only have Vector<float>.Count * 65536 points in a convex hull. Oh no!
         public ushort BundleIndex;
-
         public ushort InnerIndex;
 
         public override string ToString()
@@ -40,17 +39,14 @@ namespace BepuPhysics.Collidables
         /// Bundled points of the convex hull.
         /// </summary>
         public Buffer<Vector3Wide> Points;
-
         /// <summary>
         /// Bundled bounding planes associated with the convex hull's faces.
         /// </summary>
         public Buffer<HullBoundingPlanes> BoundingPlanes;
-
         /// <summary>
         /// Combined set of vertices used by each face. Use FaceToVertexIndicesStart to index into this for a particular face. Indices stored in counterclockwise winding in right handed space, clockwise in left handed space.
         /// </summary>
         public Buffer<HullVertexIndex> FaceVertexIndices;
-
         /// <summary>
         /// Start indices of faces in the FaceVertexIndices.
         /// </summary>
@@ -88,6 +84,7 @@ namespace BepuPhysics.Collidables
         {
             BundleIndexing.GetBundleIndices(pointIndex, out var bundleIndex, out var innerIndex);
             Vector3Wide.ReadSlot(ref Points[bundleIndex], innerIndex, out point);
+
         }
 
         //TODO: With platform intrinsics, we could improve the 'horizontal' parts of these functions.
@@ -148,9 +145,9 @@ namespace BepuPhysics.Collidables
 
         public struct ConvexHullTriangleSource : ITriangleSource
         {
-            private ConvexHull hull;
-            private int faceIndex;
-            private int subtriangleIndex;
+            ConvexHull hull;
+            int faceIndex;
+            int subtriangleIndex;
 
             public ConvexHullTriangleSource(in ConvexHull hull)
             {
@@ -272,7 +269,6 @@ namespace BepuPhysics.Collidables
                 return true;
             }
         }
-
         public void Dispose(BufferPool bufferPool)
         {
             bufferPool.Return(ref Points);
@@ -281,11 +277,11 @@ namespace BepuPhysics.Collidables
             bufferPool.Return(ref FaceToVertexIndicesStart);
         }
 
+
         /// <summary>
         /// Type id of convex hull shapes.
         /// </summary>
         public const int Id = 5;
-
         public readonly int TypeId { [MethodImpl(MethodImplOptions.AggressiveInlining)] get { return Id; } }
     }
 
@@ -299,7 +295,6 @@ namespace BepuPhysics.Collidables
 
         public bool AllowOffsetMemoryAccess => false;
         public int InternalAllocationSize => Vector<float>.Count * Unsafe.SizeOf<ConvexHull>();
-
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Initialize(in Buffer<byte> memory)
         {
@@ -381,7 +376,7 @@ namespace BepuPhysics.Collidables
         }
 
         /// <summary>
-        /// Provides an estimate of the scale of a shape.
+        /// Provides an estimate of the scale of a shape. 
         /// </summary>
         /// <param name="terminatedLanes">Mask of lanes which are inactive.</param>
         /// <param name="epsilonScale">Approximate scale of the shape for use in epsilons.</param>

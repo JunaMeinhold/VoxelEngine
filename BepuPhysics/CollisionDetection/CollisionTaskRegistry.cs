@@ -1,7 +1,7 @@
-﻿using System;
+﻿using BepuPhysics.Collidables;
+using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
-using BepuPhysics.Collidables;
 
 namespace BepuPhysics.CollisionDetection
 {

@@ -8,14 +8,16 @@
     public class SwapChain : IDisposable
     {
         private readonly ID3D11Device device;
-        private readonly IDXGISwapChain swapChain;
+        private readonly IDXGISwapChain1 swapChain;
+        private readonly SwapChainDescription1 description;
         private RenderTarget renderTarget;
         private bool disposedValue;
 
-        public SwapChain(ID3D11Device device, IDXGISwapChain swapChain)
+        public SwapChain(ID3D11Device device, IDXGISwapChain1 swapChain, SwapChainDescription1 description)
         {
             this.device = device;
             this.swapChain = swapChain;
+            this.description = description;
             InitializeRenderTargets();
         }
 
@@ -39,6 +41,13 @@
         {
             renderTarget.Dispose();
             swapChain.ResizeBuffers(bufferCount, width, height, format, flags);
+            InitializeRenderTargets();
+        }
+
+        public void Resize(int width, int height)
+        {
+            renderTarget.Dispose();
+            swapChain.ResizeBuffers(description.BufferCount, width, height, description.Format, description.Flags);
             InitializeRenderTargets();
         }
 

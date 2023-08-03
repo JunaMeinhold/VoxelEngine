@@ -17,7 +17,7 @@ namespace BepuPhysics.CollisionDetection
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get { return (int)(Packed & 0x3FFFFFFF); }
         }
-
+        
         /// <summary>
         /// Gets the type index of the continuation.
         /// </summary>

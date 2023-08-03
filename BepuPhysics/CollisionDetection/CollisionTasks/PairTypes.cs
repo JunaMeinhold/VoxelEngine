@@ -1,9 +1,9 @@
-﻿using System;
+﻿using BepuPhysics.Collidables;
+using BepuUtilities;
+using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using BepuPhysics.Collidables;
-using BepuUtilities;
 using static BepuUtilities.GatherScatter;
 
 namespace BepuPhysics.CollisionDetection.CollisionTasks

@@ -1,10 +1,12 @@
-﻿using System.Diagnostics;
+﻿using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
-using BepuPhysics.CollisionDetection.CollisionTasks;
-using BepuPhysics.Trees;
-using BepuUtilities;
 using BepuUtilities.Memory;
+using System.Diagnostics;
+using BepuUtilities;
+using BepuUtilities.Collections;
+using BepuPhysics.Trees;
+using BepuPhysics.CollisionDetection.CollisionTasks;
 
 namespace BepuPhysics.Collidables
 {
@@ -17,7 +19,6 @@ namespace BepuPhysics.Collidables
         /// Acceleration structure for the compound children.
         /// </summary>
         public Tree Tree;
-
         /// <summary>
         /// Buffer of children within this compound.
         /// </summary>
@@ -64,13 +65,14 @@ namespace BepuPhysics.Collidables
             Compound.AddChildBoundsToBatcher(ref Children, ref batcher, pose, velocity, bodyIndex);
         }
 
-        private unsafe struct LeafTester<TRayHitHandler> : IRayLeafTester where TRayHitHandler : struct, IShapeRayHitHandler
+        unsafe struct LeafTester<TRayHitHandler> : IRayLeafTester where TRayHitHandler : struct, IShapeRayHitHandler
         {
             public CompoundChild* Children;
             public Shapes Shapes;
             public TRayHitHandler Handler;
             public Matrix3x3 Orientation;
             public RayData OriginalRay;
+
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public LeafTester(in Buffer<CompoundChild> children, Shapes shapes, in TRayHitHandler handler, in Matrix3x3 orientation, in RayData originalRay)
@@ -81,6 +83,8 @@ namespace BepuPhysics.Collidables
                 Orientation = orientation;
                 OriginalRay = originalRay;
             }
+
+
 
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public unsafe void TestLeaf(int leafIndex, RayData* rayData, float* maximumT)
@@ -115,7 +119,7 @@ namespace BepuPhysics.Collidables
 
         public unsafe void RayTest<TRayHitHandler>(in RigidPose pose, ref RaySource rays, Shapes shapes, ref TRayHitHandler hitHandler) where TRayHitHandler : struct, IShapeRayHitHandler
         {
-            //TODO: Note that we dispatch a bunch of scalar tests here. You could be more clever than this- batched tests are possible.
+            //TODO: Note that we dispatch a bunch of scalar tests here. You could be more clever than this- batched tests are possible. 
             //May be worth creating a different traversal designed for low ray counts- might be able to get some benefit out of a semidynamic packet or something.
             Matrix3x3.CreateFromQuaternion(pose.Orientation, out var orientation);
             Matrix3x3.Transpose(orientation, out var inverseOrientation);
@@ -150,11 +154,10 @@ namespace BepuPhysics.Collidables
             return ref Children[compoundChildIndex];
         }
 
-        private unsafe struct Enumerator<TSubpairOverlaps> : IBreakableForEach<int> where TSubpairOverlaps : ICollisionTaskSubpairOverlaps
+        unsafe struct Enumerator<TSubpairOverlaps> : IBreakableForEach<int> where TSubpairOverlaps : ICollisionTaskSubpairOverlaps
         {
             public BufferPool Pool;
             public void* Overlaps;
-
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public bool LoopBody(int i)
             {
@@ -168,7 +171,7 @@ namespace BepuPhysics.Collidables
             where TSubpairOverlaps : struct, ICollisionTaskSubpairOverlaps
         {
             //For now, we don't use anything tricky. Just traverse every child against the tree sequentially.
-            //TODO: This sequentializes a whole lot of cache misses. You could probably get some benefit out of traversing all pairs 'simultaneously'- that is,
+            //TODO: This sequentializes a whole lot of cache misses. You could probably get some benefit out of traversing all pairs 'simultaneously'- that is, 
             //using the fact that we have lots of independent queries to ensure the CPU always has something to do.
             Enumerator<TSubpairOverlaps> enumerator;
             enumerator.Pool = pool;
@@ -180,18 +183,16 @@ namespace BepuPhysics.Collidables
             }
         }
 
-        private unsafe struct SweepLeafTester<TOverlaps> : ISweepLeafTester where TOverlaps : ICollisionTaskSubpairOverlaps
+        unsafe struct SweepLeafTester<TOverlaps> : ISweepLeafTester where TOverlaps : ICollisionTaskSubpairOverlaps
         {
             public BufferPool Pool;
             public void* Overlaps;
-
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public void TestLeaf(int leafIndex, ref float maximumT)
             {
                 Unsafe.AsRef<TOverlaps>(Overlaps).Allocate(Pool) = leafIndex;
             }
         }
-
         public unsafe void FindLocalOverlaps<TOverlaps>(in Vector3 min, in Vector3 max, in Vector3 sweep, float maximumT, BufferPool pool, Shapes shapes, void* overlaps)
             where TOverlaps : ICollisionTaskSubpairOverlaps
         {
@@ -211,7 +212,8 @@ namespace BepuPhysics.Collidables
         /// Type id of compound shapes.
         /// </summary>
         public const int Id = 7;
-
         public int TypeId { [MethodImpl(MethodImplOptions.AggressiveInlining)] get { return Id; } }
     }
+
+
 }

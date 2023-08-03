@@ -1,8 +1,10 @@
-﻿using System;
+﻿using BepuPhysics.Collidables;
+using BepuUtilities.Memory;
+using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
-using BepuPhysics.Collidables;
-using BepuUtilities.Memory;
+using System.Text;
 
 namespace BepuPhysics
 {
@@ -99,7 +101,7 @@ namespace BepuPhysics
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get
             {
-                if (collidable.Mobility == CollidableMobility.Static)
+                if(collidable.Mobility == CollidableMobility.Static)
                     return ref this[collidable.StaticHandle];
                 return ref this[collidable.BodyHandle];
             }

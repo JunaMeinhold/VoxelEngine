@@ -3,7 +3,7 @@
     using System.Numerics;
     using System.Runtime.CompilerServices;
     using Vortice.Direct3D11;
-    using VoxelEngine;
+    using VoxelEngine.Core;
     using VoxelEngine.Mathematics;
     using VoxelEngine.Rendering.D3D;
     using VoxelEngine.Rendering.D3D.Buffers;

@@ -1,7 +1,8 @@
-﻿using System.Diagnostics;
-using System.Numerics;
-using BepuPhysics.Collidables;
+﻿using BepuPhysics.Collidables;
 using BepuUtilities;
+using System.Diagnostics;
+using System.Numerics;
+using System.Runtime.CompilerServices;
 
 namespace BepuPhysics.CollisionDetection.CollisionTasks
 {
@@ -40,10 +41,10 @@ namespace BepuPhysics.CollisionDetection.CollisionTasks
                 var errorImprovement = bestPlaneErrorBundle - candidateError;
                 var useCandidate = Vector.BitwiseOr(
                     //If the plane error improvement is significant, use it.
-                    Vector.GreaterThanOrEqual(errorImprovement, slotBoundingPlaneEpsilonBundle),
+                    Vector.GreaterThanOrEqual(errorImprovement, slotBoundingPlaneEpsilonBundle), 
                     //If the plane error improvement is small, then only use the candidate if it has a better aligned normal.
                     Vector.BitwiseAnd(
-                        Vector.GreaterThan(errorImprovement, negatedSlotBoundingPlaneEpsilonBundle),
+                        Vector.GreaterThan(errorImprovement, negatedSlotBoundingPlaneEpsilonBundle), 
                         Vector.GreaterThan(dot, bestFaceDotBundle)));
                 bestFaceDotBundle = Vector.ConditionalSelect(useCandidate, dot, bestFaceDotBundle);
                 bestPlaneErrorBundle = Vector.ConditionalSelect(useCandidate, candidateError, bestPlaneErrorBundle);

@@ -1,11 +1,15 @@
-﻿using System;
+﻿using BepuUtilities;
+using BepuUtilities.Collections;
+using BepuUtilities.Memory;
+using BepuPhysics.Collidables;
+using BepuPhysics.Constraints;
+using BepuPhysics.Constraints.Contact;
+using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using BepuPhysics.Collidables;
-using BepuUtilities;
-using BepuUtilities.Collections;
-using BepuUtilities.Memory;
+using System.Text;
 using static BepuPhysics.CollisionDetection.WorkerPairCache;
 
 namespace BepuPhysics.CollisionDetection
@@ -375,7 +379,7 @@ namespace BepuPhysics.CollisionDetection
             PairFreshness[pairIndex] = 0xFF;
             NextWorkerCaches[workerIndex].Update(ref pointers, ref collisionCache, ref constraintCache);
         }
-
+        
         //4 convex one body, 4 convex two body, 7 nonconvex one body, 7 convex two body.
         public const int CollisionConstraintTypeCount = 22;
         public const int CollisionTypeCount = 16;

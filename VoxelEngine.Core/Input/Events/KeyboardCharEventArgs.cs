@@ -2,11 +2,10 @@
 {
     public class KeyboardCharEventArgs : EventArgs
     {
-        public KeyboardCharEventArgs(char @char)
+        public KeyboardCharEventArgs()
         {
-            Char = @char;
         }
 
-        public char Char;
+        public char Char { get; internal set; }
     }
 }

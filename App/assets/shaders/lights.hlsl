@@ -4,12 +4,12 @@ struct DirectionalLightSD
     float4 cascades[4];
     float4 color;
     float3 dir;
-    int padd;
+    bool castsShadows;
 };
 
 struct PointLight
 {
     float4 color;
     float3 position;
-    int padd;
+    float range;
 };

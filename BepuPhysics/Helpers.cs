@@ -1,6 +1,6 @@
-﻿using System.Numerics;
+﻿using BepuUtilities;
+using System.Numerics;
 using System.Runtime.CompilerServices;
-using BepuUtilities;
 
 namespace BepuPhysics
 {

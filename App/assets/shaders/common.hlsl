@@ -11,7 +11,6 @@
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
 // WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-
 struct MVPBuffer
 {
     matrix proj;
@@ -23,14 +22,6 @@ struct VPBuffer
 {
     matrix proj;
     matrix view;
-};
-
-struct Camera
-{
-    float3 position;
-    float reserved;
-    matrix view;
-    matrix proj;
 };
 
 struct DirectionalLight

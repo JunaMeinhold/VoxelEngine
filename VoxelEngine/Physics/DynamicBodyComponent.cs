@@ -13,7 +13,7 @@
         private TypedIndex typedIndex;
         private BodyHandle handle;
 
-        private SceneElement sceneElement;
+        private GameObject sceneElement;
 
         public DynamicBodyComponent(T shape, BodyInertia inertia, RigidPose pose)
         {
@@ -32,7 +32,7 @@
 
         public RigidPose Pose => pose;
 
-        public void Initialize(ID3D11Device device, SceneElement element)
+        public void Initialize(ID3D11Device device, GameObject element)
         {
             sceneElement = element;
             typedIndex = sceneElement.Scene.Simulation.Shapes.Add(shape);

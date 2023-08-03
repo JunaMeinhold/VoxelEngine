@@ -85,7 +85,7 @@
         public bool AccessLinearVelocity => true;
         public bool AccessAngularVelocity => true;
     }
-    public struct AccessOnlyVelocity : IBodyAccessFilter
+    public struct AccessOnlyVelocity: IBodyAccessFilter
     {
         public bool GatherPosition => false;
         public bool GatherOrientation => false;

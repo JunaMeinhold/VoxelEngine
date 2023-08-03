@@ -1,14 +1,14 @@
-﻿using System;
-using System.Diagnostics;
-using System.Numerics;
-using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
-using System.Threading;
-using BepuPhysics.CollisionDetection;
-using BepuPhysics.Constraints;
-using BepuUtilities;
-using BepuUtilities.Collections;
+﻿using BepuUtilities.Collections;
 using BepuUtilities.Memory;
+using BepuPhysics.Constraints;
+using System;
+using System.Diagnostics;
+using System.Runtime.CompilerServices;
+using BepuPhysics.CollisionDetection;
+using BepuUtilities;
+using System.Runtime.InteropServices;
+using System.Numerics;
+using System.Threading;
 
 namespace BepuPhysics
 {

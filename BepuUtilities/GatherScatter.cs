@@ -77,7 +77,7 @@ namespace BepuUtilities
             }
         }
 
-
+        
         /// <summary>
         /// Clears a bundle lane using the default value of the specified type. The bundle must be a contiguous block of Vector types, all sharing the same type,
         /// and the first vector must start at the address pointed to by the bundle reference.

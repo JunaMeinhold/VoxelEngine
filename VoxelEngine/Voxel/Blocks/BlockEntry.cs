@@ -17,7 +17,7 @@
 
         public static implicit operator Block(BlockEntry entry)
         {
-            return new() { Type = entry.Id, Health = 15 };
+            return new() { Type = entry.Id };
         }
     }
 }

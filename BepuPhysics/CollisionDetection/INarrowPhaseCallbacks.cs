@@ -1,4 +1,8 @@
-﻿using BepuPhysics.Collidables;
+﻿using System;
+using System.Collections.Generic;
+using System.Text;
+using BepuUtilities;
+using BepuPhysics.Collidables;
 using BepuPhysics.Constraints;
 
 namespace BepuPhysics.CollisionDetection
@@ -97,7 +101,7 @@ namespace BepuPhysics.CollisionDetection
         /// <param name="manifold">Set of contacts detected between the collidables.</param>
         /// <returns>True if this manifold should be considered for constraint generation, false otherwise.</returns>
         bool ConfigureContactManifold(int workerIndex, CollidablePair pair, int childIndexA, int childIndexB, ref ConvexContactManifold manifold);
-
+        
         /// <summary>
         /// Releases any resources held by the callbacks. Called by the owning narrow phase when it is being disposed.
         /// </summary>

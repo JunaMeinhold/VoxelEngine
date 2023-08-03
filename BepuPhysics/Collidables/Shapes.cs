@@ -1,11 +1,12 @@
-﻿using System;
-using System.Diagnostics;
+﻿using BepuUtilities.Collections;
+using BepuUtilities.Memory;
 using System.Numerics;
 using System.Runtime.CompilerServices;
+using System;
+using System.Diagnostics;
 using BepuPhysics.CollisionDetection;
-using BepuPhysics.Trees;
 using BepuUtilities;
-using BepuUtilities.Memory;
+using BepuPhysics.Trees;
 
 namespace BepuPhysics.Collidables
 {
@@ -13,34 +14,26 @@ namespace BepuPhysics.Collidables
     {
         protected Buffer<byte> shapesData;
         protected int shapeDataSize;
-
         /// <summary>
         /// Gets the number of shapes that the batch can currently hold without resizing.
         /// </summary>
-        public int Capacity
-        { get { return shapesData.Length / shapeDataSize; } }
-
+        public int Capacity { get { return shapesData.Length / shapeDataSize; } }
         protected BufferPool pool;
         protected IdPool idPool;
-
         /// <summary>
         /// Gets the type id of the shape type in this batch.
         /// </summary>
         public int TypeId { get; protected set; }
-
         /// <summary>
         /// Gets whether this shape batch's contained type potentially contains children that require other shape batches.
         /// </summary>
         public bool Compound { get; protected set; }
-
         /// <summary>
         /// Gets the size of the shape type stored in this batch in bytes.
         /// </summary>
-        public int ShapeDataSize
-        { get { return shapeDataSize; } }
+        public int ShapeDataSize { get { return shapeDataSize; } }
 
         protected abstract void Dispose(int index, BufferPool pool);
-
         protected abstract void RemoveAndDisposeChildren(int index, Shapes shapes, BufferPool pool);
 
         public void Remove(int index)
@@ -61,16 +54,12 @@ namespace BepuPhysics.Collidables
         }
 
         public abstract void ComputeBounds(ref BoundingBoxBatcher batcher);
-
         public abstract void ComputeBounds(int shapeIndex, in RigidPose pose, out Vector3 min, out Vector3 max);
-
         internal virtual void ComputeBounds(int shapeIndex, in Quaternion orientation, out float maximumRadius, out float maximumAngularExpansion, out Vector3 min, out Vector3 max)
         {
             throw new InvalidOperationException("Nonconvex shapes are not required to have a maximum radius or angular expansion implementation. This should only ever be called on convexes.");
         }
-
         public abstract void RayTest<TRayHitHandler>(int shapeIndex, in RigidPose pose, in RayData ray, ref float maximumT, ref TRayHitHandler hitHandler) where TRayHitHandler : struct, IShapeRayHitHandler;
-
         public abstract void RayTest<TRayHitHandler>(int shapeIndex, in RigidPose rigidPose, ref RaySource rays, ref TRayHitHandler hitHandler) where TRayHitHandler : struct, IShapeRayHitHandler;
 
         /// <summary>
@@ -87,24 +76,22 @@ namespace BepuPhysics.Collidables
             shapeSize = shapeDataSize;
         }
 
+
         /// <summary>
         /// Frees all shape slots without returning any resources to the pool.
         /// </summary>
         public abstract void Clear();
-
         /// <summary>
         /// Increases the size of the type batch if necessary to hold the target capacity.
         /// </summary>
         /// <param name="shapeCapacity">Target capacity.</param>
         public abstract void EnsureCapacity(int shapeCapacity);
-
         /// <summary>
         /// Changes the size of the type batch if the target capacity is different than the current capacity. Note that shrinking allocations is conservative; resizing will
         /// never allow an existing shape to point to unallocated memory.
         /// </summary>
         /// <param name="shapeCapacity">Target capacity.</param>
         public abstract void Resize(int shapeCapacity);
-
         /// <summary>
         /// Returns all backing resources to the pool, leaving the batch in an unusable state.
         /// </summary>
@@ -118,6 +105,7 @@ namespace BepuPhysics.Collidables
         {
             idPool.Resize(targetIdCapacity, pool);
         }
+
     }
 
     public abstract class ShapeBatch<TShape> : ShapeBatch where TShape : unmanaged, IShape
@@ -129,8 +117,7 @@ namespace BepuPhysics.Collidables
         /// </summary>
         /// <param name="shapeIndex">Index of the shape reference to retrieve.</param>
         /// <returns>Reference to the shape at the given index.</returns>
-        public ref TShape this[int shapeIndex]
-        { get { return ref shapes[shapeIndex]; } }
+        public ref TShape this[int shapeIndex] { get { return ref shapes[shapeIndex]; } }
 
         protected ShapeBatch(BufferPool pool, int initialShapeCount)
         {
@@ -154,7 +141,8 @@ namespace BepuPhysics.Collidables
             return shapeIndex;
         }
 
-        private void InternalResize(int shapeCount, int oldCopyLength)
+
+        void InternalResize(int shapeCount, int oldCopyLength)
         {
             shapeDataSize = Unsafe.SizeOf<TShape>();
             var requiredSizeInBytes = shapeCount * Unsafe.SizeOf<TShape>();
@@ -185,7 +173,6 @@ namespace BepuPhysics.Collidables
 #endif
             idPool.Clear();
         }
-
         public override void EnsureCapacity(int shapeCapacity)
         {
             if (shapes.Length < shapeCapacity)
@@ -202,7 +189,6 @@ namespace BepuPhysics.Collidables
                 InternalResize(shapeCapacity, idPool.HighestPossiblyClaimedId + 1);
             }
         }
-
         public override void Dispose()
         {
             Debug.Assert(shapesData.Id == shapes.Id, "If the buffer ids don't match, there was some form of failed resize.");
@@ -210,6 +196,7 @@ namespace BepuPhysics.Collidables
             idPool.Dispose(pool);
         }
     }
+
 
     public class ConvexShapeBatch<TShape, TShapeWide> : ShapeBatch<TShape>
         where TShape : unmanaged, IConvexShape
@@ -256,7 +243,7 @@ namespace BepuPhysics.Collidables
             }
         }
 
-        public override unsafe void RayTest<TRayHitHandler>(int index, in RigidPose pose, ref RaySource rays, ref TRayHitHandler hitHandler)
+        public unsafe override void RayTest<TRayHitHandler>(int index, in RigidPose pose, ref RaySource rays, ref TRayHitHandler hitHandler)
         {
             WideRayTester.Test<RaySource, TShape, TShapeWide, TRayHitHandler>(ref shapes[index], pose, ref rays, ref hitHandler);
         }
@@ -273,6 +260,7 @@ namespace BepuPhysics.Collidables
             shapes[index].Dispose(pool);
         }
     }
+
 
     public class HomogeneousCompoundShapeBatch<TShape, TChildShape, TChildShapeWide> : ShapeBatch<TShape> where TShape : unmanaged, IHomogeneousCompoundShape<TChildShape, TChildShapeWide>
         where TChildShape : IConvexShape
@@ -304,7 +292,6 @@ namespace BepuPhysics.Collidables
             min += pose.Position;
             max += pose.Position;
         }
-
         public override void RayTest<TRayHitHandler>(int shapeIndex, in RigidPose pose, in RayData ray, ref float maximumT, ref TRayHitHandler hitHandler)
         {
             shapes[shapeIndex].RayTest(pose, ray, ref maximumT, ref hitHandler);
@@ -318,7 +305,7 @@ namespace BepuPhysics.Collidables
 
     public class CompoundShapeBatch<TShape> : ShapeBatch<TShape> where TShape : unmanaged, ICompoundShape
     {
-        private Shapes shapeBatches;
+        Shapes shapeBatches;
 
         public CompoundShapeBatch(BufferPool pool, int initialShapeCount, Shapes shapeBatches) : base(pool, initialShapeCount)
         {
@@ -364,10 +351,12 @@ namespace BepuPhysics.Collidables
         }
     }
 
+
+
     public class Shapes
     {
-        private ShapeBatch[] batches;
-        private int registeredTypeSpan;
+        ShapeBatch[] batches;
+        int registeredTypeSpan;
 
         //Note that not every index within the batches list is guaranteed to be filled. For example, if only a cylinder has been added, and a cylinder's type id is 7,
         //then the batches.Count and RegisteredTypeSpan will be 8- but indices 0 through 6 will be null.
@@ -376,7 +365,8 @@ namespace BepuPhysics.Collidables
 
         public int InitialCapacityPerTypeBatch { get; set; }
         public ShapeBatch this[int typeIndex] => batches[typeIndex];
-        private BufferPool pool;
+        BufferPool pool;
+
 
         public Shapes(BufferPool pool, int initialCapacityPerTypeBatch)
         {
@@ -406,6 +396,7 @@ namespace BepuPhysics.Collidables
             return ref Unsafe.As<ShapeBatch, ShapeBatch<TShape>>(ref batches[typeId])[shapeIndex];
         }
 
+
         public TypedIndex Add<TShape>(in TShape shape) where TShape : unmanaged, IShape
         {
             var typeId = default(TShape).TypeId;
@@ -427,6 +418,8 @@ namespace BepuPhysics.Collidables
             var index = batch.Add(shape);
             return new TypedIndex(typeId, index);
         }
+
+
 
         /// <summary>
         /// Removes a shape and any existing children from the shapes collection and returns their resources to the given pool.

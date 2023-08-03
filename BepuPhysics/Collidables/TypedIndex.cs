@@ -37,7 +37,7 @@ namespace BepuPhysics.Collidables
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get { return (Packed & (1 << 31)) > 0; }
         }
-
+        
         public TypedIndex(int type, int index)
         {
             Debug.Assert(type >= 0 && type < 128, "Do you really have that many type indices, or is the index corrupt?");

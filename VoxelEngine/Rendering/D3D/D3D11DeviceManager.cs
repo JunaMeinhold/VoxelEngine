@@ -32,7 +32,7 @@
 #endif
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void InitializeDevice(IDXGIAdapter1 adapter)
+        public static void InitializeDevice(IDXGIAdapter4 adapter)
         {
             DeviceCreationFlags flags = DeviceCreationFlags.BgraSupport;
 #if D3D_DEBUG

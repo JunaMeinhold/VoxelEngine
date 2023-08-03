@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
-using BepuPhysics.CollisionDetection;
-using BepuUtilities;
 using BepuUtilities.Memory;
+using BepuUtilities;
+using BepuPhysics.CollisionDetection;
 
 namespace BepuPhysics.Collidables
 {
@@ -16,7 +16,6 @@ namespace BepuPhysics.Collidables
         /// Radius of the cylinder.
         /// </summary>
         public float Radius;
-
         /// <summary>
         /// Half length of the cylinder along its local Y axis.
         /// </summary>
@@ -72,6 +71,7 @@ namespace BepuPhysics.Collidables
             //Cylinders are symmetric.
             min = -max;
         }
+
 
         public readonly bool RayTest(in RigidPose pose, in Vector3 origin, in Vector3 direction, out float t, out Vector3 normal)
         {
@@ -188,7 +188,6 @@ namespace BepuPhysics.Collidables
         /// Type id of cylinder shapes.
         /// </summary>
         public const int Id = 4;
-
         public readonly int TypeId { [MethodImpl(MethodImplOptions.AggressiveInlining)] get { return Id; } }
     }
 
@@ -213,9 +212,7 @@ namespace BepuPhysics.Collidables
 
         public bool AllowOffsetMemoryAccess => true;
         public int InternalAllocationSize => 0;
-
-        public void Initialize(in Buffer<byte> memory)
-        { }
+        public void Initialize(in Buffer<byte> memory) { }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void WriteSlot(int index, in Cylinder source)

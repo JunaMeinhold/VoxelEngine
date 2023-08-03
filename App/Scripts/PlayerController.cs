@@ -1,16 +1,12 @@
 ﻿namespace App.Scripts
 {
-    using System.Diagnostics;
     using System.Numerics;
     using System.Runtime.CompilerServices;
     using App.Objects;
     using BepuPhysics.Collidables;
-    using ImGuiNET;
-    using VoxelEngine;
-    using VoxelEngine.Audio;
+    using HexaEngine.ImGuiNET;
     using VoxelEngine.Core;
     using VoxelEngine.Core.Input;
-    using VoxelEngine.Debugging;
     using VoxelEngine.Mathematics;
     using VoxelEngine.Physics;
     using VoxelEngine.Physics.Characters;
@@ -39,22 +35,22 @@
 
             character = new(Parent.Scene.CharacterControllers, Parent.Transform.Position, new Capsule(0.25f, 1.5f), 0.1f, 1.25f, 100, 100, 5, 4, MathF.PI * 0.4f);
             rayHitHandler = new(Parent.Scene.Simulation, CollidableMobility.Static);
-            Keyboard.OnKeyUp += Keyboard_OnKeyUp;
+            Keyboard.KeyUp += Keyboard_OnKeyUp;
         }
 
         private void Keyboard_OnKeyUp(object sender, VoxelEngine.Core.Input.Events.KeyboardEventArgs e)
         {
-            if (e.KeyCode == Silk.NET.SDL.KeyCode.KEscape)
+            if (e.KeyCode == Key.Escape)
             {
                 Application.MainWindow.LockCursor = !Application.MainWindow.LockCursor;
             }
 
-            if (e.KeyCode == Silk.NET.SDL.KeyCode.KF1)
+            if (e.KeyCode == Key.F1)
             {
                 player.Gamemode = Gamemode.Survival;
             }
 
-            if (e.KeyCode == Silk.NET.SDL.KeyCode.KF2)
+            if (e.KeyCode == Key.F2)
             {
                 player.Gamemode = Gamemode.Creative;
             }
@@ -72,6 +68,7 @@
             {
                 ImGui.Text(player.SelectedBlock.Name);
             }
+            ImGui.End();
 
             CameraTransform transform = camera.Transform;
             if (!Application.MainWindow.LockCursor)
@@ -146,7 +143,7 @@
                 }
             }
 
-            if (Mouse.WheelDelta.Y == 1)
+            if (Mouse.DeltaWheel.Y == 1)
             {
                 int id = player.SelectedBlockId + 1;
                 if (id > BlockRegistry.Blocks.Count)
@@ -156,7 +153,7 @@
 
                 player.SelectedBlockId = id;
             }
-            else if (Mouse.WheelDelta.Y == -1)
+            else if (Mouse.DeltaWheel.Y == -1)
             {
                 int id = player.SelectedBlockId - 1;
                 if (id == 0)
@@ -167,7 +164,7 @@
                 player.SelectedBlockId = id;
             }
 
-            Vector2 delta = Mouse.GetDelta();
+            Vector2 delta = Mouse.Delta;
 
             if (delta.X != 0)
             {
@@ -192,9 +189,9 @@
         private void HandleFreeCamera()
         {
             CameraTransform transform = camera.Transform;
-            if (Keyboard.IsDown(Silk.NET.SDL.KeyCode.KW))
+            if (Keyboard.IsDown(Key.W))
             {
-                if (Keyboard.IsDown(Silk.NET.SDL.KeyCode.KLshift))
+                if (Keyboard.IsDown(Key.LCtrl))
                 {
                     transform.Position += transform.Forward * Speed * 2 * Time.Delta;
                 }
@@ -204,9 +201,9 @@
                 }
             }
 
-            if (Keyboard.IsDown(Silk.NET.SDL.KeyCode.KS))
+            if (Keyboard.IsDown(Key.S))
             {
-                if (Keyboard.IsDown(Silk.NET.SDL.KeyCode.KLshift))
+                if (Keyboard.IsDown(Key.LCtrl))
                 {
                     transform.Position += transform.Backward * Speed * 2 * Time.Delta;
                 }
@@ -216,9 +213,9 @@
                 }
             }
 
-            if (Keyboard.IsDown(Silk.NET.SDL.KeyCode.KA))
+            if (Keyboard.IsDown(Key.A))
             {
-                if (Keyboard.IsDown(Silk.NET.SDL.KeyCode.KLshift))
+                if (Keyboard.IsDown(Key.LCtrl))
                 {
                     transform.Position += transform.Left * Speed * 2 * Time.Delta;
                 }
@@ -228,9 +225,9 @@
                 }
             }
 
-            if (Keyboard.IsDown(Silk.NET.SDL.KeyCode.KD))
+            if (Keyboard.IsDown(Key.D))
             {
-                if (Keyboard.IsDown(Silk.NET.SDL.KeyCode.KLshift))
+                if (Keyboard.IsDown(Key.LCtrl))
                 {
                     transform.Position += transform.Right * Speed * 2 * Time.Delta;
                 }
@@ -240,9 +237,9 @@
                 }
             }
 
-            if (Keyboard.IsDown(Silk.NET.SDL.KeyCode.KSpace))
+            if (Keyboard.IsDown(Key.Space))
             {
-                if (Keyboard.IsDown(Silk.NET.SDL.KeyCode.KLshift))
+                if (Keyboard.IsDown(Key.LCtrl))
                 {
                     transform.Position += Vector3.UnitY * Speed * 2 * Time.Delta;
                 }
@@ -252,16 +249,9 @@
                 }
             }
 
-            if (Keyboard.IsDown(Silk.NET.SDL.KeyCode.KC))
+            if (Keyboard.IsDown(Key.LShift))
             {
-                if (Keyboard.IsDown(Silk.NET.SDL.KeyCode.KLshift))
-                {
-                    transform.Position += -Vector3.UnitY * Speed * 2 * Time.Delta;
-                }
-                else
-                {
-                    transform.Position += -Vector3.UnitY * Speed * Time.Delta;
-                }
+                transform.Position += -Vector3.UnitY * Speed * Time.Delta;
             }
         }
 

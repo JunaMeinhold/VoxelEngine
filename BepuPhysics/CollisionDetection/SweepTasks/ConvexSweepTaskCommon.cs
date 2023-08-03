@@ -1,10 +1,10 @@
-﻿using System;
+﻿using BepuPhysics.Collidables;
+using BepuUtilities;
+using BepuUtilities.Memory;
+using System;
 using System.Diagnostics;
 using System.Numerics;
 using System.Runtime.CompilerServices;
-using BepuPhysics.Collidables;
-using BepuUtilities;
-using BepuUtilities.Memory;
 
 namespace BepuPhysics.CollisionDetection.SweepTasks
 {

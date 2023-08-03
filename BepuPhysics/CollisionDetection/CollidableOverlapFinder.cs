@@ -1,11 +1,11 @@
-﻿using System;
+﻿using BepuUtilities;
+using BepuUtilities.Memory;
+using BepuPhysics.Collidables;
+using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Threading;
-using BepuPhysics.Collidables;
 using BepuPhysics.Trees;
-using BepuUtilities;
-using BepuUtilities.Memory;
 
 namespace BepuPhysics.CollisionDetection
 {

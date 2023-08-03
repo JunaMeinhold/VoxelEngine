@@ -1,11 +1,13 @@
-﻿using System;
+﻿using BepuUtilities;
+using BepuUtilities.Collections;
+using BepuUtilities.Memory;
+using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
-using BepuUtilities;
-using BepuUtilities.Collections;
-using BepuUtilities.Memory;
+using System.Text;
 
 namespace BepuPhysics.Collidables
 {
@@ -48,12 +50,10 @@ namespace BepuPhysics.Collidables
         /// Mapping of points on the convex hull back to the original point set.
         /// </summary>
         public Buffer<int> OriginalVertexMapping;
-
         /// <summary>
         /// List of indices composing the faces of the hull. Individual faces indexed by the FaceIndices.
         /// </summary>
         public Buffer<int> FaceVertexIndices;
-
         /// <summary>
         /// Starting index in the FaceVertexIndices for each face.
         /// </summary>
@@ -82,7 +82,7 @@ namespace BepuPhysics.Collidables
     /// </summary>
     public static class ConvexHullHelper
     {
-        private static void FindExtremeFace(in Vector3Wide basisX, in Vector3Wide basisY, in Vector3Wide basisOrigin, in EdgeEndpoints sourceEdgeEndpoints, ref Buffer<Vector3Wide> pointBundles, in Vector<int> indexOffsets, int pointCount,
+        static void FindExtremeFace(in Vector3Wide basisX, in Vector3Wide basisY, in Vector3Wide basisOrigin, in EdgeEndpoints sourceEdgeEndpoints, ref Buffer<Vector3Wide> pointBundles, in Vector<int> indexOffsets, int pointCount,
             ref Buffer<Vector<float>> projectedOnX, ref Buffer<Vector<float>> projectedOnY, in Vector<float> planeEpsilon, ref QuickList<int> vertexIndices, out Vector3 faceNormal)
         {
             Debug.Assert(projectedOnX.Length >= pointBundles.Length && projectedOnY.Length >= pointBundles.Length && vertexIndices.Count == 0 && vertexIndices.Span.Length >= pointBundles.Length * Vector<float>.Count);
@@ -175,7 +175,8 @@ namespace BepuPhysics.Collidables
             faceNormal = basisXNarrow * projectedPlaneNormalNarrow.X + basisYNarrow * projectedPlaneNormalNarrow.Y;
         }
 
-        private static int FindNextIndexForFaceHull(Vector2 start, Vector2 previousEdgeDirection, float planeEpsilon, ref QuickList<Vector2> facePoints)
+
+        static int FindNextIndexForFaceHull(Vector2 start, Vector2 previousEdgeDirection, float planeEpsilon, ref QuickList<Vector2> facePoints)
         {
             //Use a AOS version since the number of points on a given face will tend to be very small in most cases.
             //Same idea as the 3d version- find the next edge which is closest to the previous edge. Not going to worry about collinear points here for now.
@@ -207,7 +208,7 @@ namespace BepuPhysics.Collidables
                 {
                     Debug.Assert(candidateY <= 0,
                         "Previous edge should include any collinear points, so this edge should not see any further collinear points beyond its start." +
-                        "If you run into this, it implies you've found some content that violates the convex huller's assumptions, and I'd appreciate it if you reported it on github.com/bepu/bepuphysics2/issues!" +
+                        "If you run into this, it implies you've found some content that violates the convex huller's assumptions, and I'd appreciate it if you reported it on github.com/bepu/bepuphysics2/issues!" + 
                         "A .obj or other simple demos-compatible reproduction case would help me fix it.");
                     continue;
                 }
@@ -239,7 +240,7 @@ namespace BepuPhysics.Collidables
             return bestIndex;
         }
 
-        private static void ReduceFace(ref QuickList<int> faceVertexIndices, in Vector3 faceNormal, Span<Vector3> points, float planeEpsilon, ref QuickList<Vector2> facePoints, ref Buffer<bool> allowVertex, ref QuickList<int> reducedIndices)
+        static void ReduceFace(ref QuickList<int> faceVertexIndices, in Vector3 faceNormal, Span<Vector3> points, float planeEpsilon, ref QuickList<Vector2> facePoints, ref Buffer<bool> allowVertex, ref QuickList<int> reducedIndices)
         {
             Debug.Assert(facePoints.Count == 0 && reducedIndices.Count == 0 && facePoints.Span.Length >= faceVertexIndices.Count && reducedIndices.Span.Length >= faceVertexIndices.Count);
             for (int i = faceVertexIndices.Count - 1; i >= 0; --i)
@@ -359,7 +360,6 @@ namespace BepuPhysics.Collidables
         {
             [FieldOffset(0)]
             public int A;
-
             [FieldOffset(4)]
             public int B;
 
@@ -380,8 +380,7 @@ namespace BepuPhysics.Collidables
                 return $"({A}, {B})";
             }
         }
-
-        private struct EdgeToTest
+        struct EdgeToTest
         {
             public EdgeEndpoints Endpoints;
             public Vector3 FaceNormal;
@@ -426,6 +425,7 @@ namespace BepuPhysics.Collidables
         //            AllowVertex[i] = allowVertex[i];
         //        }
         //    }
+
 
         //}
         ///// <summary>
@@ -492,7 +492,7 @@ namespace BepuPhysics.Collidables
             }
             centroid /= points.Length;
             //Fill in the last few slots with the centroid.
-            //We avoid doing a bunch of special case work on the last partial bundle by just assuming it has a few extra redundant internal points.
+            //We avoid doing a bunch of special case work on the last partial bundle by just assuming it has a few extra redundant internal points. 
             var bundleSlots = pointBundles.Length * Vector<float>.Count;
             for (int i = points.Length; i < bundleSlots; ++i)
             {
@@ -555,7 +555,7 @@ namespace BepuPhysics.Collidables
             Debug.Assert(rawFaceVertexIndices.Count >= 2);
             var facePoints = new QuickList<Vector2>(points.Length, pool);
             var reducedFaceIndices = new QuickList<int>(points.Length, pool);
-            //Points found to not be on the face hull are ignored by future executions.
+            //Points found to not be on the face hull are ignored by future executions. 
             pool.Take<bool>(points.Length, out var allowVertex);
             for (int i = 0; i < points.Length; ++i)
                 allowVertex[i] = true;
@@ -658,8 +658,8 @@ namespace BepuPhysics.Collidables
                     if (edgeFaceCounts.GetTableIndices(ref nextEdgeToTest.Endpoints, out var tableIndex, out var elementIndex))
                     {
                         ref var edgeFaceCount = ref edgeFaceCounts.Values[elementIndex];
-                        //Debug.Assert(edgeFaceCount == 1,
-                        //    "While we let execution continue, this is an error condition and implies overlapping triangles are being generated." +
+                        //Debug.Assert(edgeFaceCount == 1, 
+                        //    "While we let execution continue, this is an error condition and implies overlapping triangles are being generated." + 
                         //    "This tends to happen when there are many near-coplanar vertices, so numerical tolerances across different faces cannot consistently agree.");
                         ++edgeFaceCount;
                     }
@@ -868,6 +868,7 @@ namespace BepuPhysics.Collidables
                 hullData.Dispose(pool);
         }
 
+
         /// <summary>
         /// Creates a transformed copy of a convex hull.
         /// </summary>
@@ -949,5 +950,6 @@ namespace BepuPhysics.Collidables
             source.FaceVertexIndices.CopyTo(0, target.FaceVertexIndices, 0, target.FaceVertexIndices.Length);
             source.FaceToVertexIndicesStart.CopyTo(0, target.FaceToVertexIndicesStart, 0, target.FaceToVertexIndicesStart.Length);
         }
+
     }
 }

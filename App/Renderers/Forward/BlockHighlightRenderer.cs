@@ -3,8 +3,8 @@
     using System.Numerics;
     using System.Runtime.CompilerServices;
     using App.Pipelines.Forward;
-    using BepuUtilities;
     using Vortice.Direct3D11;
+    using VoxelEngine.Mathematics;
     using VoxelEngine.Objects.Primitives;
     using VoxelEngine.Rendering.D3D.Interfaces;
     using VoxelEngine.Rendering.D3D.Shaders;
@@ -18,7 +18,7 @@
         private LineBox lineBox;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Initialize(ID3D11Device device, SceneElement element)
+        public void Initialize(ID3D11Device device, GameObject element)
         {
             if (element is World world)
             {

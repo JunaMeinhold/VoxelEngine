@@ -1,7 +1,7 @@
 ﻿namespace VoxelEngine.Scenes
 {
     using System.Diagnostics;
-    using VoxelEngine;
+    using VoxelEngine.Core;
 
     public class SceneProfiler
     {

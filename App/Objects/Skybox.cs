@@ -3,7 +3,7 @@
     using App.Renderers.Forward;
     using VoxelEngine.Scenes;
 
-    public class Skybox : SceneElement
+    public class Skybox : GameObject
     {
         private readonly SkyboxRenderer component;
 

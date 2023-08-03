@@ -1,7 +1,8 @@
-﻿using System.Numerics;
-using System.Runtime.CompilerServices;
-using BepuPhysics.CollisionDetection.CollisionTasks;
+﻿using BepuPhysics.CollisionDetection.CollisionTasks;
 using BepuUtilities;
+using System.Diagnostics;
+using System.Numerics;
+using System.Runtime.CompilerServices;
 
 namespace BepuPhysics.CollisionDetection
 {

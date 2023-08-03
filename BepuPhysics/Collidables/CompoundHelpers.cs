@@ -1,10 +1,12 @@
-﻿using System;
+﻿using BepuUtilities;
+using BepuUtilities.Collections;
+using BepuUtilities.Memory;
+using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Numerics;
 using System.Runtime.CompilerServices;
-using BepuUtilities;
-using BepuUtilities.Collections;
-using BepuUtilities.Memory;
+using System.Text;
 
 namespace BepuPhysics.Collidables
 {
@@ -20,13 +22,11 @@ namespace BepuPhysics.Collidables
         {
             public RigidPose LocalPose;
             public TypedIndex ShapeIndex;
-
             /// <summary>
             /// Weight associated with this child. Acts as the child's mass when interpreted as a dynamic compound.
             /// When interpreted as kinematic with recentering, it is used as a local pose weight to compute the center of rotation.
             /// </summary>
             public float Weight;
-
             /// <summary>
             /// Inertia tensor associated with the child. If inertia is all zeroes, it is interpreted as infinite.
             /// </summary>
@@ -48,7 +48,7 @@ namespace BepuPhysics.Collidables
         /// <typeparam name="TShape">Type of the shape to add to the accumulator and the shapes set.</typeparam>
         /// <param name="shape">Shape to add.</param>
         /// <param name="localPose">Pose of the shape in the compound's local space.</param>
-        /// <param name="weight">Weight of the shape. If the compound is interpreted as a dynamic, this will be used as the mass and scales the inertia tensor.
+        /// <param name="weight">Weight of the shape. If the compound is interpreted as a dynamic, this will be used as the mass and scales the inertia tensor. 
         /// Otherwise, it is used for recentering.</param>
         public void Add<TShape>(in TShape shape, in RigidPose localPose, float weight) where TShape : unmanaged, IConvexShape
         {
@@ -91,7 +91,7 @@ namespace BepuPhysics.Collidables
             child.ShapeIndex = shape;
             child.Weight = weight;
             //This assumes the given inertia is nonsingular. That should be a valid assumption, unless the user is trying to supply an axis-locked tensor.
-            //For such a use case, it's best to just lock the axis after computing a 'normal' inertia.
+            //For such a use case, it's best to just lock the axis after computing a 'normal' inertia. 
             Debug.Assert(Symmetric3x3.Determinant(inverseInertia) > 0,
                 "Shape inertia tensors should be invertible. If making an axis-locked compound, consider locking the axis on the completed inertia. " +
                 "If making a kinematic, consider using the overload which takes no inverse inertia.");

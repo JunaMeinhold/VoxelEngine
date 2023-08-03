@@ -1,10 +1,12 @@
-﻿using System.Numerics;
-using BepuPhysics.Collidables;
+﻿using BepuPhysics.Collidables;
 using BepuUtilities;
+using System;
+using System.Collections.Generic;
+using System.Numerics;
+using System.Text;
 
 namespace BepuPhysics.CollisionDetection
-{
-    public interface ISupportFinder<TShape, TShapeWide> where TShape : IConvexShape where TShapeWide : IShapeWide<TShape>
+{    public interface ISupportFinder<TShape, TShapeWide> where TShape : IConvexShape where TShapeWide : IShapeWide<TShape>
     {
         /// <summary>
         /// Gets whether the support finder is sampling a shape with a spherical margin that should be applied after a solution is found for the core shape.

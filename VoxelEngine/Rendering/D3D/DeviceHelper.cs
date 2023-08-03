@@ -36,5 +36,14 @@
             Marshal.FreeHGlobal(basePtr);
             context.Unmap(buffer);
         }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static unsafe void Write<T>(ID3D11DeviceContext context, ID3D11Buffer buffer, T* values, int count) where T : unmanaged
+        {
+            MappedSubresource mapped = context.Map(buffer, MapMode.WriteDiscard);
+            var size = Marshal.SizeOf<T>();
+            Buffer.MemoryCopy(values, (void*)mapped.DataPointer, mapped.RowPitch, size * count);
+            context.Unmap(buffer);
+        }
     }
 }

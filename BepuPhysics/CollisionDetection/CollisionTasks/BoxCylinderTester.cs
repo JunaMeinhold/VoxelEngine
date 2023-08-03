@@ -1,13 +1,14 @@
-﻿using System;
+﻿using BepuPhysics.Collidables;
+using BepuPhysics.CollisionDetection.SweepTasks;
+using BepuUtilities;
+using System;
+using System.Diagnostics;
 using System.Numerics;
 using System.Runtime.CompilerServices;
-using BepuPhysics.Collidables;
-using BepuUtilities;
 
 namespace BepuPhysics.CollisionDetection.CollisionTasks
 {
     using DepthRefiner = DepthRefiner<Cylinder, CylinderWide, CylinderSupportFinder, Box, BoxWide, BoxSupportFinder>;
-
     public struct BoxCylinderTester : IPairTester<BoxWide, CylinderWide, Convex4ContactManifoldWide>
     {
         public int BatchSize => 16;
@@ -81,7 +82,7 @@ namespace BepuPhysics.CollisionDetection.CollisionTasks
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void TryAddInteriorPoint(in Vector2Wide point, in Vector<int> featureId,
+        static void TryAddInteriorPoint(in Vector2Wide point, in Vector<int> featureId,
             in Vector2Wide edge0010, in Vector<float> edge0010PlaneMin, in Vector<float> edge0010PlaneMax,
             in Vector2Wide edge1011, in Vector<float> edge1011PlaneMin, in Vector<float> edge1011PlaneMax,
             in Vector<int> allowContact, ref ManifoldCandidate candidates, ref Vector<int> candidateCount, int pairCount)
@@ -154,8 +155,8 @@ namespace BepuPhysics.CollisionDetection.CollisionTasks
             Vector3Wide.ConditionalSelect(useY, rA.Z, boxFaceX, out boxFaceX);
             Vector3Wide.ConditionalSelect(useX, rA.Z, rA.Y, out var boxFaceY);
             Vector3Wide.ConditionalSelect(useY, rA.X, boxFaceY, out boxFaceY);
-            var negateFace =
-                Vector.ConditionalSelect(useX, Vector.GreaterThan(localNormalInA.X, Vector<float>.Zero),
+            var negateFace = 
+                Vector.ConditionalSelect(useX, Vector.GreaterThan(localNormalInA.X, Vector<float>.Zero), 
                 Vector.ConditionalSelect(useY, Vector.GreaterThan(localNormalInA.Y, Vector<float>.Zero), Vector.GreaterThan(localNormalInA.Z, Vector<float>.Zero)));
             Vector3Wide.ConditionallyNegate(negateFace, ref boxFaceNormal);
             Vector3Wide.ConditionallyNegate(negateFace, ref boxFaceX);
@@ -326,7 +327,7 @@ namespace BepuPhysics.CollisionDetection.CollisionTasks
                 var tY0 = leftNumerator * yDenominator;
                 var tY1 = rightNumerator * yDenominator;
                 //As the side aligns with one of the edge directions, unrestrict that axis to avoid numerical noise.
-                //Do something similar to capsule tests:
+                //Do something similar to capsule tests: 
                 //sin(angleFromEdgePlane) = dot(sideLineDirection, edgeNormal / ||edgeNormal||) / ||sideLineDirection||
                 //sin(angleFromEdgePlane) = dot(sideLineDirection, edgeNormal / ||edgeNormal||)
                 //Only relevant in very small angles, so sin(x) ~= x:
@@ -383,6 +384,7 @@ namespace BepuPhysics.CollisionDetection.CollisionTasks
 
             Matrix3x3Wide.TransformWithoutOverlap(localNormal, worldRB, out manifold.Normal);
         }
+
 
         public void Test(ref BoxWide a, ref CylinderWide b, ref Vector<float> speculativeMargin, ref Vector3Wide offsetB, ref QuaternionWide orientationB, int pairCount, out Convex4ContactManifoldWide manifold)
         {

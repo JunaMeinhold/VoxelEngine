@@ -1,6 +1,11 @@
-﻿using System.Diagnostics;
+﻿using BepuUtilities.Memory;
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
+using System.Linq;
 using System.Runtime.CompilerServices;
-using BepuUtilities.Memory;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace BepuUtilities.Collections
 {

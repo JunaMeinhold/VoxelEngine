@@ -1,3 +1,5 @@
+//#define USE_LEGACY_LOADER
+
 namespace VoxelEngine.Voxel
 {
     using System.Buffers;
@@ -6,8 +8,8 @@ namespace VoxelEngine.Voxel
     using System.Numerics;
     using System.Runtime.CompilerServices;
     using System.Runtime.InteropServices;
-    using BepuUtilities;
     using Vortice.Direct3D11;
+    using VoxelEngine.Mathematics;
     using VoxelEngine.Physics;
     using VoxelEngine.Scenes;
 
@@ -28,14 +30,19 @@ namespace VoxelEngine.Voxel
         public byte[] MinY = new byte[CHUNK_SIZE_SQUARED];
         public byte[] MaxY = new byte[CHUNK_SIZE_SQUARED];
 
+#if USE_LEGACY_LOADER
         public BlockVertexBuffer VertexBuffer = new();
-
+#else
+        public ChunkVertexBuffer VertexBuffer = new();
+#endif
         private ChunkHelper chunkHelper;
         public Chunk cXN, cXP, cYN, cYP, cZN, cZP;
 
         public Vector3 Position;
         public BoundingBox BoundingBox;
-        public ChunkStaticHandle Handle;
+        public ChunkStaticHandle2 Handle;
+
+        public string Name;
 
         public bool MissingNeighbours;
 
@@ -47,11 +54,14 @@ namespace VoxelEngine.Voxel
         {
             Map = map;
             Position = new(x, y, z);
+#if USE_LEGACY_LOADER
             VertexBuffer.DebugName = $"Chunk: {Position}";
+#endif
             Vector3 realPos = new Vector3(x, y, z) * CHUNK_SIZE;
             BoundingBox = new BoundingBox(realPos, realPos + new Vector3(CHUNK_SIZE, CHUNK_SIZE, CHUNK_SIZE));
             Array.Fill(MinY, (byte)CHUNK_SIZE);
             DirtyDisk = generated;
+            Name = $"<{x},{y},{z}>";
         }
 
         ~Chunk()
@@ -148,6 +158,7 @@ namespace VoxelEngine.Voxel
             chunkHelper = null;
         }
 
+#if USE_LEGACY_LOADER
         /// <summary>
         /// Uploads the mesh to the gpu
         /// </summary>
@@ -156,6 +167,7 @@ namespace VoxelEngine.Voxel
             VertexBuffer?.BufferData(device);
             InBuffer = true;
         }
+#endif
 
         /// <summary>
         /// Frees the memory on the gpu
@@ -167,11 +179,13 @@ namespace VoxelEngine.Voxel
             VertexBuffer = null;
         }
 
+#if USE_LEGACY_LOADER
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Bind(ID3D11DeviceContext context)
         {
             VertexBuffer?.Bind(context);
         }
+#endif
 
         #endregion GPU / Update Stuff
 
@@ -300,7 +314,7 @@ namespace VoxelEngine.Voxel
         private void GenerateMesh()
         {
             // Default 4096, else use the lase size + 1024
-            int newSize = VertexBuffer.Used == 0 ? 4096 : VertexBuffer.Used + 1024;
+            int newSize = VertexBuffer.Count == 0 ? 4096 : VertexBuffer.Count + 1024;
             VertexBuffer.Reset(newSize);
 
             // Negative X side
@@ -398,9 +412,9 @@ namespace VoxelEngine.Voxel
                     }
 
                     // Extend the array if it is nearly full
-                    if (VertexBuffer.Used > VertexBuffer.Data.Length - 2048)
+                    if (VertexBuffer.Count > VertexBuffer.Capacity - 2048)
                     {
-                        VertexBuffer.Extend(2048);
+                        VertexBuffer.EnsureCapacity(VertexBuffer.Capacity + 2048);
                     }
                 }
             }
@@ -409,7 +423,7 @@ namespace VoxelEngine.Voxel
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void CreateRun(ref Block b, int i, int j, int k, int i1, int k1, int y, int access, bool minX, bool maxX, bool minY, bool maxY, bool minZ, bool maxZ, int iCS, int kCS2)
         {
-            int textureHealth16 = BlockVertex.IndexToTextureShifted[b.Type] | b.Health / 16 << 23;
+            int textureHealth16 = BlockVertex.IndexToTextureShifted[b.Type];
             int accessIncremented = access + 1;
             int chunkAccess;
             int j1 = j + 1;
@@ -655,7 +669,7 @@ namespace VoxelEngine.Voxel
         protected bool DifferentBlock(int chunkAccess, ref Block compare)
         {
             ref Block b = ref Data[chunkAccess];
-            return b.Type != compare.Type || b.Health != compare.Health;
+            return b.Type != compare.Type;
         }
 
         #endregion Meshing
@@ -665,9 +679,14 @@ namespace VoxelEngine.Voxel
         [StructLayout(LayoutKind.Sequential)]
         private struct ChunkRecord
         {
-            public byte Health;
-            public byte Type;
+            public ushort Type;
             public Vector3 Position;
+
+            public ChunkRecord(ushort type, Vector3 position)
+            {
+                Type = type;
+                Position = position;
+            }
         }
 
         public void SerializeTo(Stream stream)
@@ -704,7 +723,7 @@ namespace VoxelEngine.Voxel
 
                             if (b.Type != EMPTY)
                             {
-                                savequeue.Enqueue(new ChunkRecord() { Position = new(i, j, k), Type = b.Type, Health = b.Health });
+                                savequeue.Enqueue(new ChunkRecord() { Position = new(i, j, k), Type = b.Type });
                             }
                         }
                     }
@@ -728,6 +747,79 @@ namespace VoxelEngine.Voxel
             }
 
             stream.Write(span);
+        }
+
+        public unsafe void SerializeToUnsafe(Stream stream)
+        {
+            DirtyDisk = false;
+
+            long begin = stream.Position;
+
+            stream.Position += 4;
+
+            stream.Write(MinY);
+            stream.Write(MaxY);
+
+            int blocksWritten = 0;
+            if (Data != null)
+            {
+                const int bufferSize = 64;
+                Span<ChunkRecord> buffer = stackalloc ChunkRecord[bufferSize]; // 3 * 8 + 2 * 128 = 1664B
+                Span<byte> binBuffer = MemoryMarshal.AsBytes(buffer);
+                int bufI = 0;
+                for (int k = 0; k < CHUNK_SIZE; k++)
+                {
+                    // Calculate this once, rather than multiple times in the inner loop
+                    int kCS2 = k * CHUNK_SIZE_SQUARED;
+
+                    int heightMapAccess = k * CHUNK_SIZE;
+
+                    for (int i = 0; i < CHUNK_SIZE; i++)
+                    {
+                        // Determine where to start the innermost loop
+                        int j = MinY[heightMapAccess];
+                        int topJ = MaxY[heightMapAccess];
+                        heightMapAccess++;
+
+                        // Calculate this once, rather than multiple times in the inner loop
+                        int iCS = i * CHUNK_SIZE;
+
+                        // Calculate access here and increment it each time in the innermost loop
+                        int access = kCS2 + iCS + j;
+
+                        // X and Z runs search upwards to create runs, so start at the bottom.
+                        for (; j < topJ; j++, access++)
+                        {
+                            ref Block b = ref Data[access];
+
+                            if (b.Type != EMPTY)
+                            {
+                                buffer[bufI++] = new(b.Type, new(i, j, k));
+                                blocksWritten++;
+
+                                if (bufI == bufferSize)
+                                {
+                                    stream.Write(binBuffer);
+                                    bufI = 0;
+                                }
+                            }
+                        }
+                    }
+                }
+
+                if (bufI != 0)
+                {
+                    stream.Write(binBuffer);
+                    bufI = 0;
+                }
+            }
+
+            Span<byte> buf = stackalloc byte[4];
+            BinaryPrimitives.WriteInt32LittleEndian(buf, blocksWritten);
+            long end = stream.Position;
+            stream.Position = begin;
+            stream.Write(buf);
+            stream.Position = end;
         }
 
         public int DeserializeFrom(Span<byte> span)
@@ -754,9 +846,37 @@ namespace VoxelEngine.Voxel
                 span.Slice(index, buffer.Length).CopyTo(buffer);
                 index += buffer.Length;
                 ChunkRecord record = buffer.FromBytes<ChunkRecord>();
-                Data[record.Position.MapToIndex(CHUNK_SIZE, CHUNK_SIZE)] = new Block() { Health = record.Health, Type = record.Type };
+                Data[record.Position.MapToIndex(CHUNK_SIZE, CHUNK_SIZE)] = new Block() { Type = record.Type };
             }
             return index;
+        }
+
+        public unsafe int DeserializeFromUnsafe(byte* data, int length)
+        {
+            Span<byte> span = new(data, length);
+            if (Data is null)
+            {
+                chunkHelper = new();
+                Data = new Block[CHUNK_SIZE_CUBED];
+                MinY = new byte[CHUNK_SIZE_SQUARED];
+                MaxY = new byte[CHUNK_SIZE_SQUARED];
+                Array.Fill(MinY, (byte)CHUNK_SIZE);
+            }
+            int index = 0;
+            int count = BinaryPrimitives.ReadInt32LittleEndian(span[index..]);
+            index += 4;
+            span.Slice(index, CHUNK_SIZE_SQUARED).CopyTo(MinY);
+            index += CHUNK_SIZE_SQUARED;
+            span.Slice(index, CHUNK_SIZE_SQUARED).CopyTo(MaxY);
+            index += CHUNK_SIZE_SQUARED;
+
+            ChunkRecord* records = (ChunkRecord*)(data + index);
+            for (int i = 0; i < count; i++, records++)
+            {
+                ChunkRecord record = *records;
+                Data[record.Position.MapToIndex(CHUNK_SIZE, CHUNK_SIZE)] = new Block(record.Type);
+            }
+            return index + count * sizeof(ChunkRecord);
         }
 
         #endregion Serialization

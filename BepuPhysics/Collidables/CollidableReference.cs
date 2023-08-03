@@ -1,7 +1,7 @@
-﻿using System;
+﻿using BepuUtilities.Collections;
+using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
-using BepuUtilities.Collections;
 
 namespace BepuPhysics.Collidables
 {
@@ -14,12 +14,10 @@ namespace BepuPhysics.Collidables
         /// Marks a collidable as owned by a dynamic body.
         /// </summary>
         Dynamic = 0,
-
         /// <summary>
         /// Marks a collidable as owned by a kinematic body.
         /// </summary>
         Kinematic = 1,
-
         /// <summary>
         /// Marks the collidable as an independent immobile collidable.
         /// </summary>
@@ -58,6 +56,7 @@ namespace BepuPhysics.Collidables
             }
         }
 
+
         /// <summary>
         /// Gets the static handle of the owner of the collidable referred to by this instance.
         /// </summary>
@@ -82,6 +81,7 @@ namespace BepuPhysics.Collidables
                 return (int)(Packed & 0x3FFFFFFF);
             }
         }
+
 
         /// <summary>
         /// Creates a collidable reference.
@@ -149,4 +149,5 @@ namespace BepuPhysics.Collidables
             return (int)item.Packed;
         }
     }
+
 }

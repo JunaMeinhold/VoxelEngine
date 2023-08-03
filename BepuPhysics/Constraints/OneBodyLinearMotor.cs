@@ -1,9 +1,10 @@
-﻿using System;
+﻿using BepuPhysics.CollisionDetection;
+using BepuUtilities;
+using BepuUtilities.Memory;
+using System;
 using System.Diagnostics;
 using System.Numerics;
 using System.Runtime.CompilerServices;
-using BepuUtilities;
-using BepuUtilities.Memory;
 using static BepuUtilities.GatherScatter;
 namespace BepuPhysics.Constraints
 {
@@ -93,7 +94,7 @@ namespace BepuPhysics.Constraints
             ServoSettingsWide.ClampImpulse(maximumImpulse, ref accumulatedImpulses, ref csi);
             OneBodyLinearServoFunctions.ApplyImpulse(offset, inertiaA, ref wsvA, csi);
         }
-
+        
         public bool RequiresIncrementalSubstepUpdates => false;
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void IncrementallyUpdateForSubstep(in Vector<float> dt, in BodyVelocityWide wsvA, ref OneBodyLinearMotorPrestepData prestepData) { }

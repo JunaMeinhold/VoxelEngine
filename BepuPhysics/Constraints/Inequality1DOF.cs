@@ -1,9 +1,11 @@
-﻿using System.Numerics;
+﻿using BepuUtilities;
+using System;
+using System.Numerics;
 using System.Runtime.CompilerServices;
-using BepuUtilities;
+using System.Runtime.InteropServices;
 
 namespace BepuPhysics.Constraints
-{
+{ 
     //TODO: These are notes about the mathy bits underlying constraints. They were written for the original pre-2.4 version of the solver.
     //Most of it's still applicable, but 2.4 and up no longer have separate 'projection' states, and while packing is still important, it applies to *prestep data*.
     //There's a lot less room for tricky premultiplication to save memory bandwidth, simply because those quantities are all in registers/L1 cache during a constraint solve in 2.4+.
@@ -275,7 +277,7 @@ namespace BepuPhysics.Constraints
 
             SpringSettingsWide.ComputeSpringiness(springSettings, dt, out var positionErrorToVelocity, out var effectiveMassCFMScale, out projection.SoftnessImpulseScale);
             var softenedEffectiveMass = effectiveMass * effectiveMassCFMScale;
-
+            
             //Note that we use a bit of a hack when computing the bias velocity- even if our damping ratio/natural frequency implies a strongly springy response
             //that could cause a significant velocity overshoot, we apply an arbitrary clamping value to keep it reasonable.
             //This is useful for a variety of inequality constraints (like contacts) because you don't always want them behaving as true springs.

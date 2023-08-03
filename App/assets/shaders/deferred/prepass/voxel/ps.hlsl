@@ -38,14 +38,11 @@ GeometryData main(PixelInputType input)
     float4 pos = input.pos;
     float3 normal;
     float3 specular = float3(0.8f, 0.8f, 0.8f);
-    float alpha = 1;
-    float metallic = 0;
     float specCoeff = 0;
-    float roughness = 0;
 
     GeometryData output;
     albedo = (shaderTexture.Sample(Sampler, float3(input.uv, input.texID)).rgb * input.brightness).rgb;
     normal = input.normal;
 
-    return PackGeometryData(albedo, pos, normal, specular, alpha, metallic, specCoeff, roughness);
+    return PackGeometryData(albedo, normal, specular, specCoeff);
 }

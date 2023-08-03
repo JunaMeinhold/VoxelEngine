@@ -45,7 +45,7 @@ namespace BepuPhysics.CollisionDetection.SweepTasks
                     var childTypeB = childB.ShapeIndex.Type;
                     shapes[childTypeB].GetShapeData(childB.ShapeIndex.Index, out var childShapeDataB, out _);
                     if (filter.AllowTest(
-                        flipRequired ? childIndexB : childOverlaps.ChildIndex,
+                        flipRequired ? childIndexB : childOverlaps.ChildIndex, 
                         flipRequired ? childOverlaps.ChildIndex : childIndexB))
                     {
                         var task = sweepTasks.GetTask(childTypeA, childTypeB);

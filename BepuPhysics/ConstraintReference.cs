@@ -1,5 +1,5 @@
-﻿using System.Runtime.CompilerServices;
-using BepuPhysics.Constraints;
+﻿using BepuPhysics.Constraints;
+using System.Runtime.CompilerServices;
 
 namespace BepuPhysics
 {

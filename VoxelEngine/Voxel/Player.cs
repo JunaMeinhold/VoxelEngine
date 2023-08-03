@@ -5,7 +5,7 @@
     using VoxelEngine.Scenes;
     using VoxelEngine.Voxel.Blocks;
 
-    public class Player : SceneElement
+    public class Player : GameObject
     {
         private int hp;
         private bool isAlive = true;

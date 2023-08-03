@@ -1,11 +1,11 @@
 ﻿using System;
-using System.Diagnostics;
 using System.Numerics;
 using System.Runtime.CompilerServices;
-using BepuPhysics.CollisionDetection.CollisionTasks;
-using BepuPhysics.Trees;
-using BepuUtilities;
 using BepuUtilities.Memory;
+using System.Diagnostics;
+using BepuUtilities;
+using BepuPhysics.Trees;
+using BepuPhysics.CollisionDetection.CollisionTasks;
 
 namespace BepuPhysics.Collidables
 {
@@ -15,14 +15,12 @@ namespace BepuPhysics.Collidables
         public RigidPose LocalPose;
     }
 
-    internal struct CompoundChildShapeTester : IShapeRayHitHandler
+    struct CompoundChildShapeTester : IShapeRayHitHandler
     {
         //We use a non-generic hit handler to capture the final result of a leaf test.
         //This requires caching out the T and Normal for reading by whatever ended up calling this, but it's worth it to avoid AOT pipelines barfing on infinite recursion.
         public float T;
-
         public Vector3 Normal;
-
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool AllowTest(int childIndex)
         {
@@ -109,20 +107,17 @@ namespace BepuPhysics.Collidables
             QuaternionEx.ConcatenateWithoutOverlap(localPose.Orientation, orientation, out rotatedChildPose.Orientation);
             QuaternionEx.Transform(localPose.Position, orientation, out rotatedChildPose.Position);
         }
-
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void GetRotatedChildPose(in RigidPoseWide localPose, in QuaternionWide orientation, out Vector3Wide childPosition, out QuaternionWide childOrientation)
         {
             QuaternionWide.ConcatenateWithoutOverlap(localPose.Orientation, orientation, out childOrientation);
             QuaternionWide.TransformWithoutOverlap(localPose.Position, orientation, out childPosition);
         }
-
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void GetRotatedChildPose(in RigidPoseWide localPose, in QuaternionWide orientation, out RigidPoseWide rotatedChildPose)
         {
             GetRotatedChildPose(localPose, orientation, out rotatedChildPose.Position, out rotatedChildPose.Orientation);
         }
-
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void GetWorldPose(in RigidPose localPose, in RigidPose transform, out RigidPose worldPose)
         {
@@ -281,6 +276,7 @@ namespace BepuPhysics.Collidables
                     overlaps.Allocate(pool) = i;
                 }
             }
+
         }
 
         public void Dispose(BufferPool bufferPool)
@@ -292,7 +288,8 @@ namespace BepuPhysics.Collidables
         /// Type id of list based compound shapes.
         /// </summary>
         public const int Id = 6;
-
         public int TypeId { [MethodImpl(MethodImplOptions.AggressiveInlining)] get { return Id; } }
     }
+
+
 }

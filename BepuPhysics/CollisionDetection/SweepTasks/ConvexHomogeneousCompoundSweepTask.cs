@@ -2,6 +2,7 @@
 using System.Numerics;
 using System.Runtime.CompilerServices;
 using BepuPhysics.Collidables;
+using BepuUtilities;
 using BepuUtilities.Memory;
 
 namespace BepuPhysics.CollisionDetection.SweepTasks

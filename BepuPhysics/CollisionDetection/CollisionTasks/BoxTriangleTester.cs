@@ -1,9 +1,9 @@
-﻿using System;
+﻿using BepuPhysics.Collidables;
+using BepuUtilities;
+using System;
 using System.Diagnostics;
 using System.Numerics;
 using System.Runtime.CompilerServices;
-using BepuPhysics.Collidables;
-using BepuUtilities;
 
 namespace BepuPhysics.CollisionDetection.CollisionTasks
 {
@@ -12,15 +12,14 @@ namespace BepuPhysics.CollisionDetection.CollisionTasks
         public int BatchSize => 32;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void GetDepthForInterval(in Vector<float> boxExtreme, in Vector<float> a, in Vector<float> b, in Vector<float> c, out Vector<float> depth)
+        static void GetDepthForInterval(in Vector<float> boxExtreme, in Vector<float> a, in Vector<float> b, in Vector<float> c, out Vector<float> depth)
         {
             var minB = Vector.Min(a, Vector.Min(b, c));
             var maxB = Vector.Max(a, Vector.Max(b, c));
             depth = Vector.Min(boxExtreme - minB, maxB + boxExtreme);
         }
-
         //[MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void TestBoxEdgeAgainstTriangleEdge(
+        static void TestBoxEdgeAgainstTriangleEdge(
             in Vector<float> triangleEdgeOffsetY, in Vector<float> triangleEdgeOffsetZ,
             in Vector<float> triangleCenterY, in Vector<float> triangleCenterZ,
             in Vector<float> edgeOffsetYSquared, in Vector<float> edgeOffsetZSquared,
@@ -46,15 +45,16 @@ namespace BepuPhysics.CollisionDetection.CollisionTasks
             var nVC = vCY * localNormalY + vCZ * localNormalZ;
             GetDepthForInterval(extremeA, nVA, nVB, nVC, out depth);
             depth = Vector.ConditionalSelect(Vector.LessThan(length, new Vector<float>(1e-7f)), new Vector<float>(float.MaxValue), depth);
-        }
 
+        }
         //[MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void TestBoxEdgesAgainstTriangleEdge(
+        static void TestBoxEdgesAgainstTriangleEdge(
             in BoxWide a,
             in Vector3Wide triangleEdgeOffset, in Vector3Wide triangleCenter,
             in Vector3Wide vA, in Vector3Wide vB, in Vector3Wide vC,
             out Vector<float> depth, out Vector3Wide localNormal)
         {
+
             var x2 = triangleEdgeOffset.X * triangleEdgeOffset.X;
             var y2 = triangleEdgeOffset.Y * triangleEdgeOffset.Y;
             var z2 = triangleEdgeOffset.Z * triangleEdgeOffset.Z;
@@ -83,10 +83,10 @@ namespace BepuPhysics.CollisionDetection.CollisionTasks
                 out depthCandidate, out localNormalCandidate.Z, out localNormalCandidate.X, out localNormalCandidate.Y);
             Vector3Wide.ConditionalSelect(Vector.LessThan(depthCandidate, depth), localNormalCandidate, localNormal, out localNormal);
             depth = Vector.Min(depth, depthCandidate);
-        }
 
+        }
         //[MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void Select(
+        static void Select(
             ref Vector<float> depth, ref Vector3Wide normal,
             in Vector<float> depthCandidate, in Vector3Wide normalCandidate)
         {
@@ -94,9 +94,8 @@ namespace BepuPhysics.CollisionDetection.CollisionTasks
             Vector3Wide.ConditionalSelect(useCandidate, normalCandidate, normal, out normal);
             depth = Vector.Min(depth, depthCandidate);
         }
-
         //[MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void Select(
+        static void Select(
             ref Vector<float> depth, ref Vector3Wide normal,
             in Vector<float> depthCandidate, in Vector<float> nxCandidate, in Vector<float> nyCandidate, in Vector<float> nzCandidate)
         {
@@ -107,8 +106,9 @@ namespace BepuPhysics.CollisionDetection.CollisionTasks
             depth = Vector.Min(depth, depthCandidate);
         }
 
+
         //[MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void Add(in Vector3Wide pointOnTriangle, in Vector3Wide triangleCenter, in Vector3Wide triangleTangentX, in Vector3Wide triangleTangentY, in Vector<int> featureId,
+        static void Add(in Vector3Wide pointOnTriangle, in Vector3Wide triangleCenter, in Vector3Wide triangleTangentX, in Vector3Wide triangleTangentY, in Vector<int> featureId,
             in Vector<int> exists, ref ManifoldCandidate candidates, ref Vector<int> candidateCount, int pairCount)
         {
             Vector3Wide.Subtract(pointOnTriangle, triangleCenter, out var offset);
@@ -218,7 +218,7 @@ namespace BepuPhysics.CollisionDetection.CollisionTasks
         }
 
         //[MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void AddBoxVertex(in Vector3Wide a, in Vector3Wide b, in Vector3Wide v, in Vector3Wide triangleNormal, in Vector3Wide contactNormal, in Vector<float> inverseNormalDot,
+        static void AddBoxVertex(in Vector3Wide a, in Vector3Wide b, in Vector3Wide v, in Vector3Wide triangleNormal, in Vector3Wide contactNormal, in Vector<float> inverseNormalDot,
             in Vector3Wide abEdgePlaneNormal, in Vector3Wide bcEdgePlaneNormal, in Vector3Wide caEdgePlaneNormal,
             in Vector3Wide triangleCenter, in Vector3Wide triangleX, in Vector3Wide triangleY, in Vector<int> featureId,
             in Vector<int> allowContacts, ref ManifoldCandidate candidates, ref Vector<int> candidateCount, int pairCount)
@@ -367,10 +367,10 @@ namespace BepuPhysics.CollisionDetection.CollisionTasks
 
             //    //Now examine the 4 box vertices from the best box face.
             //    //For simplicity, we'll just compute the closest point on each edge directly:
-            //    //tClosestPointOnAB = clamp(dot(edgeOffsetAB, boxVertex - vA) / ||edgeOffsetAB||^2, 0, 1)
-            //    //Note that: boxVertex = faceOffset +- boxEdgeOffsetX +- boxEdgeOffsetY
+            //    //tClosestPointOnAB = clamp(dot(edgeOffsetAB, boxVertex - vA) / ||edgeOffsetAB||^2, 0, 1) 
+            //    //Note that: boxVertex = faceOffset +- boxEdgeOffsetX +- boxEdgeOffsetY    
             //    //So we can split the above calculation into pieces. Leaving it scaled for succinctness:
-            //    //tClosestPointOnAB = clamp((dot(edgeOffsetAB, faceOffset) +- dot(edgeOffsetAB, boxEdgeOffsetX) +- dot(edgeOffsetAB, boxEdgeOffsetY) - dot(edgeOffsetAB, vA)) / ||edgeOffsetAB||^2, 0, 1)
+            //    //tClosestPointOnAB = clamp((dot(edgeOffsetAB, faceOffset) +- dot(edgeOffsetAB, boxEdgeOffsetX) +- dot(edgeOffsetAB, boxEdgeOffsetY) - dot(edgeOffsetAB, vA)) / ||edgeOffsetAB||^2, 0, 1)        
             //    //So we can share quite a few operations across the 4 box vertices.
             //    //Likely some better options here.
 
@@ -548,6 +548,7 @@ namespace BepuPhysics.CollisionDetection.CollisionTasks
             //    Select(ref depth, ref localNormal, depthCandidate, localNormalCandidate);
             //}
 
+
             //If the local normal points against the triangle normal, then it's on the backside and should not collide.
             Vector3Wide.Dot(localNormal, triangleNormal, out var normalDot);
             var minimumDepth = -speculativeMargin;
@@ -645,7 +646,7 @@ namespace BepuPhysics.CollisionDetection.CollisionTasks
 
             //While the edge clipping will find any triangleEdge-boxEdge or triangleVertex-boxFace contacts, it will not find boxVertex-triangleFace contacts.
             //Add them independently.
-            //(Adding these first allows us to simply skip capacity tests, since there can only be a total of three triangle-boxface contacts.)
+            //(Adding these first allows us to simply skip capacity tests, since there can only be a total of three triangle-boxface contacts.)            
             Vector3Wide.Scale(boxTangentX, halfExtentX, out var boxEdgeOffsetX);
             Vector3Wide.Scale(boxTangentY, halfExtentY, out var boxEdgeOffsetY);
             Vector3Wide.Add(boxFaceCenter, boxEdgeOffsetX, out var positiveX);
@@ -685,6 +686,7 @@ namespace BepuPhysics.CollisionDetection.CollisionTasks
                 Vector.GreaterThanOrEqual(normalDot, new Vector<float>(MeshReduction.MinimumDotForFaceCollision)), new Vector<int>(MeshReduction.FaceCollisionFlag), Vector<int>.Zero);
             manifold.FeatureId0 += faceFlag;
         }
+
 
         //[MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void TransformContactToManifold(

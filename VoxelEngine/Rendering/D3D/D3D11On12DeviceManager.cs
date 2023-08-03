@@ -15,7 +15,7 @@
         public static ID3D12CommandQueue ID3D12CommandQueue { get; private set; }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void InitializeDevice(IDXGIAdapter1 adapter, DeviceCreationFlags flags, FeatureLevel[] featureLevels, out ID3D11Device1 device, out ID3D11DeviceContext1 context, out FeatureLevel _featureLevel)
+        public static void InitializeDevice(IDXGIAdapter4 adapter, DeviceCreationFlags flags, FeatureLevel[] featureLevels, out ID3D11Device1 device, out ID3D11DeviceContext1 context, out FeatureLevel _featureLevel)
         {
             D3D12.D3D12CreateDevice(adapter, out ID3D12Device device12);
             ID3D12Device = device12;

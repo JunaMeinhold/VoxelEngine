@@ -1,9 +1,12 @@
-﻿using System.Numerics;
-using System.Runtime.CompilerServices;
-using BepuPhysics.Collidables;
+﻿using BepuPhysics.Collidables;
 using BepuPhysics.Trees;
 using BepuUtilities;
 using BepuUtilities.Memory;
+using System;
+using System.Collections.Generic;
+using System.Numerics;
+using System.Runtime.CompilerServices;
+using System.Text;
 
 namespace BepuPhysics.CollisionDetection
 {
@@ -61,7 +64,7 @@ namespace BepuPhysics.CollisionDetection
             {
                 LeafTester.Test(Leaves[leafIndex], ref maximumT);
             }
-
+            
         }
 
         /// <summary>

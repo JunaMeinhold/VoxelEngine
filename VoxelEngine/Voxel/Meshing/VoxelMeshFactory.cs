@@ -7,16 +7,16 @@
     {
         private ChunkHelper chunkHelper;
         private Chunk chunk;
-        private BlockVertexBuffer vertexBuffer;
+        private IVoxelVertexBuffer vertexBuffer;
 
-        public void GenerateMesh(BlockVertexBuffer vertexBuffer, Chunk chunk)
+        public void GenerateMesh(IVoxelVertexBuffer vertexBuffer, Chunk chunk)
         {
             this.vertexBuffer = vertexBuffer;
             this.chunk = chunk;
             chunkHelper = new();
 
             // Default 4096, else use the lase size + 1024
-            int newSize = vertexBuffer.Used == 0 ? 4096 : vertexBuffer.Used + 1024;
+            int newSize = vertexBuffer.Count == 0 ? 4096 : vertexBuffer.Count + 1024;
             vertexBuffer.Reset(newSize);
 
             // Negative X side
@@ -113,9 +113,9 @@
                     }
 
                     // Extend the array if it is nearly full
-                    if (vertexBuffer.Used > vertexBuffer.Data.Length - 2048)
+                    if (vertexBuffer.Count > vertexBuffer.Capacity - 2048)
                     {
-                        vertexBuffer.Extend(2048);
+                        vertexBuffer.EnsureCapacity(vertexBuffer.Capacity + 2048);
                     }
                 }
             }
@@ -124,7 +124,7 @@
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void CreateRun(ref Block b, int i, int j, int k, int i1, int k1, int y, int access, bool minX, bool maxX, bool minY, bool maxY, bool minZ, bool maxZ, int iCS, int kCS2)
         {
-            int textureHealth16 = BlockVertex.IndexToTextureShifted[b.Type] | b.Health / 16 << 23;
+            int textureHealth16 = BlockVertex.IndexToTextureShifted[b.Type];
             int accessIncremented = access + 1;
             int chunkAccess;
             int j1 = j + 1;
@@ -370,7 +370,7 @@
         protected bool DifferentBlock(int chunkAccess, ref Block compare)
         {
             ref Block b = ref chunk.Data[chunkAccess];
-            return b.Type != compare.Type || b.Health != compare.Health;
+            return b.Type != compare.Type;
         }
     }
 }

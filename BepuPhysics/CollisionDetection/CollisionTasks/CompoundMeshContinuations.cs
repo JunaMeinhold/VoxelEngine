@@ -1,7 +1,7 @@
-﻿using System.Diagnostics;
-using System.Runtime.CompilerServices;
-using BepuPhysics.Collidables;
+﻿using BepuPhysics.Collidables;
 using BepuUtilities.Memory;
+using System.Diagnostics;
+using System.Runtime.CompilerServices;
 
 namespace BepuPhysics.CollisionDetection.CollisionTasks
 {
@@ -70,7 +70,7 @@ namespace BepuPhysics.CollisionDetection.CollisionTasks
             childTypeB = triangle.TypeId;
             Unsafe.AsRef<TMesh>(pair.B).GetLocalChild(childIndexB, out continuation.Triangles[continuationChildIndex]);
             ref var continuationChild = ref continuation.Inner.Children[continuationChildIndex];
-            //In meshes, the triangle's vertices already contain the offset, so there is no additional offset.
+            //In meshes, the triangle's vertices already contain the offset, so there is no additional offset.                                 
             childPoseB = new RigidPose(default, pair.OrientationB);
             if (pair.FlipMask < 0)
             {
@@ -87,5 +87,6 @@ namespace BepuPhysics.CollisionDetection.CollisionTasks
                 continuationChild.OffsetB = childPoseB.Position;
             }
         }
+
     }
 }

@@ -6,7 +6,7 @@
     using VoxelEngine.Rendering.D3D;
     using VoxelEngine.Scenes;
 
-    public class Crosshair : SceneElement
+    public class Crosshair : GameObject
     {
         private VertexBuffer<OrthoVertex> vertexBuffer;
         private TextureRenderer textureComponent;

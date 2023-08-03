@@ -11,7 +11,6 @@
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
 // WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-
 #include "defs.hlsl"
 
 TextureCube dayMap : register(t0);
@@ -19,12 +18,7 @@ TextureCube nightMap : register(t1);
 
 SamplerState SkyMapSampler : register(s0);
 
-cbuffer BlendBuffer
-{
-    float4 blend;
-};
-
 float4 main(PixelInputType input) : SV_Target
 {
-    return lerp(dayMap.Sample(SkyMapSampler, input.tex), float4(0.529f, 0.807f, 0.921f, 1), blend);
+    return float4(dayMap.Sample(SkyMapSampler, input.tex).rgb, 1);
 }

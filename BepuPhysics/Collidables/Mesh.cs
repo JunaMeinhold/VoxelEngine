@@ -1,18 +1,18 @@
-﻿using System;
-using System.Numerics;
-using System.Runtime.CompilerServices;
-using BepuPhysics.CollisionDetection.CollisionTasks;
+﻿using BepuPhysics.CollisionDetection.CollisionTasks;
 using BepuPhysics.Trees;
 using BepuUtilities;
+using BepuUtilities.Collections;
 using BepuUtilities.Memory;
-
+using System;
+using System.Diagnostics;
+using System.Numerics;
+using System.Runtime.CompilerServices;
 namespace BepuPhysics.Collidables
 {
     public unsafe struct ShapeTreeOverlapEnumerator<TSubpairOverlaps> : IBreakableForEach<int> where TSubpairOverlaps : ICollisionTaskSubpairOverlaps
     {
         public BufferPool Pool;
         public void* Overlaps;
-
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public bool LoopBody(int i)
         {
@@ -20,12 +20,10 @@ namespace BepuPhysics.Collidables
             return true;
         }
     }
-
     public unsafe struct ShapeTreeSweepLeafTester<TOverlaps> : ISweepLeafTester where TOverlaps : ICollisionTaskSubpairOverlaps
     {
         public BufferPool Pool;
         public void* Overlaps;
-
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void TestLeaf(int leafIndex, ref float maximumT)
         {
@@ -42,15 +40,12 @@ namespace BepuPhysics.Collidables
         /// Acceleration structure of the mesh.
         /// </summary>
         public Tree Tree;
-
         /// <summary>
         /// Buffer of triangles composing the mesh. Triangles will only collide with tests which see the triangle as wound clockwise in right handed coordinates or counterclockwise in left handed coordinates.
         /// </summary>
         public Buffer<Triangle> Triangles;
-
         internal Vector3 scale;
         internal Vector3 inverseScale;
-
         /// <summary>
         /// Gets or sets the scale of the mesh.
         /// </summary>
@@ -179,7 +174,7 @@ namespace BepuPhysics.Collidables
             max = new Vector3(-float.MaxValue);
             for (int i = 0; i < Triangles.Length; ++i)
             {
-                //This isn't an ideal bounding box calculation for a mesh.
+                //This isn't an ideal bounding box calculation for a mesh. 
                 //-You might be able to get a win out of widely vectorizing.
                 //-Indexed smooth meshes would tend to have a third as many max/min operations.
                 //-Even better would be a set of extreme points that are known to fully enclose the mesh, eliminating the need to test the vast majority.
@@ -202,7 +197,7 @@ namespace BepuPhysics.Collidables
             return new HomogeneousCompoundShapeBatch<Mesh, Triangle, TriangleWide>(pool, initialCapacity);
         }
 
-        private unsafe struct HitLeafTester<T> : IRayLeafTester where T : IShapeRayHitHandler
+        unsafe struct HitLeafTester<T> : IRayLeafTester where T : IShapeRayHitHandler
         {
             public Triangle* Triangles;
             public T HitHandler;
@@ -283,7 +278,7 @@ namespace BepuPhysics.Collidables
             where TSubpairOverlaps : struct, ICollisionTaskSubpairOverlaps
         {
             //For now, we don't use anything tricky. Just traverse every child against the tree sequentially.
-            //TODO: This sequentializes a whole lot of cache misses. You could probably get some benefit out of traversing all pairs 'simultaneously'- that is,
+            //TODO: This sequentializes a whole lot of cache misses. You could probably get some benefit out of traversing all pairs 'simultaneously'- that is, 
             //using the fact that we have lots of independent queries to ensure the CPU always has something to do.
             ShapeTreeOverlapEnumerator<TSubpairOverlaps> enumerator;
             enumerator.Pool = pool;
@@ -314,8 +309,8 @@ namespace BepuPhysics.Collidables
 
         public struct MeshTriangleSource : ITriangleSource
         {
-            private Mesh mesh;
-            private int triangleIndex;
+            Mesh mesh;
+            int triangleIndex;
 
             public MeshTriangleSource(in Mesh mesh)
             {
@@ -481,11 +476,12 @@ namespace BepuPhysics.Collidables
             Tree.Dispose(bufferPool);
         }
 
+
         /// <summary>
         /// Type id of mesh shapes.
         /// </summary>
         public const int Id = 8;
-
         public readonly int TypeId => Id;
+
     }
 }

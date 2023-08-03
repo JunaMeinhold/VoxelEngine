@@ -9,23 +9,20 @@
         /// Shape of the collidable.
         /// </summary>
         public TypedIndex Shape;
-
         /// <summary>
         /// Continuous collision detection settings used by the collidable.
         /// </summary>
         public ContinuousDetection Continuity;
-
         /// <summary>
         /// Lower bound on the value of the speculative margin used by the collidable.
         /// </summary>
         /// <remarks>0 tends to be a good default value. Higher values can be chosen if velocity magnitude is a poor proxy for speculative margins, but these cases are rare.
         /// In those cases, try to use the smallest value that still satisfies requirements to avoid creating unnecessary contact constraints.</remarks>
         public float MinimumSpeculativeMargin;
-
         /// <summary>
         /// Upper bound on the value of the speculative margin used by the collidable.
         /// </summary>
-        /// <remarks><see cref="float.MaxValue"/> tends to be a good default value for discrete or passive mode collidables.
+        /// <remarks><see cref="float.MaxValue"/> tends to be a good default value for discrete or passive mode collidables. 
         /// The speculative margin will increase in size proportional to velocity magnitude, so having an unlimited maximum won't cost extra if the body isn't moving fast.
         /// <para>Smaller values can be useful for improving performance in chaotic situations where missing a collision is acceptable. When using <see cref="ContinuousDetectionMode.Continuous"/>, a speculative margin larger than the velocity magnitude will result in the sweep test being skipped, so lowering the maximum margin can help avoid ghost collisions.</para>
         /// </remarks>

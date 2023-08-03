@@ -1,7 +1,8 @@
-﻿using System;
-using System.Numerics;
-using BepuPhysics.Collidables;
+﻿using BepuPhysics.Collidables;
 using BepuUtilities;
+using System;
+using System.Numerics;
+using System.Runtime.CompilerServices;
 
 namespace BepuPhysics.CollisionDetection.CollisionTasks
 {
@@ -32,13 +33,13 @@ namespace BepuPhysics.CollisionDetection.CollisionTasks
             b.EstimateEpsilonScale(inactiveLanes, out var hullEpsilonScale);
             var epsilonScale = Vector.Min(a.Radius, hullEpsilonScale);
             DepthRefiner<ConvexHull, ConvexHullWide, ConvexHullSupportFinder, Sphere, SphereWide, SphereSupportFinder>.FindMinimumDepth(
-                b, a, localOffsetA, identity, ref hullSupportFinder, ref sphereSupportFinder, initialNormal, inactiveLanes, 1e-5f * epsilonScale, -speculativeMargin,
+                b, a, localOffsetA, identity, ref hullSupportFinder, ref sphereSupportFinder, initialNormal, inactiveLanes, 1e-5f * epsilonScale, -speculativeMargin, 
                 out var depth, out var localNormal, out var closestOnHull);
 
             Matrix3x3Wide.TransformWithoutOverlap(closestOnHull, hullOrientation, out var hullToContact);
             Matrix3x3Wide.TransformWithoutOverlap(localNormal, hullOrientation, out manifold.Normal);
             Vector3Wide.Add(hullToContact, offsetB, out manifold.OffsetA);
-
+                      
             manifold.FeatureId = Vector<int>.Zero;
             manifold.Depth = depth;
             manifold.ContactExists = Vector.GreaterThanOrEqual(manifold.Depth, -speculativeMargin);

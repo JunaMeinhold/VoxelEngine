@@ -1,14 +1,15 @@
-﻿using System;
+﻿using BepuPhysics.CollisionDetection;
+using BepuUtilities;
+using BepuUtilities.Memory;
+using System;
 using System.Diagnostics;
 using System.Numerics;
 using System.Runtime.CompilerServices;
-using BepuUtilities;
-using BepuUtilities.Memory;
-using static BepuUtilities.GatherScatter;
-using static BepuUtilities.Matrix3x3Wide;
 using static BepuUtilities.QuaternionWide;
-using static BepuUtilities.Symmetric3x3Wide;
 using static BepuUtilities.Vector3Wide;
+using static BepuUtilities.Symmetric3x3Wide;
+using static BepuUtilities.Matrix3x3Wide;
+using static BepuUtilities.GatherScatter;
 
 
 namespace BepuPhysics.Constraints

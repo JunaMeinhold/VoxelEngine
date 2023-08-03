@@ -52,7 +52,7 @@
         }
 
         //Type ids should be unique across all shape types in a simulation.
-        public int TypeId => 12;
+        public readonly int TypeId => 12;
 
         //Using an object space tree isn't necessarily ideal for a highly regular data like voxels.
         //We're using it here since it exists already and a voxel-specialized version doesn't.
@@ -73,7 +73,7 @@
         /// </summary>
         public Vector3 VoxelSize;
 
-        public int ChildCount => VoxelIndices.Count;
+        public readonly int ChildCount => VoxelIndices.Count;
 
         public Voxels(QuickList<Vector3> voxelIndices, Vector3 voxelSize, BufferPool pool)
         {
@@ -85,8 +85,8 @@
             pool.Take(voxelIndices.Count, out Buffer<BoundingBox> bounds);
             for (int i = 0; i < voxelIndices.Count; ++i)
             {
-                ref Vector3 voxel = ref voxelIndices[i];
-                ref BoundingBox voxelBounds = ref bounds[i];
+                ref var voxel = ref voxelIndices[i];
+                ref var voxelBounds = ref bounds[i];
                 //Note that the voxel scale is baked into the tree. That's different than the Mesh, which allows sharing the same tree across different scaled shapes.
                 //You could do something similar with the voxel set if you wanted to; check ou tthe Mesh for an example.
                 voxelBounds.Min = voxel * VoxelSize;
@@ -96,7 +96,7 @@
             pool.Return(ref bounds);
         }
 
-        public ShapeBatch CreateShapeBatch(BufferPool pool, int initialCapacity, Shapes shapeBatches)
+        public readonly ShapeBatch CreateShapeBatch(BufferPool pool, int initialCapacity, Shapes shapeBatches)
         {
             //Shapes types are responsible for informing the shape system how to create a batch for them.
             //Convex shapes will return a ConvexShapeBatch<TShape>, compound shapes a CompoundShapeBatch<TShape>,
@@ -106,21 +106,21 @@
             return new HomogeneousCompoundShapeBatch<Voxels, Box, BoxWide>(pool, initialCapacity);
         }
 
-        public void ComputeBounds(in Quaternion orientation, out Vector3 min, out Vector3 max)
+        public readonly void ComputeBounds(in Quaternion orientation, out Vector3 min, out Vector3 max)
         {
-            Matrix3x3.CreateFromQuaternion(orientation, out Matrix3x3 basis);
+            Matrix3x3.CreateFromQuaternion(orientation, out var basis);
             min = new Vector3(float.MaxValue);
             max = new Vector3(float.MinValue);
             for (int i = 0; i < VoxelIndices.Count; ++i)
             {
-                Vector3 localVoxelPosition = (VoxelIndices[i] + new Vector3(0.5f)) * VoxelSize;
-                Matrix3x3.Transform(localVoxelPosition, basis, out Vector3 rotatedPosition);
+                var localVoxelPosition = (VoxelIndices[i] + new Vector3(0.5f)) * VoxelSize;
+                Matrix3x3.Transform(localVoxelPosition, basis, out var rotatedPosition);
                 min = Vector3.Min(rotatedPosition, min);
                 max = Vector3.Max(rotatedPosition, max);
             }
             //All children have the same shape and orientation, so we can simply expand the centroids bounding box.
-            Box box = new(VoxelSize.X, VoxelSize.Y, VoxelSize.Z);
-            box.ComputeBounds(orientation, out Vector3 childLocalMin, out Vector3 childLocalMax);
+            var box = new Box(VoxelSize.X, VoxelSize.Y, VoxelSize.Z);
+            box.ComputeBounds(orientation, out var childLocalMin, out var childLocalMax);
             min += childLocalMin;
             max += childLocalMax;
         }
@@ -137,9 +137,9 @@
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             public unsafe void TestLeaf(int leafIndex, RayData* ray, float* maximumT)
             {
-                ref Vector3 voxelIndex = ref VoxelIndices[leafIndex];
+                ref var voxelIndex = ref VoxelIndices[leafIndex];
                 //Note that you could make use of the voxel grid's regular structure to save some work dealing with orientations.
-                if (VoxelShape.RayTest(new RigidPose((voxelIndex + new Vector3(0.5f)) * VoxelSize), ray->Origin, ray->Direction, out float t, out Vector3 normal) && t <= *maximumT)
+                if (VoxelShape.RayTest(voxelIndex + new Vector3(0.5f) * VoxelSize, ray->Origin, ray->Direction, out var t, out var normal) && t <= *maximumT)
                 {
                     //Bring the ray normal back into world space.
                     Matrix3x3.Transform(normal, Orientation, out normal);
@@ -157,7 +157,7 @@
         /// <param name="ray">Ray to test against the voxels.</param>
         /// <param name="maximumT">Maximum length of the ray in units of the ray direction length.</param>
         /// <param name="hitHandler">Callback to execute for every hit.</param>
-        public unsafe void RayTest<TRayHitHandler>(in RigidPose pose, in RayData ray, ref float maximumT, ref TRayHitHandler hitHandler) where TRayHitHandler : struct, IShapeRayHitHandler
+        public readonly unsafe void RayTest<TRayHitHandler>(in RigidPose pose, in RayData ray, ref float maximumT, ref TRayHitHandler hitHandler) where TRayHitHandler : struct, IShapeRayHitHandler
         {
             HitLeafTester<TRayHitHandler> leafTester;
             leafTester.VoxelIndices = VoxelIndices;
@@ -166,8 +166,8 @@
             leafTester.HitHandler = hitHandler;
             Matrix3x3.CreateFromQuaternion(pose.Orientation, out leafTester.Orientation);
             leafTester.OriginalRay = ray;
-            Matrix3x3.TransformTranspose(ray.Origin - pose.Position, leafTester.Orientation, out Vector3 localOrigin);
-            Matrix3x3.TransformTranspose(ray.Direction, leafTester.Orientation, out Vector3 localDirection);
+            Matrix3x3.TransformTranspose(ray.Origin - pose.Position, leafTester.Orientation, out var localOrigin);
+            Matrix3x3.TransformTranspose(ray.Direction, leafTester.Orientation, out var localDirection);
             Tree.RayCast(localOrigin, localDirection, ref maximumT, ref leafTester);
             //The leaf tester could have mutated the hit handler; copy it back over.
             hitHandler = leafTester.HitHandler;
@@ -182,7 +182,7 @@
         /// <param name="pose">Pose of the voxels during the ray test.</param>
         /// <param name="rays">Set of rays to cast against the voxels.</param>
         /// <param name="hitHandler">Callbacks to execute.</param>
-        public unsafe void RayTest<TRayHitHandler>(in RigidPose pose, ref RaySource rays, ref TRayHitHandler hitHandler) where TRayHitHandler : struct, IShapeRayHitHandler
+        public readonly unsafe void RayTest<TRayHitHandler>(in RigidPose pose, ref RaySource rays, ref TRayHitHandler hitHandler) where TRayHitHandler : struct, IShapeRayHitHandler
         {
             HitLeafTester<TRayHitHandler> leafTester;
             leafTester.VoxelIndices = VoxelIndices;
@@ -190,13 +190,13 @@
             leafTester.VoxelShape = new Box(VoxelSize.X, VoxelSize.Y, VoxelSize.Z);
             leafTester.HitHandler = hitHandler;
             Matrix3x3.CreateFromQuaternion(pose.Orientation, out leafTester.Orientation);
-            Matrix3x3.Transpose(leafTester.Orientation, out Matrix3x3 inverseOrientation);
+            Matrix3x3.Transpose(leafTester.Orientation, out var inverseOrientation);
             for (int i = 0; i < rays.RayCount; ++i)
             {
-                rays.GetRay(i, out RayData* ray, out float* maximumT);
+                rays.GetRay(i, out var ray, out var maximumT);
                 leafTester.OriginalRay = *ray;
-                Matrix3x3.Transform(ray->Origin - pose.Position, inverseOrientation, out Vector3 localOrigin);
-                Matrix3x3.Transform(ray->Direction, inverseOrientation, out Vector3 localDirection);
+                Matrix3x3.Transform(ray->Origin - pose.Position, inverseOrientation, out var localOrigin);
+                Matrix3x3.Transform(ray->Direction, inverseOrientation, out var localDirection);
                 Tree.RayCast(localOrigin, localDirection, ref *maximumT, ref leafTester);
             }
             //The leaf tester could have mutated the hit handler; copy it back over.
@@ -204,34 +204,34 @@
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void GetLocalChild(int childIndex, out Box childShape)
+        public readonly void GetLocalChild(int childIndex, out Box childShape)
         {
-            Vector3 halfSize = VoxelSize * 0.5f;
+            var halfSize = VoxelSize * 0.5f;
             childShape.HalfWidth = halfSize.X;
             childShape.HalfHeight = halfSize.Y;
             childShape.HalfLength = halfSize.Z;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void GetPosedLocalChild(int childIndex, out Box childShape, out RigidPose childPose)
+        public readonly void GetPosedLocalChild(int childIndex, out Box childShape, out RigidPose childPose)
         {
             GetLocalChild(childIndex, out childShape);
-            childPose = new RigidPose((VoxelIndices[childIndex] + new Vector3(0.5f)) * VoxelSize);
+            childPose = (VoxelIndices[childIndex] + new Vector3(0.5f) * VoxelSize);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void GetLocalChild(int childIndex, ref BoxWide shapeWide)
+        public readonly void GetLocalChild(int childIndex, ref BoxWide shapeWide)
         {
             //This function provides a reference to a lane in an AOSOA structure.
             //We are to fill in the first lane and ignore the others.
-            Vector3 halfSize = VoxelSize * 0.5f;
+            var halfSize = VoxelSize * 0.5f;
             GatherScatter.GetFirst(ref shapeWide.HalfWidth) = halfSize.X;
             GatherScatter.GetFirst(ref shapeWide.HalfHeight) = halfSize.Y;
             GatherScatter.GetFirst(ref shapeWide.HalfLength) = halfSize.Z;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe void FindLocalOverlaps<TOverlaps, TSubpairOverlaps>(ref Buffer<OverlapQueryForPair> pairs, BufferPool pool, Shapes shapes, ref TOverlaps overlaps)
+        public readonly unsafe void FindLocalOverlaps<TOverlaps, TSubpairOverlaps>(ref Buffer<OverlapQueryForPair> pairs, BufferPool pool, Shapes shapes, ref TOverlaps overlaps)
              where TOverlaps : struct, ICollisionTaskOverlaps<TSubpairOverlaps>
              where TSubpairOverlaps : struct, ICollisionTaskSubpairOverlaps
         {
@@ -244,14 +244,14 @@
             enumerator.Pool = pool;
             for (int i = 0; i < pairs.Length; ++i)
             {
-                ref OverlapQueryForPair pair = ref pairs[i];
-                ref Voxels voxelsSet = ref Unsafe.AsRef<Voxels>(pair.Container);
+                ref var pair = ref pairs[i];
+                ref var voxelsSet = ref Unsafe.AsRef<Voxels>(pair.Container);
                 enumerator.Overlaps = Unsafe.AsPointer(ref overlaps.GetOverlapsForPair(i));
                 voxelsSet.Tree.GetOverlaps(pair.Min, pair.Max, ref enumerator);
             }
         }
 
-        public unsafe void FindLocalOverlaps<TOverlaps>(in Vector3 min, in Vector3 max, in Vector3 sweep, float maximumT, BufferPool pool, Shapes shapes, void* overlaps) where TOverlaps : ICollisionTaskSubpairOverlaps
+        public readonly unsafe void FindLocalOverlaps<TOverlaps>(in Vector3 min, in Vector3 max, in Vector3 sweep, float maximumT, BufferPool pool, Shapes shapes, void* overlaps) where TOverlaps : ICollisionTaskSubpairOverlaps
         {
             //Similar to the non-swept FindLocalOverlaps function above, this just adds the overlaps to the provided collection.
             //Some unfortunate loss of type information due to some language limitations around generic pointers- pretend the overlaps pointer has type TOverlaps*.
@@ -293,9 +293,9 @@
             in BoundsTestedPair pair, int shapeTypeA, int childIndexB, out RigidPose childPoseB, out int childTypeB, out void* childShapeDataB)
             where TCallbacks : struct, ICollisionCallbacks
         {
-            ref Voxels voxels = ref Unsafe.AsRef<Voxels>(pair.B);
-            ref Vector3 voxelIndex = ref voxels.VoxelIndices[childIndexB];
-            Vector3 localPosition = (voxelIndex + new Vector3(0.5f)) * voxels.VoxelSize;
+            ref var voxels = ref Unsafe.AsRef<Voxels>(pair.B);
+            ref var voxelIndex = ref voxels.VoxelIndices[childIndexB];
+            var localPosition = (voxelIndex + new Vector3(0.5f)) * voxels.VoxelSize;
             QuaternionEx.TransformWithoutOverlap(localPosition, pair.OrientationB, out childPoseB.Position);
             childPoseB.Orientation = Quaternion.Identity;
             childTypeB = Box.Id;
@@ -304,7 +304,7 @@
             //We can't just allocate a shape on the stack and return a pointer to it- the data needs to be valid until the collision batcher flushes that type batch.
             //Fortunately, the collision batcher exposes a handy per-pair-type heap allocated memory blob that we can use to store the shape data.
             //When the collision batcher flushes, it'll automatically get cleaned up.
-            Vector3 halfSize = voxels.VoxelSize * 0.5f;
+            var halfSize = voxels.VoxelSize * 0.5f;
             //This reinterprets the vector3 as a Box to copy into the cache, which is a bit gross.
             //The shape cache doesn't actually have any type information- it's just strategically placed memory.
             //In other words, we're just giving a place for these 12 bytes to live until the flush.
@@ -317,7 +317,7 @@
             out RigidPose childPoseB, out int childTypeB, out void* childShapeDataB)
             where TCallbacks : struct, ICollisionCallbacks
         {
-            ref NonconvexReductionChild continuationChild = ref continuation.Children[continuationChildIndex];
+            ref var continuationChild = ref continuation.Children[continuationChildIndex];
             GetChildData(ref collisionBatcher, ref continuationChild, pair, shapeTypeA, childIndexB, out childPoseB, out childTypeB, out childShapeDataB);
             //Collision processors expect data to be provided in a specific order. The flip mask is used to make sure we're giving the data in the proper order.
             //The collision batcher also takes into account the flip mask when reporting collision data through callbacks to preserve original user order.
@@ -356,8 +356,8 @@
             out RigidPose childPoseA, out int childTypeA, out void* childShapeDataA)
             where TCallbacks : struct, ICollisionCallbacks
         {
-            ref TCompoundA compoundA = ref Unsafe.AsRef<TCompoundA>(pair.A);
-            ref CompoundChild compoundChildA = ref compoundA.GetChild(childIndexA);
+            ref var compoundA = ref Unsafe.AsRef<TCompoundA>(pair.A);
+            ref var compoundChildA = ref compoundA.GetChild(childIndexA);
             Compound.GetRotatedChildPose(compoundChildA.LocalPose, pair.OrientationA, out childPoseA);
             childTypeA = compoundChildA.ShapeIndex.Type;
             collisionBatcher.Shapes[childTypeA].GetShapeData(compoundChildA.ShapeIndex.Index, out childShapeDataA, out _);
@@ -369,7 +369,7 @@
             out RigidPose childPoseB, out int childTypeB, out void* childShapeDataB)
             where TCallbacks : struct, ICollisionCallbacks
         {
-            ref NonconvexReductionChild continuationChild = ref continuation.Children[continuationChildIndex];
+            ref var continuationChild = ref continuation.Children[continuationChildIndex];
 
             ConvexVoxelsContinuations.GetChildData(ref collisionBatcher, ref continuationChild, pair, childTypeA, childIndexB, out childPoseB, out childTypeB, out childShapeDataB);
             if (pair.FlipMask < 0)

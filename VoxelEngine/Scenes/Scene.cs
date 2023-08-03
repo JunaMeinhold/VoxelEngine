@@ -7,14 +7,15 @@
     using BepuPhysics.Collidables;
     using BepuUtilities;
     using BepuUtilities.Memory;
-    using VoxelEngine;
     using VoxelEngine.Core;
     using VoxelEngine.Core.Input;
+    using VoxelEngine.Core.Windows;
     using VoxelEngine.Physics;
     using VoxelEngine.Physics.Characters;
     using VoxelEngine.Physics.Collidables;
     using VoxelEngine.Rendering.D3D;
     using VoxelEngine.Scripting;
+    using VoxelEngine.Windows;
 
     public class Scene : IDisposable
     {
@@ -22,6 +23,7 @@
         private bool initialized;
         private Dispatcher dispatcher;
         private SceneProfiler profiler = new();
+        private List<GameObject> flatList = new();
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Scene"/> class.
@@ -53,7 +55,7 @@
         /// <value>
         /// The window.
         /// </value>
-        public Window Window { get; private set; }
+        public GameWindow Window { get; private set; }
 
         /// <summary>
         /// Gets or sets the camera.
@@ -125,7 +127,7 @@
         /// Initializes the scene.<br/>
         /// Calls <see cref="ISceneRenderer.Initialize"/><br/>
         /// Calls <see cref="Camera.UpdateProjection"/><br/>
-        /// Calls foreach in <see cref="Elements"/>, <see cref="SceneElement.Initialize"/><br/>
+        /// Calls foreach in <see cref="Elements"/>, <see cref="GameObject.Initialize"/><br/>
         /// Sets <see cref="initialized"/> to <see langword="true" />
         /// </summary>
         public virtual void Initialize()
@@ -139,7 +141,7 @@
             ContactEvents = new ContactEvents(ThreadDispatcher, BufferPool);
             Simulation = Simulation.Create(BufferPool, new NarrowphaseCallbacks(CharacterControllers, ContactEvents), new PoseIntegratorCallbacks(new Vector3(0, -10, 0)), new SolveDescription(8, 1));
             Voxels.Register(Simulation);
-            Window = Application.MainWindow;
+            Window = (GameWindow)Application.MainWindow;
             Renderer.Initialize(D3D11DeviceManager.ID3D11Device, Window);
             Elements.ForEach(e => e.Initialize(D3D11DeviceManager.ID3D11Device));
             initialized = true;
@@ -178,14 +180,13 @@
                 item.Update();
             }
 
-            Mouse.Clear();
             foreach (IBodyComponent item in Elements.ColliderComponents)
             {
                 item.Update();
             }
 
             profiler.ProfileUpdate();
-
+            Camera.Transform.Recalculate();
             Renderer.Render(D3D11DeviceManager.ID3D11DeviceContext, Camera, Elements);
             profiler.ProfileRender();
 
@@ -214,7 +215,7 @@
         /// <typeparam name="T">Type</typeparam>
         /// <param name="name">Name</param>
         /// <returns>The element</returns>
-        public T GetElementByName<T>(string name) where T : SceneElement
+        public T GetElementByName<T>(string name) where T : GameObject
         {
             return GetElementsByType<T>().FirstOrDefault(x => x.Name == name);
         }
@@ -224,7 +225,7 @@
         /// </summary>
         /// <typeparam name="T">Type</typeparam>
         /// <returns>The elements</returns>
-        public IEnumerable<T> GetElementsByType<T>() where T : SceneElement
+        public IEnumerable<T> GetElementsByType<T>() where T : GameObject
         {
             return Elements.Where(x => x is T).Cast<T>();
         }
@@ -234,14 +235,14 @@
         /// </summary>
         /// <typeparam name="T">Type</typeparam>
         /// <returns>The elements</returns>
-        public T GetElementByType<T>() where T : SceneElement
+        public T GetElementByType<T>() where T : GameObject
         {
             return (T)Elements.FirstOrDefault(x => x is T);
         }
 
-        public T GetElementByComponentRef<T>(IComponent component) where T : SceneElement
+        public T GetElementByComponentRef<T>(IComponent component) where T : GameObject
         {
-            foreach (SceneElement element in Elements)
+            foreach (GameObject element in Elements)
             {
                 if (element.Components.Contains(component))
                 {
@@ -252,7 +253,7 @@
             return null;
         }
 
-        public T GetElementByCollidableReference<T>(CollidableReference reference) where T : SceneElement
+        public T GetElementByCollidableReference<T>(CollidableReference reference) where T : GameObject
         {
             foreach (IBodyComponent component in Elements.ColliderComponents)
             {
@@ -275,7 +276,7 @@
             return null;
         }
 
-        public T GetElementByBodyHandle<T>(BodyHandle handle) where T : SceneElement
+        public T GetElementByBodyHandle<T>(BodyHandle handle) where T : GameObject
         {
             foreach (IBodyComponent component in Elements.ColliderComponents)
             {
@@ -291,7 +292,7 @@
             return null;
         }
 
-        public T GetElementByStaticHandle<T>(StaticHandle handle) where T : SceneElement
+        public T GetElementByStaticHandle<T>(StaticHandle handle) where T : GameObject
         {
             foreach (IBodyComponent component in Elements.ColliderComponents)
             {
@@ -309,10 +310,10 @@
 
         /// <summary>
         /// Adds an scene element.<br/>
-        /// Calls <see cref="SceneElement.Initialize"/> if <see cref="initialized"/> == <see langword="true" />
+        /// Calls <see cref="GameObject.Initialize"/> if <see cref="initialized"/> == <see langword="true" />
         /// </summary>
         /// <param name="sceneElement">The scene element.</param>
-        public void Add(SceneElement sceneElement)
+        public void Add(GameObject sceneElement)
         {
             if (initialized)
             {
@@ -330,10 +331,10 @@
 
         /// <summary>
         /// Removes an scene element.<br/>
-        /// Calls <see cref="SceneElement.Uninitialize"/> if <see cref="initialized"/> == <see langword="true" />
+        /// Calls <see cref="GameObject.Uninitialize"/> if <see cref="initialized"/> == <see langword="true" />
         /// </summary>
         /// <param name="sceneElement">The scene element.</param>
-        public void Remove(SceneElement sceneElement)
+        public void Remove(GameObject sceneElement)
         {
             if (initialized)
             {
@@ -393,6 +394,16 @@
             // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
             Dispose(disposing: true);
             GC.SuppressFinalize(this);
+        }
+
+        internal void Register(GameObject gameObject)
+        {
+            flatList.Add(gameObject);
+        }
+
+        internal void Unregister(GameObject gameObject)
+        {
+            flatList.Remove(gameObject);
         }
     }
 }

@@ -1,8 +1,9 @@
-﻿using System;
+﻿using BepuPhysics.Collidables;
+using BepuUtilities;
+using System;
+using System.Diagnostics;
 using System.Numerics;
 using System.Runtime.CompilerServices;
-using BepuPhysics.Collidables;
-using BepuUtilities;
 
 namespace BepuPhysics.CollisionDetection.CollisionTasks
 {
@@ -19,7 +20,7 @@ namespace BepuPhysics.CollisionDetection.CollisionTasks
             //Compute the closest points between the two line segments. No clamping to begin with.
             //We want to minimize distance = ||(a + da * ta) - (b + db * tb)||.
             //Taking the derivative with respect to ta and doing some algebra (taking into account ||da|| == ||db|| == 1) to solve for ta yields:
-            //ta = (da * (b - a) + (db * (a - b)) * (da * db)) / (1 - ((da * db) * (da * db))
+            //ta = (da * (b - a) + (db * (a - b)) * (da * db)) / (1 - ((da * db) * (da * db))        
             //(Probably could avoid this square root by revisiting the derivation to permit non-unit length directions, but it's fairly inconsequential.)
             Vector3Wide.Length(edgeOffset, out var edgeLength);
             Vector3Wide.Scale(edgeOffset, Vector<float>.One / edgeLength, out edgeDirection);
@@ -98,7 +99,7 @@ namespace BepuPhysics.CollisionDetection.CollisionTasks
             //Note that near-zero denominators (parallel axes) result in a properly signed large finite value.
             var velocityIsPositive = Vector.GreaterThan(velocity, Vector<float>.Zero);
             var t = Vector.ConditionalSelect(velocityIsPositive, -distance, distance) / Vector.Max(new Vector<float>(1e-15f), Vector.Abs(velocity));
-            //The final interval is going to be max(entryAB, entryBC, entryCA) to min(exitAB, exitBC, exitCA).
+            //The final interval is going to be max(entryAB, entryBC, entryCA) to min(exitAB, exitBC, exitCA). 
             //An intersection is considered an 'entry' if the ray direction opposes the plane normal.
             entry = Vector.ConditionalSelect(velocityIsPositive, new Vector<float>(-float.MaxValue), t);
             exit = Vector.ConditionalSelect(velocityIsPositive, t, new Vector<float>(float.MaxValue));
@@ -235,6 +236,7 @@ namespace BepuPhysics.CollisionDetection.CollisionTasks
                 bMin = intervalWeight * bMin + weightedTb;
                 bMax = intervalWeight * bMax + weightedTb;
 
+
                 Vector3Wide.Scale(edgeDirection, bMin, out b0);
                 Vector3Wide.Add(b0, edgeStart, out b0);
                 Vector3Wide.Scale(edgeDirection, bMax, out b1);
@@ -247,7 +249,8 @@ namespace BepuPhysics.CollisionDetection.CollisionTasks
                 contactCount = Vector<int>.Zero;
             }
 
-            //Any edge contributions are now stored in the b0, b1, localNormal, and depth fields.
+
+            //Any edge contributions are now stored in the b0, b1, localNormal, and depth fields. 
             //1) If face contact won (no edges contributed any contacts), then generate two contacts by clipping the capsule axis against the triangle edge planes.
             //(Clipping is used so that the results can be shared by #2, and in case where the capsule axis is parallel to the face surface so an edge that 'should' have won, didn't.)
             //2) If an edge contact won and only generated one contact, then try to generate one additional face contact by
@@ -319,7 +322,7 @@ namespace BepuPhysics.CollisionDetection.CollisionTasks
             //While we have computed a global depth, each contact has its own depth.
             //Project the contact on B along the contact normal to the 'face' of A.
             //A is a capsule, but we can treat it as having a faceNormalA = (localNormal x capsuleAxis) x capsuleAxis.
-            //The full computation is:
+            //The full computation is: 
             //t = dot(contact + localOffsetB, faceNormalA) / dot(faceNormalA, localNormal)
             //depth = dot(t * localNormal, localNormal) = t
             Vector3Wide.CrossWithoutOverlap(localNormal, localCapsuleAxis, out var capsuleTangent);
@@ -372,6 +375,7 @@ namespace BepuPhysics.CollisionDetection.CollisionTasks
             Matrix3x3Wide.TransformWithoutOverlap(localOffsetA1, rB, out manifold.OffsetA1);
             Matrix3x3Wide.TransformWithoutOverlap(localNormal, rB, out manifold.Normal);
         }
+
 
         public void Test(ref CapsuleWide a, ref TriangleWide b, ref Vector<float> speculativeMargin, ref Vector3Wide offsetB, ref QuaternionWide orientationB, int pairCount, out Convex2ContactManifoldWide manifold)
         {

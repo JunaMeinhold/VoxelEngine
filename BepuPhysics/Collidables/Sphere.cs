@@ -1,10 +1,13 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Numerics;
 using System.Runtime.CompilerServices;
-using BepuPhysics.CollisionDetection;
-using BepuPhysics.Trees;
-using BepuUtilities;
+using System.Text;
 using BepuUtilities.Memory;
+using System.Diagnostics;
+using BepuUtilities;
+using BepuPhysics.Trees;
+using BepuPhysics.CollisionDetection;
 
 namespace BepuPhysics.Collidables
 {
@@ -53,7 +56,6 @@ namespace BepuPhysics.Collidables
             min = new Vector3(-Radius);
             max = new Vector3(Radius);
         }
-
         public readonly bool RayTest(in RigidPose pose, in Vector3 origin, in Vector3 direction, out float t, out Vector3 normal)
         {
             //Normalize the direction. Sqrts aren't *that* bad, and it both simplifies things and helps avoid numerical problems.
@@ -111,17 +113,18 @@ namespace BepuPhysics.Collidables
             return new ConvexShapeBatch<Sphere, SphereWide>(pool, initialCapacity);
         }
 
+
         /// <summary>
         /// Type id of sphere shapes.
         /// </summary>
         public const int Id = 0;
-
         public readonly int TypeId { [MethodImpl(MethodImplOptions.AggressiveInlining)] get { return Id; } }
     }
 
     public struct SphereWide : IShapeWide<Sphere>
     {
         public Vector<float> Radius;
+
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Broadcast(in Sphere shape)
@@ -137,9 +140,7 @@ namespace BepuPhysics.Collidables
 
         public bool AllowOffsetMemoryAccess => true;
         public int InternalAllocationSize => 0;
-
-        public void Initialize(in Buffer<byte> memory)
-        { }
+        public void Initialize(in Buffer<byte> memory) { }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void WriteSlot(int index, in Sphere source)
@@ -161,6 +162,7 @@ namespace BepuPhysics.Collidables
             min = new Vector3Wide(ref negatedRadius);
         }
 
+
         public int MinimumWideRayCount
         {
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -169,7 +171,6 @@ namespace BepuPhysics.Collidables
                 return 2;
             }
         }
-
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void RayTest(ref RigidPoseWide pose, ref RayWide rayWide, out Vector<int> intersected, out Vector<float> t, out Vector3Wide normal)
         {
@@ -197,6 +198,7 @@ namespace BepuPhysics.Collidables
                     Vector.LessThanOrEqual(c, Vector<float>.Zero)),
                 Vector.GreaterThanOrEqual(discriminant, Vector<float>.Zero));
 
+
             t = Vector.Max(-tOffset, -b - Vector.SquareRoot(discriminant));
             Vector3Wide.Scale(d, t, out oOffset);
             Vector3Wide.Add(o, oOffset, out normal);
@@ -213,6 +215,7 @@ namespace BepuPhysics.Collidables
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get { return true; }
         }
+
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void GetMargin(in SphereWide shape, out Vector<float> margin)
@@ -232,4 +235,5 @@ namespace BepuPhysics.Collidables
             support = default;
         }
     }
+
 }

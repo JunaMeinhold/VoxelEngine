@@ -1,7 +1,8 @@
-﻿using System;
+﻿using BepuUtilities.Collections;
+using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
-using BepuUtilities.Collections;
+using System.Runtime.InteropServices;
 
 #if !DEBUG
 [module: SkipLocalsInit]

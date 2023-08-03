@@ -17,7 +17,7 @@ namespace BepuUtilities.Memory
         {
             Debug.Assert(power >= 0 && power <= MaximumSpanSizePower, $"Power must be from 0 to {MaximumSpanSizePower}, inclusive.");
         }
-
+        
         /// <summary>
         /// Computes the lowest integer N such that 2^N >= i.
         /// </summary>
@@ -28,7 +28,7 @@ namespace BepuUtilities.Memory
         {
             var unsigned = i == 0 ? 1u : (uint)i;
             return 32 - BitOperations.LeadingZeroCount(unsigned - 1);
-
+            
         }
 
         /// <summary>

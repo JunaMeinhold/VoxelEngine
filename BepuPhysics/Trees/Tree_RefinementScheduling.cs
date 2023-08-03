@@ -1,10 +1,10 @@
-﻿using System;
+﻿using BepuUtilities;
+using BepuUtilities.Collections;
+using BepuUtilities.Memory;
+using System;
 using System.Diagnostics;
 using System.Numerics;
 using System.Runtime.CompilerServices;
-using BepuUtilities;
-using BepuUtilities.Collections;
-using BepuUtilities.Memory;
 
 namespace BepuPhysics.Trees
 {
@@ -165,7 +165,7 @@ namespace BepuPhysics.Trees
                 throw new InvalidOperationException(
                     "The change in tree cost is an invalid value, strongly implying the tree bounds have been corrupted by infinites or NaNs. " +
                     "If this happened in the broad phase's use of the tree, it's likely that there are invalid poses or velocities in the simulation, " +
-                    "possibly as a result of bugged input state or constraint configuration. " +
+                    "possibly as a result of bugged input state or constraint configuration. " + 
                     "Try running the library with debug asserts enabled to narrow down where the NaNsplosion started.");
             var refineAggressiveness = Math.Max(0, costChange * refineAggressivenessScale);
             float refinePortion = Math.Min(1, refineAggressiveness * 0.25f);

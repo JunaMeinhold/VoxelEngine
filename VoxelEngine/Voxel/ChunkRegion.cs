@@ -5,6 +5,7 @@
     using System.Buffers.Binary;
     using System.IO;
     using System.Numerics;
+    using System.Runtime.InteropServices;
     using System.Threading.Tasks;
     using Vortice.Direct3D11;
 
@@ -13,13 +14,13 @@
         public Vector2 Position;
         public Chunk[] Chunks;
 
-        public bool IsEmpty => Chunks is null || Chunks[0] is null;
+        public readonly bool IsEmpty => Chunks is null || Chunks[0] is null;
 
-        public bool IsLoaded => Chunks is not null && Chunks[0] is not null && Chunks[0].InBuffer;
+        public readonly bool IsLoaded => Chunks is not null && Chunks[0] is not null && Chunks[0].InBuffer;
 
-        public bool InMemory => Chunks is not null && Chunks[0] is not null && Chunks[0].InMemory;
+        public readonly bool InMemory => Chunks is not null && Chunks[0] is not null && Chunks[0].InMemory;
 
-        public override bool Equals(object obj)
+        public override readonly bool Equals(object obj)
         {
             if (obj is ChunkRegion region)
             {
@@ -29,7 +30,7 @@
             return false;
         }
 
-        public bool ExistOnDisk(WorldMap world)
+        public readonly bool ExistOnDisk(WorldMap world)
         {
             return File.Exists(Path.Combine(world.Path, $"region-{Position.X}-{Position.Y}"));
         }
@@ -40,24 +41,27 @@
             Flush(Chunks[0].Map);
         }
 
-        public void Upload(ID3D11Device device)
+#if USE_LEGACY_LOADER
+        public readonly void Upload(ID3D11Device device)
         {
             foreach (Chunk chunk in Chunks)
             {
                 chunk?.Upload(device);
             }
         }
+#endif
 
-        public void Load()
+        public readonly void Load()
         {
             _ = Parallel.ForEach(Chunks, chunk => chunk?.Update());
-            foreach (Chunk chunk in Chunks)
+            for (int i = 0; i < Chunks.Length; i++)
             {
+                Chunk chunk = Chunks[i];
                 chunk.LoadToSimulation();
             }
         }
 
-        public void Unload()
+        public readonly void Unload()
         {
             foreach (Chunk chunk in Chunks)
             {
@@ -65,12 +69,12 @@
             }
         }
 
-        public void Save()
+        public readonly void Save()
         {
-            ToDisk(Chunks[0].Map);
+            ToDiskUnsafe(Chunks[0].Map);
         }
 
-        public void UnloadFromSimulation()
+        public readonly void UnloadFromSimulation()
         {
             foreach (Chunk chunk in Chunks)
             {
@@ -78,12 +82,13 @@
             }
         }
 
-        public void ToDisk(WorldMap world)
+        public readonly void ToDisk(WorldMap world)
         {
             if (Chunks.All(x => !x.DirtyDisk))
             {
-                foreach (Chunk chunk in Chunks)
+                for (int i = 0; i < Chunks.Length; i++)
                 {
+                    Chunk chunk = Chunks[i];
                     chunk.Dispose();
                 }
 
@@ -92,8 +97,9 @@
             string filename = Path.Combine(world.Path, $"region-{Position.X}-{Position.Y}");
             FileStream fs = File.Create(filename);
             fs.Write(BitConverter.GetBytes(Chunks.Length));
-            foreach (Chunk chunk in Chunks)
+            for (int i = 0; i < Chunks.Length; i++)
             {
+                Chunk chunk = Chunks[i];
                 chunk.SerializeTo(fs);
                 chunk.Dispose();
             }
@@ -102,14 +108,61 @@
             fs.Dispose();
         }
 
-        public void Flush(WorldMap world)
+        public readonly unsafe void ToDiskUnsafe(WorldMap world)
+        {
+            if (Chunks.All(x => !x.DirtyDisk))
+            {
+                for (int i = 0; i < Chunks.Length; i++)
+                {
+                    Chunk chunk = Chunks[i];
+                    chunk.Dispose();
+                }
+
+                return;
+            }
+            string filename = Path.Combine(world.Path, $"region-{Position.X}-{Position.Y}");
+            FileStream fs = File.Create(filename);
+            Span<byte> buffer = stackalloc byte[4];
+            BinaryPrimitives.WriteInt32LittleEndian(buffer, Chunks.Length);
+            fs.Write(buffer);
+            for (int i = 0; i < Chunks.Length; i++)
+            {
+                Chunk chunk = Chunks[i];
+                chunk.SerializeToUnsafe(fs);
+                chunk.Dispose();
+            }
+            fs.Flush();
+            fs.Close();
+            fs.Dispose();
+        }
+
+        public readonly void Flush(WorldMap world)
         {
             string filename = Path.Combine(world.Path, $"region-{Position.X}-{Position.Y}");
             FileStream fs = File.Create(filename);
             fs.Write(BitConverter.GetBytes(Chunks.Length));
-            foreach (Chunk chunk in Chunks)
+            for (int i = 0; i < Chunks.Length; i++)
             {
+                Chunk chunk = Chunks[i];
                 chunk.SerializeTo(fs);
+            }
+
+            fs.Flush();
+            fs.Close();
+            fs.Dispose();
+        }
+
+        public readonly unsafe void FlushUnsafe(WorldMap world)
+        {
+            string filename = Path.Combine(world.Path, $"region-{Position.X}-{Position.Y}");
+            FileStream fs = File.Create(filename);
+            Span<byte> buffer = stackalloc byte[4];
+            BinaryPrimitives.WriteInt32LittleEndian(buffer, Chunks.Length);
+            fs.Write(buffer);
+            for (int i = 0; i < Chunks.Length; i++)
+            {
+                Chunk chunk = Chunks[i];
+                chunk.SerializeToUnsafe(fs);
             }
 
             fs.Flush();
@@ -139,6 +192,30 @@
             fs.Close();
             fs.Dispose();
             ArrayPool<byte>.Shared.Return(data);
+        }
+
+        public unsafe void LoadFromDiskUnsafe(WorldMap world)
+        {
+            string filename = Path.Combine(world.Path, $"region-{Position.X}-{Position.Y}");
+            FileStream fs = File.OpenRead(filename);
+            byte* data = (byte*)Marshal.AllocHGlobal((nint)fs.Length);
+            Span<byte> span = new(data, (int)fs.Length);
+            _ = fs.Read(span);
+            int index = 0;
+            int count = BinaryPrimitives.ReadInt32LittleEndian(span[index..]);
+            index += 4;
+            Chunks = new Chunk[count];
+
+            for (int i = 0; i < count; i++)
+            {
+                Chunks[i] = new(world, (int)Position.X, i, (int)Position.Y);
+                index += Chunks[i].DeserializeFromUnsafe(data + index, (int)(fs.Length - index));
+                world.Chunks[Chunks[i].Position] = Chunks[i];
+            }
+            world.Set(this);
+            fs.Close();
+            fs.Dispose();
+            Marshal.FreeHGlobal((nint)data);
         }
 
         public static ChunkRegion CreateFrom(WorldMap world, Vector3 pos)
@@ -173,7 +250,7 @@
             return !(left == right);
         }
 
-        public override int GetHashCode()
+        public override readonly int GetHashCode()
         {
             return Position.GetHashCode();
         }

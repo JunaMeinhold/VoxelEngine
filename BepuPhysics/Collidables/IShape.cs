@@ -1,8 +1,11 @@
-﻿using System.Numerics;
+﻿using BepuPhysics.CollisionDetection;
 using BepuPhysics.CollisionDetection.CollisionTasks;
 using BepuPhysics.Trees;
 using BepuUtilities;
+using BepuUtilities.Collections;
 using BepuUtilities.Memory;
+using System;
+using System.Numerics;
 
 namespace BepuPhysics.Collidables
 {
@@ -16,7 +19,6 @@ namespace BepuPhysics.Collidables
         /// Unique type id for this shape type.
         /// </summary>
         int TypeId { get; }
-
         /// <summary>
         /// Creates a shape batch for this type of shape.
         /// </summary>
@@ -56,7 +58,7 @@ namespace BepuPhysics.Collidables
         /// <param name="maximumAngularExpansion"></param>
         /// <remarks>This is typically used in the engine for predicting bounding boxes at the beginning of the frame.
         /// Velocities are used to expand the bounding box so that likely future collisions will be detected.
-        /// Linear velocity expands the bounding box in a direct and simple way, but angular expansion requires more information about the shape.
+        /// Linear velocity expands the bounding box in a direct and simple way, but angular expansion requires more information about the shape. 
         /// Imagine a long and thin capsule versus a sphere: high angular velocity may require significant expansion on the capsule, but spheres are rotationally invariant.</remarks>
         void ComputeAngularExpansionData(out float maximumRadius, out float maximumAngularExpansion);
 
@@ -65,7 +67,7 @@ namespace BepuPhysics.Collidables
         /// </summary>
         /// <param name="mass">Mass to use to compute the body's inertia.</param>
         /// <returns>Inertia for the body.</returns>
-        /// <remarks>Note that the <see cref="BodyInertia"/> returned by this stores the inverse mass and inverse inertia tensor.
+        /// <remarks>Note that the <see cref="BodyInertia"/> returned by this stores the inverse mass and inverse inertia tensor. 
         /// This is because the most high frequency use of body inertia most naturally uses the inverse.</remarks>
         BodyInertia ComputeInertia(float mass);
 
@@ -80,19 +82,14 @@ namespace BepuPhysics.Collidables
         //Note that compound shapes have no wide GetBounds function. Compounds, by virtue of containing shapes of different types, cannot be usefully vectorized over.
         //Instead, their children are added to other computation batches.
         void ComputeBounds(in Quaternion orientation, Shapes shapeBatches, out Vector3 min, out Vector3 max);
-
         void AddChildBoundsToBatcher(ref BoundingBoxBatcher batcher, in RigidPose pose, in BodyVelocity velocity, int bodyIndex);
 
         //Compound shapes may require indirections into other shape batches. This isn't wonderfully fast, but this scalar path is designed more for convenience than performance anyway.
         //For performance, a batched and vectorized codepath should be used.
         void RayTest<TRayHitHandler>(in RigidPose pose, in RayData ray, ref float maximumT, Shapes shapeBatches, ref TRayHitHandler hitHandler) where TRayHitHandler : struct, IShapeRayHitHandler;
-
         void RayTest<TRayHitHandler>(in RigidPose pose, ref RaySource rays, Shapes shapeBatches, ref TRayHitHandler hitHandler) where TRayHitHandler : struct, IShapeRayHitHandler;
-
         int ChildCount { get; }
-
         ref CompoundChild GetChild(int compoundChildIndex);
-
         void Dispose(BufferPool pool);
     }
 
@@ -108,32 +105,26 @@ namespace BepuPhysics.Collidables
         void ComputeBounds(in Quaternion orientation, out Vector3 min, out Vector3 max);
 
         void RayTest<TRayHitHandler>(in RigidPose pose, in RayData ray, ref float maximumT, ref TRayHitHandler hitHandler) where TRayHitHandler : struct, IShapeRayHitHandler;
-
         void RayTest<TRayHitHandler>(in RigidPose pose, ref RaySource rays, ref TRayHitHandler hitHandler) where TRayHitHandler : struct, IShapeRayHitHandler;
 
         int ChildCount { get; }
-
         void GetLocalChild(int childIndex, out TChildShape childData);
-
         void GetPosedLocalChild(int childIndex, out TChildShape childData, out RigidPose childPose);
-
         void GetLocalChild(int childIndex, ref TChildShapeWide childData);
-
         void Dispose(BufferPool pool);
     }
 
     public interface IShapeWide<TShape> where TShape : IShape
     {
+
         /// <summary>
         /// Gets whether this type supports accessing its memory by lane offsets. If false, WriteSlot must be used instead of WriteFirst.
         /// </summary>
         bool AllowOffsetMemoryAccess { get; }
-
         /// <summary>
         /// Gets the number of bytes required for allocations within the wide shape.
         /// </summary>
         int InternalAllocationSize { get; }
-
         /// <summary>
         /// For types with a nonzero internal allocation size, provides memory to the shape for internal allocations.
         /// Memory should be assumed to be stack allocated.
@@ -148,23 +139,20 @@ namespace BepuPhysics.Collidables
         /// The base address is offset by the user of this function, so the implementation only ever considers the first slot.</remarks>
         /// <param name="source">AOS-formatted shape to gather from.</param>
         void WriteFirst(in TShape source);
-
         /// <summary>
         /// Places the specified AOS-formatted shape into the selected slot of the wide 'this' reference.
         /// </summary>
         /// <param name="index">Index of the slot to put the data into.</param>
         /// <param name="source">Source of the data to insert.</param>
         void WriteSlot(int index, in TShape source);
-
         void Broadcast(in TShape shape);
 
         void GetBounds(ref QuaternionWide orientations, int countInBundle, out Vector<float> maximumRadius, out Vector<float> maximumAngularExpansion, out Vector3Wide min, out Vector3Wide max);
-
         /// <summary>
         /// Gets the lower bound on the number of rays to execute in a wide fashion. Ray bundles with fewer rays will fall back to the single ray code path.
         /// </summary>
         int MinimumWideRayCount { get; }
-
         void RayTest(ref RigidPoseWide poses, ref RayWide rayWide, out Vector<int> intersected, out Vector<float> t, out Vector3Wide normal);
     }
+
 }

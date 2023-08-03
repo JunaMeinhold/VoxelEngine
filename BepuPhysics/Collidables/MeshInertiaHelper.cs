@@ -1,6 +1,9 @@
-﻿using System.Numerics;
+﻿using BepuUtilities;
+using System;
+using System.Collections.Generic;
+using System.Numerics;
 using System.Runtime.CompilerServices;
-using BepuUtilities;
+using System.Text;
 
 namespace BepuPhysics.Collidables
 {
@@ -27,7 +30,7 @@ namespace BepuPhysics.Collidables
         public static void ComputeTetrahedronContribution(in Vector3 a, in Vector3 b, in Vector3 c, float mass, out Symmetric3x3 inertiaTensor)
         {
             //Computing the inertia of a tetrahedron requires integrating across its volume.
-            //While it's possible to do so directly given arbitrary plane equations, it's more convenient to integrate over a normalized tetrahedron with coordinates
+            //While it's possible to do so directly given arbitrary plane equations, it's more convenient to integrate over a normalized tetrahedron with coordinates 
             //at (0,0,0), (1,0,0), (0,1,0), and (0,0,1). The integration location can be transformed back to the original frame of reference using the tetrahedral edges.
             //That is, (1,0,0) in normalized space transforms to B-A in world space.
             //To make that explicit, we have an equation:
@@ -45,7 +48,7 @@ namespace BepuPhysics.Collidables
 
             //One key difference is the inclusion of the transform's jacobian's determinant, which in this case is just the volume of the tetrahedron times six.
             //For a geometric intuition for why that exists, consider that the normalized integration covers a tetrahedron with a volume of 1/6. The world space tetrahedron
-            //has a volume of Abs[Det[Transform]]/6. So, the volume changes by a factor of exactly Abs[Det[Transform]].
+            //has a volume of Abs[Det[Transform]]/6. So, the volume changes by a factor of exactly Abs[Det[Transform]]. 
             //That term compensates for the difference in integration domain.
             //It's also constant over the integration, so you can just pull it out.
             //Similarly, if you had a non-unit uniform density, you would multiply the integration by it too.
@@ -94,6 +97,7 @@ namespace BepuPhysics.Collidables
             //TODO: Note that the above implementation isn't exactly optimal. Assuming for now that the performance isn't going to be relevant.
             //That could change given certain convex hull use cases, but in that situation you should probably just jump to vectorizing over multiple tetrahedra at a time.
             //(Plus some basic term caching.)
+
         }
 
         /// <summary>
@@ -352,5 +356,6 @@ namespace BepuPhysics.Collidables
             inertiaOffset.ZY = mass * (offset.Y * offset.Z);
             inertiaOffset.ZZ = mass * (squared.Z - diagonal);
         }
+
     }
 }

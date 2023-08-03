@@ -1,9 +1,9 @@
 ﻿using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
-using BepuPhysics.CollisionDetection;
-using BepuUtilities;
 using BepuUtilities.Memory;
+using BepuUtilities;
+using BepuPhysics.CollisionDetection;
 
 namespace BepuPhysics.Collidables
 {
@@ -16,12 +16,10 @@ namespace BepuPhysics.Collidables
         /// First vertex of the triangle in local space.
         /// </summary>
         public Vector3 A;
-
         /// <summary>
         /// Second vertex of the triangle in local space.
         /// </summary>
         public Vector3 B;
-
         /// <summary>
         /// Third vertex of the triangle in local space.
         /// </summary>
@@ -129,9 +127,9 @@ namespace BepuPhysics.Collidables
         /// Type id of triangle shapes.
         /// </summary>
         public const int Id = 3;
-
         public readonly int TypeId { [MethodImpl(MethodImplOptions.AggressiveInlining)] get { return Id; } }
     }
+
 
     public struct TriangleWide : IShapeWide<Triangle>
     {
@@ -157,9 +155,7 @@ namespace BepuPhysics.Collidables
 
         public bool AllowOffsetMemoryAccess => true;
         public int InternalAllocationSize => 0;
-
-        public void Initialize(in Buffer<byte> memory)
-        { }
+        public void Initialize(in Buffer<byte> memory) { }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void WriteSlot(int index, in Triangle source)
@@ -167,29 +163,26 @@ namespace BepuPhysics.Collidables
             GatherScatter.GetOffsetInstance(ref this, index).WriteFirst(source);
         }
 
+
         /// <summary>
         /// Minimum dot product between the detected local normal and the face normal of a triangle necessary to create contacts.
         /// </summary>
         public const float BackfaceNormalDotRejectionThreshold = -1e-2f;
-
         /// <summary>
-        /// Epsilon to apply to testing triangles for degeneracy (which will be scaled by a pair-determined epsilon scale). Degenerate triangles do not have well defined normals and should not contribute
+        /// Epsilon to apply to testing triangles for degeneracy (which will be scaled by a pair-determined epsilon scale). Degenerate triangles do not have well defined normals and should not contribute 
         /// </summary>
         public const float DegenerateTriangleEpsilon = 1e-6f;
-
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void ComputeTriangleEpsilonScale(in Vector<float> abLengthSquared, in Vector<float> caLengthSquared, out Vector<float> epsilonScale)
         {
             epsilonScale = Vector.SquareRoot(Vector.Max(abLengthSquared, caLengthSquared));
         }
-
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void ComputeDegenerateTriangleEpsilon(in Vector<float> abLengthSquared, in Vector<float> caLengthSquared, out Vector<float> epsilonScale, out Vector<float> epsilon)
         {
             ComputeTriangleEpsilonScale(abLengthSquared, caLengthSquared, out epsilonScale);
             epsilon = new Vector<float>(DegenerateTriangleEpsilon) * epsilonScale;
         }
-
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void ComputeNondegenerateTriangleMask(in Vector3Wide ab, in Vector3Wide ca, in Vector<float> triangleNormalLength, out Vector<float> epsilonScale, out Vector<int> nondegenerateMask)
         {
@@ -198,13 +191,13 @@ namespace BepuPhysics.Collidables
             ComputeDegenerateTriangleEpsilon(abLengthSquared, caLengthSquared, out epsilonScale, out var epsilon);
             nondegenerateMask = Vector.GreaterThan(triangleNormalLength, epsilon);
         }
-
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void ComputeNondegenerateTriangleMask(in Vector<float> abLengthSquared, in Vector<float> caLengthSquared, in Vector<float> triangleNormalLength, out Vector<float> epsilonScale, out Vector<int> nondegenerateMask)
         {
             ComputeDegenerateTriangleEpsilon(abLengthSquared, caLengthSquared, out epsilonScale, out var epsilon);
             nondegenerateMask = Vector.GreaterThan(triangleNormalLength, epsilon);
         }
+
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void GetBounds(ref QuaternionWide orientations, int countInBundle, out Vector<float> maximumRadius, out Vector<float> maximumAngularExpansion, out Vector3Wide min, out Vector3Wide max)
@@ -235,7 +228,6 @@ namespace BepuPhysics.Collidables
                 return 2;
             }
         }
-
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void RayTest(ref Vector3Wide a, ref Vector3Wide b, ref Vector3Wide c, ref Vector3Wide origin, ref Vector3Wide direction, out Vector<int> intersected, out Vector<float> t, out Vector3Wide normal)
         {
@@ -263,7 +255,6 @@ namespace BepuPhysics.Collidables
                         Vector.GreaterThanOrEqual(w, Vector<float>.Zero)),
                     Vector.LessThanOrEqual(v + w, dn)));
         }
-
         public void RayTest(ref RigidPoseWide pose, ref RayWide ray, out Vector<int> intersected, out Vector<float> t, out Vector3Wide normal)
         {
             Vector3Wide.Subtract(ray.Origin, pose.Position, out var offset);
@@ -296,7 +287,6 @@ namespace BepuPhysics.Collidables
             ComputeLocalSupport(shape, localDirection, terminatedLanes, out var localSupport);
             Matrix3x3Wide.TransformWithoutOverlap(localSupport, orientation, out support);
         }
-
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void ComputeLocalSupport(in TriangleWide shape, in Vector3Wide direction, in Vector<int> terminatedLanes, out Vector3Wide support)
         {

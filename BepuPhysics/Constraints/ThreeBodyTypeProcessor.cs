@@ -1,8 +1,10 @@
-﻿using System.Numerics;
-using System.Runtime.CompilerServices;
-using BepuUtilities;
+﻿using BepuUtilities;
 using BepuUtilities.Collections;
 using BepuUtilities.Memory;
+using System;
+using System.Diagnostics;
+using System.Numerics;
+using System.Runtime.CompilerServices;
 
 namespace BepuPhysics.Constraints
 {
@@ -96,7 +98,7 @@ namespace BepuPhysics.Constraints
         {
             VerifySortRegion<ThreeBodySortKeyGenerator>(ref typeBatch, bundleStartIndex, constraintCount, ref sortedKeys, ref sortedSourceIndices);
         }
-
+       
         public unsafe override void WarmStart<TIntegratorCallbacks, TBatchIntegrationMode, TAllowPoseIntegration>(
             ref TypeBatch typeBatch, ref Buffer<IndexSet> integrationFlags, Bodies bodies, ref TIntegratorCallbacks integratorCallbacks,
             float dt, float inverseDt, int startBundle, int exclusiveEndBundle, int workerIndex)

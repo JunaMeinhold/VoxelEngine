@@ -1,12 +1,13 @@
 ﻿using System;
 using System.Numerics;
 using System.Runtime.CompilerServices;
-using BepuPhysics.CollisionDetection;
-using BepuUtilities;
 using BepuUtilities.Memory;
+using BepuUtilities;
+using BepuPhysics.CollisionDetection;
 
 namespace BepuPhysics.Collidables
 {
+
     /// <summary>
     /// Collision shape representing a sphere-expanded line segment.
     /// </summary>
@@ -16,7 +17,6 @@ namespace BepuPhysics.Collidables
         /// Spherical expansion applied to the internal line segment.
         /// </summary>
         public float Radius;
-
         /// <summary>
         /// Half of the length of the internal line segment. Oriented along the local Y axis.
         /// </summary>
@@ -53,6 +53,7 @@ namespace BepuPhysics.Collidables
             max = Vector3.Abs(HalfLength * segmentOffset) + new Vector3(Radius);
             min = -max;
         }
+
 
         public readonly bool RayTest(in RigidPose pose, in Vector3 origin, in Vector3 direction, out float t, out Vector3 normal)
         {
@@ -150,6 +151,7 @@ namespace BepuPhysics.Collidables
             t = (t + tOffset) * inverseDLength;
             Matrix3x3.Transform(normal, orientation, out normal);
             return true;
+
         }
 
         public readonly BodyInertia ComputeInertia(float mass)
@@ -180,11 +182,12 @@ namespace BepuPhysics.Collidables
             return new ConvexShapeBatch<Capsule, CapsuleWide>(pool, initialCapacity);
         }
 
+
+
         /// <summary>
         /// Type id of capsule shapes.
         /// </summary>
         public const int Id = 1;
-
         public readonly int TypeId { [MethodImpl(MethodImplOptions.AggressiveInlining)] get { return Id; } }
     }
 
@@ -209,9 +212,7 @@ namespace BepuPhysics.Collidables
 
         public bool AllowOffsetMemoryAccess => true;
         public int InternalAllocationSize => 0;
-
-        public void Initialize(in Buffer<byte> memory)
-        { }
+        public void Initialize(in Buffer<byte> memory) { }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void WriteSlot(int index, in Capsule source)
@@ -321,13 +322,11 @@ namespace BepuPhysics.Collidables
             [MethodImpl(MethodImplOptions.AggressiveInlining)]
             get { return true; }
         }
-
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void GetMargin(in CapsuleWide shape, out Vector<float> margin)
         {
             margin = shape.Radius;
         }
-
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void ComputeSupport(in CapsuleWide shape, in Matrix3x3Wide orientation, in Vector3Wide direction, in Vector<int> terminatedLanes, out Vector3Wide support)
         {
@@ -337,7 +336,6 @@ namespace BepuPhysics.Collidables
             var shouldNegate = Vector.LessThan(dot, Vector<float>.Zero);
             Vector3Wide.ConditionalSelect(shouldNegate, negated, support, out support);
         }
-
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void ComputeLocalSupport(in CapsuleWide shape, in Vector3Wide direction, in Vector<int> terminatedLanes, out Vector3Wide support)
         {

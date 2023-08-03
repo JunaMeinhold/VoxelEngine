@@ -1,7 +1,7 @@
-﻿using System;
+﻿using BepuUtilities;
+using System;
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
-using BepuUtilities;
 
 namespace BepuPhysics.Trees
 {

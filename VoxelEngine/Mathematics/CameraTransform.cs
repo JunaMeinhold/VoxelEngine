@@ -1,13 +1,14 @@
 ﻿namespace VoxelEngine.Mathematics
 {
     using System.Numerics;
-    using Newtonsoft.Json;
-    using Vortice.Mathematics;
 
     public class CameraTransform : Transform
     {
         protected Matrix4x4 projection;
         protected Matrix4x4 projectionInv;
+        protected Matrix4x4 viewProjection;
+        protected Matrix4x4 viewProjectionInv;
+        protected Matrix4x4 prevViewProjection;
         protected ProjectionType projectionType;
         protected float width = 16;
         protected float height = 9;
@@ -15,18 +16,22 @@
         protected float fov = 90;
         protected float near = 0.01f;
         protected float far = 100f;
-        protected Frustum frustum;
+        protected BoundingFrustum frustum = new();
 
         public CameraTransform()
         {
             Recalculate();
         }
 
-        [JsonIgnore]
         public Matrix4x4 Projection => projection;
 
-        [JsonIgnore]
         public Matrix4x4 ProjectionInv => projectionInv;
+
+        public Matrix4x4 ViewProjection => viewProjection;
+
+        public Matrix4x4 ViewProjectionInv => viewProjectionInv;
+
+        public Matrix4x4 PrevViewProjection => prevViewProjection;
 
         public ProjectionType ProjectionType
         {
@@ -39,7 +44,7 @@
                 }
 
                 projectionType = value;
-                Recalculate();
+                dirty = true;
             }
         }
 
@@ -54,7 +59,7 @@
                 }
 
                 width = value;
-                Recalculate();
+                dirty = true;
             }
         }
 
@@ -69,11 +74,10 @@
                 }
 
                 height = value;
-                Recalculate();
+                dirty = true;
             }
         }
 
-        [JsonIgnore]
         public float AspectRatio => aspectRatio;
 
         public float Fov
@@ -92,7 +96,7 @@
                     return;
                 }
 
-                Recalculate();
+                dirty = true;
             }
         }
 
@@ -107,7 +111,7 @@
                 }
 
                 near = value;
-                Recalculate();
+                dirty = true;
             }
         }
 
@@ -122,14 +126,13 @@
                 }
 
                 far = value;
-                Recalculate();
+                dirty = true;
             }
         }
 
-        [JsonIgnore]
-        public Frustum Frustum => frustum;
+        public BoundingFrustum Frustum => frustum;
 
-        protected override void Recalculate()
+        public override bool Recalculate()
         {
             base.Recalculate();
             aspectRatio = width / height;
@@ -144,9 +147,40 @@
                     break;
             }
             Matrix4x4.Invert(projection, out projectionInv);
-            frustum = new(view * projection);
 
             OnUpdated();
+            dirty = true;
+            return true;
+        }
+
+        protected override void OnUpdated()
+        {
+            prevViewProjection = viewProjection;
+            viewProjection = view * projection;
+            frustum.Initialize(viewProjection);
+            Matrix4x4.Invert(viewProjection, out viewProjectionInv);
+            base.OnUpdated();
+        }
+
+        public override void CopyTo(Transform other)
+        {
+            base.CopyTo(other);
+            if (other is CameraTransform camera)
+            {
+                camera.width = width;
+                camera.height = height;
+                camera.prevViewProjection = prevViewProjection;
+                camera.viewProjection = viewProjection;
+                camera.viewProjectionInv = viewProjectionInv;
+                camera.frustum = frustum;
+                camera.projection = projection;
+                camera.projectionInv = projectionInv;
+                camera.projectionType = projectionType;
+                camera.aspectRatio = aspectRatio;
+                camera.near = near;
+                camera.far = far;
+                camera.fov = fov;
+            }
         }
     }
 }

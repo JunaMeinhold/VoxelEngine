@@ -3,13 +3,12 @@
     using System;
     using System.Runtime.CompilerServices;
     using System.Runtime.InteropServices;
-    using DirectXTexNet;
+    using HexaEngine.DirectXTex;
+    using SharpGen.Runtime;
+    using Silk.NET.Core.Native;
     using Vortice.Direct3D11;
     using Vortice.DXGI;
-    using Vortice.Textures;
-    using VoxelEngine.Core;
     using VoxelEngine.IO;
-    using static VoxelEngine.Mathematics.Noise.FastNoise;
     using Format = Vortice.DXGI.Format;
 
     public static class TextureHelper
@@ -17,7 +16,7 @@
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static int GetMipLevel(int width, int height)
         {
-            return (int)(1 + Math.Floor(Math.Log2(Math.Max(width, height))));
+            return (int)MathF.Log2(MathF.Max(width, height));
         }
 
         /// <summary>
@@ -52,7 +51,7 @@
         /// <param name="paths">The paths.</param>
         /// <returns></returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static ID3D11Texture2D LoadFromFiles(ID3D11Device device, string[] paths)
+        public static unsafe ID3D11Texture2D LoadFromFiles(ID3D11Device device, string[] paths)
         {
             ScratchImage[] textures = new ScratchImage[paths.Length];
             for (int i = 0; i < paths.Length; i++)
@@ -64,25 +63,25 @@
             TexMetadata meta = textures[0].GetMetadata();
             Texture2DDescription desc = new()
             {
-                Width = meta.Width,
-                Height = meta.Height,
+                Width = (int)meta.Width,
+                Height = (int)meta.Height,
                 ArraySize = paths.Length,
                 BindFlags = BindFlags.ShaderResource,
                 Usage = ResourceUsage.Immutable,
                 CPUAccessFlags = 0,
                 Format = (Format)meta.Format,
-                MipLevels = meta.MipLevels,
+                MipLevels = (int)meta.MipLevels,
                 MiscFlags = ResourceOptionFlags.None,
                 SampleDescription = new SampleDescription(1, 0),
             };
 
-            SubresourceData[] subresources = new SubresourceData[textures.Length * meta.MipLevels];
+            SubresourceData[] subresources = new SubresourceData[(textures.Length * (int)meta.MipLevels)];
             int a = 0;
             for (int i = 0; i < textures.Length; i++)
             {
-                for (int j = 0; j < meta.MipLevels; j++)
+                for (int j = 0; j < (int)meta.MipLevels; j++)
                 {
-                    Image img = textures[i].GetImage(j);
+                    Image img = textures[i].GetImage((nuint)j, 0, 0);
                     subresources[a++] = new(img.Pixels, (int)img.RowPitch, (int)img.SlicePitch);
                 }
             }
@@ -91,7 +90,7 @@
 
             for (int i = 0; i < textures.Length; i++)
             {
-                textures[i].Dispose();
+                textures[i].Release();
             }
 
             return texture;
@@ -109,38 +108,42 @@
             };
         }
 
-        public static ScratchImage LoadFromWICFile(string path)
+        public static unsafe ScratchImage LoadFromWICFile(string path)
         {
             VirtualStream fs = FileSystem.Open(path);
             IntPtr ptr = fs.GetIntPtr(out _);
-            ScratchImage image = TexHelper.Instance.LoadFromWICMemory(ptr, fs.Length, WIC_FLAGS.NONE);
+            ScratchImage image = DirectXTex.CreateScratchImage();
+            DirectXTex.LoadFromWICMemory((void*)ptr, (nuint)fs.Length, WICFlags.None, null, image, default);
             Marshal.FreeHGlobal(ptr);
             return image;
         }
 
-        public static ScratchImage LoadFromDDSFile(string path)
+        public static unsafe ScratchImage LoadFromDDSFile(string path)
         {
             VirtualStream fs = FileSystem.Open(path);
             IntPtr ptr = fs.GetIntPtr(out _);
-            ScratchImage image = TexHelper.Instance.LoadFromDDSMemory(ptr, fs.Length, DDS_FLAGS.NONE);
+            ScratchImage image = DirectXTex.CreateScratchImage();
+            DirectXTex.LoadFromDDSMemory((void*)ptr, (nuint)fs.Length, DDSFlags.None, null, image);
             Marshal.FreeHGlobal(ptr);
             return image;
         }
 
-        public static ScratchImage LoadFromTGAFile(string path)
+        public static unsafe ScratchImage LoadFromTGAFile(string path)
         {
             VirtualStream fs = FileSystem.Open(path);
             IntPtr ptr = fs.GetIntPtr(out _);
-            ScratchImage image = TexHelper.Instance.LoadFromTGAMemory(ptr, fs.Length);
+            ScratchImage image = DirectXTex.CreateScratchImage();
+            DirectXTex.LoadFromTGAMemory((void*)ptr, (nuint)fs.Length, TGAFlags.None, null, image);
             Marshal.FreeHGlobal(ptr);
             return image;
         }
 
-        public static ScratchImage LoadFromHDRFile(string path)
+        public static unsafe ScratchImage LoadFromHDRFile(string path)
         {
             VirtualStream fs = FileSystem.Open(path);
             IntPtr ptr = fs.GetIntPtr(out _);
-            ScratchImage image = TexHelper.Instance.LoadFromHDRMemory(ptr, fs.Length);
+            ScratchImage image = DirectXTex.CreateScratchImage();
+            DirectXTex.LoadFromHDRMemory((void*)ptr, (nuint)fs.Length, null, image);
             Marshal.FreeHGlobal(ptr);
             return image;
         }
@@ -151,37 +154,59 @@
         /// <param name="path">The path.</param>
         /// <returns></returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static ID3D11Texture2D LoadFromWICFile(ID3D11Device device, string path)
+        public static unsafe ID3D11Texture2D LoadFromWICFile(ID3D11Device device, string path)
         {
+            HResult result;
             VirtualStream fs = FileSystem.Open(path);
             IntPtr ptr = fs.GetIntPtr(out _);
 
-            ScratchImage image = TexHelper.Instance.LoadFromWICMemory(ptr, fs.Length, WIC_FLAGS.NONE);
+            ScratchImage image = DirectXTex.CreateScratchImage();
+            DirectXTex.LoadFromWICMemory((void*)ptr, (nuint)fs.Length, WICFlags.None, null, image, default);
             TexMetadata metadata = image.GetMetadata();
 
-            ScratchImage image1 = image.GenerateMipMaps(TEX_FILTER_FLAGS.DEFAULT, GetMipLevel(metadata.Width, metadata.Height));
-            image.Dispose();
-            if (metadata.Format != DXGI_FORMAT.R8G8B8A8_UNORM)
+            if (metadata.MipLevels == 1)
             {
-                image = image1.Convert(DXGI_FORMAT.R8G8B8A8_UNORM, TEX_FILTER_FLAGS.DEFAULT, 0);
-                image1.Dispose();
-            }
-            else
-            {
+                ScratchImage image1 = DirectXTex.CreateScratchImage();
+                result = DirectXTex.GenerateMipMaps2(image.GetImages(), image.GetImageCount(), image.GetMetadata(), TexFilterFlags.Default, (nuint)GetMipLevel((int)metadata.Width, (int)metadata.Height), image1);
+
+                if (!result.IsSuccess)
+                {
+                    result.Throw();
+                }
+
+                image.Release();
                 image = image1;
             }
 
-            ID3D11Texture2D texture = image.CreateTextureEx(
-                device,
-                ResourceUsage.Immutable,
-                BindFlags.ShaderResource,
-                CpuAccessFlags.None,
-                ResourceOptionFlags.None,
-                false);
-            image.Dispose();
+            if (metadata.Format != (int)Format.R8G8B8A8_UNorm)
+            {
+                var image1 = DirectXTex.CreateScratchImage();
+                result = DirectXTex.Convert2(image.GetImages(), image.GetImageCount(), image.GetMetadata(), (int)Format.R8G8B8A8_UNorm, TexFilterFlags.Default, 1, image1);
+
+                if (!result.IsSuccess)
+                {
+                    result.Throw();
+                }
+
+                image.Release();
+                image = image1;
+            }
+
+            Silk.NET.Direct3D11.ID3D11Resource* res;
+            DirectXTex.CreateTextureEx2(
+                (Silk.NET.Direct3D11.ID3D11Device*)device.NativePointer,
+                image,
+                (uint)ResourceUsage.Immutable,
+                (uint)BindFlags.ShaderResource,
+                (uint)CpuAccessFlags.None,
+                (uint)ResourceOptionFlags.None,
+                CreateTexFlags.Default,
+                &res);
+
+            image.Release();
             Marshal.FreeHGlobal(ptr);
             fs.Dispose();
-            return texture;
+            return new((nint)res);
         }
 
         /// <summary>
@@ -190,25 +215,74 @@
         /// <param name="path">The path.</param>
         /// <returns></returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static ID3D11Texture2D LoadFromDDSFile(ID3D11Device device, string path)
+        public static unsafe ID3D11Texture2D LoadFromDDSFile(ID3D11Device device, string path)
         {
+            HResult result;
             VirtualStream fs = FileSystem.Open(path);
             IntPtr ptr = fs.GetIntPtr(out _);
 
-            ScratchImage image = TexHelper.Instance.LoadFromDDSMemory(ptr, fs.Length, DDS_FLAGS.NONE);
+            ScratchImage image = DirectXTex.CreateScratchImage();
+            result = DirectXTex.LoadFromDDSMemory((void*)ptr, (nuint)fs.Length, DDSFlags.None, null, image);
+
+            if (!result.IsSuccess)
+            {
+                result.Throw();
+            }
+
             TexMetadata metadata = image.GetMetadata();
 
-            ID3D11Texture2D texture = image.CreateTextureEx(
-                device,
-                ResourceUsage.Immutable,
-                BindFlags.ShaderResource,
-                CpuAccessFlags.None,
-                metadata.IsCubemap() ? ResourceOptionFlags.TextureCube : ResourceOptionFlags.None,
-                false);
-            image.Dispose();
+            if (metadata.MipLevels == 1)
+            {
+                ScratchImage image1 = DirectXTex.CreateScratchImage();
+                result = DirectXTex.GenerateMipMaps2(image.GetImages(), image.GetImageCount(), metadata, TexFilterFlags.Default, (nuint)GetMipLevel((int)metadata.Width, (int)metadata.Height), image1);
+
+                if (!result.IsSuccess)
+                {
+                    result.Throw();
+                }
+
+                image.Release();
+                image = image1;
+                metadata = image.GetMetadata();
+            }
+
+            /*
+            if (metadata.Format != (int)Format.R8G8B8A8_UNorm)
+            {
+                var image1 = DirectXTex.CreateScratchImage();
+                result = DirectXTex.Convert2(image.GetImages(), image.GetImageCount(), metadata, (int)Format.R8G8B8A8_UNorm, TexFilterFlags.Default, 1, image1);
+
+                if (!result.IsSuccess)
+                {
+                    result.Throw();
+                }
+
+                image.Release();
+                image = image1;
+                metadata = image.GetMetadata();
+            }*/
+
+            var pt = (void*)device.NativePointer;
+            Silk.NET.Direct3D11.ID3D11Resource* res;
+            result = DirectXTex.CreateTextureEx2(
+                (Silk.NET.Direct3D11.ID3D11Device*)pt,
+                image,
+                (uint)ResourceUsage.Immutable,
+                (uint)BindFlags.ShaderResource,
+                (uint)CpuAccessFlags.None,
+                (uint)ResourceOptionFlags.None,
+                CreateTexFlags.Default,
+                &res);
+
+            if (!result.IsSuccess)
+            {
+                result.Throw();
+            }
+
+            image.Release();
             Marshal.FreeHGlobal(ptr);
             fs.Dispose();
-            return texture;
+            return new((nint)res);
         }
 
         /// <summary>
@@ -217,26 +291,59 @@
         /// <param name="path">The path.</param>
         /// <returns></returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static ID3D11Texture2D LoadFromTGAFile(ID3D11Device device, string path)
+        public static unsafe ID3D11Texture2D LoadFromTGAFile(ID3D11Device device, string path)
         {
+            HResult result;
             VirtualStream fs = FileSystem.Open(path);
             IntPtr ptr = fs.GetIntPtr(out _);
 
-            ScratchImage image = TexHelper.Instance.LoadFromTGAMemory(ptr, fs.Length);
+            ScratchImage image = DirectXTex.CreateScratchImage();
+            DirectXTex.LoadFromTGAMemory((void*)ptr, (nuint)fs.Length, TGAFlags.None, null, image);
             TexMetadata metadata = image.GetMetadata();
 
-            image.GenerateMipMaps(TEX_FILTER_FLAGS.DEFAULT, GetMipLevel(metadata.Width, metadata.Height));
-            ID3D11Texture2D texture = image.CreateTextureEx(
-                device,
-                ResourceUsage.Immutable,
-                BindFlags.ShaderResource,
-                CpuAccessFlags.None,
-                ResourceOptionFlags.None,
-                false);
-            image.Dispose();
+            if (metadata.MipLevels == 1)
+            {
+                ScratchImage image1 = DirectXTex.CreateScratchImage();
+                result = DirectXTex.GenerateMipMaps2(image.GetImages(), image.GetImageCount(), image.GetMetadata(), TexFilterFlags.Default, (nuint)GetMipLevel((int)metadata.Width, (int)metadata.Height), image1);
+
+                if (!result.IsSuccess)
+                {
+                    result.Throw();
+                }
+
+                image.Release();
+                image = image1;
+            }
+
+            if (metadata.Format != (int)Format.R8G8B8A8_UNorm)
+            {
+                var image1 = DirectXTex.CreateScratchImage();
+                result = DirectXTex.Convert2(image.GetImages(), image.GetImageCount(), image.GetMetadata(), (int)Format.R8G8B8A8_UNorm, TexFilterFlags.Default, 1, image1);
+
+                if (!result.IsSuccess)
+                {
+                    result.Throw();
+                }
+
+                image.Release();
+                image = image1;
+            }
+
+            Silk.NET.Direct3D11.ID3D11Resource* res;
+            DirectXTex.CreateTextureEx2(
+                (Silk.NET.Direct3D11.ID3D11Device*)device.NativePointer,
+                image,
+                (uint)ResourceUsage.Immutable,
+                (uint)BindFlags.ShaderResource,
+                (uint)CpuAccessFlags.None,
+                (uint)ResourceOptionFlags.None,
+                CreateTexFlags.Default,
+                &res);
+
+            image.Release();
             Marshal.FreeHGlobal(ptr);
             fs.Dispose();
-            return texture;
+            return new((nint)res);
         }
 
         /// <summary>
@@ -245,26 +352,59 @@
         /// <param name="path">The path.</param>
         /// <returns></returns>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static ID3D11Texture2D LoadFromHDRFile(ID3D11Device device, string path)
+        public static unsafe ID3D11Texture2D LoadFromHDRFile(ID3D11Device device, string path)
         {
+            HResult result;
             VirtualStream fs = FileSystem.Open(path);
             IntPtr ptr = fs.GetIntPtr(out _);
 
-            ScratchImage image = TexHelper.Instance.LoadFromHDRMemory(ptr, fs.Length);
+            ScratchImage image = DirectXTex.CreateScratchImage();
+            DirectXTex.LoadFromHDRMemory((void*)ptr, (nuint)fs.Length, null, image);
             TexMetadata metadata = image.GetMetadata();
 
-            image.GenerateMipMaps(TEX_FILTER_FLAGS.DEFAULT, GetMipLevel(metadata.Width, metadata.Height));
-            ID3D11Texture2D texture = image.CreateTextureEx(
-                device,
-                ResourceUsage.Immutable,
-                BindFlags.ShaderResource,
-                CpuAccessFlags.None,
-                ResourceOptionFlags.None,
-                false);
-            image.Dispose();
+            if (metadata.MipLevels == 1)
+            {
+                ScratchImage image1 = DirectXTex.CreateScratchImage();
+                result = DirectXTex.GenerateMipMaps2(image.GetImages(), image.GetImageCount(), image.GetMetadata(), TexFilterFlags.Default, (nuint)GetMipLevel((int)metadata.Width, (int)metadata.Height), image1);
+
+                if (!result.IsSuccess)
+                {
+                    result.Throw();
+                }
+
+                image.Release();
+                image = image1;
+            }
+
+            if (metadata.Format != (int)Format.R8G8B8A8_UNorm)
+            {
+                var image1 = DirectXTex.CreateScratchImage();
+                result = DirectXTex.Convert2(image.GetImages(), image.GetImageCount(), image.GetMetadata(), (int)Format.R8G8B8A8_UNorm, TexFilterFlags.Default, 1, image1);
+
+                if (!result.IsSuccess)
+                {
+                    result.Throw();
+                }
+
+                image.Release();
+                image = image1;
+            }
+
+            Silk.NET.Direct3D11.ID3D11Resource* res;
+            DirectXTex.CreateTextureEx2(
+                (Silk.NET.Direct3D11.ID3D11Device*)device.NativePointer,
+                image,
+                (uint)ResourceUsage.Immutable,
+                (uint)BindFlags.ShaderResource,
+                (uint)CpuAccessFlags.None,
+                (uint)ResourceOptionFlags.None,
+                CreateTexFlags.Default,
+                &res);
+
+            image.Release();
             Marshal.FreeHGlobal(ptr);
             fs.Dispose();
-            return texture;
+            return new((nint)res);
         }
     }
 }

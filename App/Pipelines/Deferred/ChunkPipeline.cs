@@ -39,19 +39,7 @@
         })
         {
             textures = new();
-            textures.Sampler = device.CreateSamplerState(new()
-            {
-                Filter = Filter.Anisotropic,
-                AddressU = TextureAddressMode.Wrap,
-                AddressV = TextureAddressMode.Wrap,
-                AddressW = TextureAddressMode.Clamp,
-                MipLODBias = 0,
-                MaxAnisotropy = 16,
-                ComparisonFunction = ComparisonFunction.Always,
-                BorderColor = new(0, 0, 0, 0),
-                MinLOD = 0,
-                MaxLOD = float.MaxValue
-            });
+            textures.Sampler = device.CreateSamplerState(SamplerDescription.PointWrap);
             textures.Load(device, BlockRegistry.Textures.ToArray());
 
             mvpBuffer = new(device);
@@ -68,6 +56,14 @@
         {
             mvpBuffer.Write(context, new ModelViewProjBuffer(view, Matrix4x4.CreateTranslation(chunk.Position * Chunk.CHUNK_SIZE)));
             worldDataBuffer.Write(context, new WorldData() { chunkOffset = chunk.Position });
+            blockBuffer.Write(context, BlockRegistry.GetDescriptionPackeds().ToArray());
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Update(ID3D11DeviceContext context, IView view, RenderRegion region)
+        {
+            mvpBuffer.Write(context, new ModelViewProjBuffer(view, Matrix4x4.Identity));
+            worldDataBuffer.Write(context, new WorldData() { chunkOffset = Vector3.Zero });
             blockBuffer.Write(context, BlockRegistry.GetDescriptionPackeds().ToArray());
         }
 

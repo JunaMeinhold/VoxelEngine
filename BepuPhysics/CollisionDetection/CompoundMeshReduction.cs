@@ -1,9 +1,13 @@
-﻿using System.Diagnostics;
+﻿using BepuPhysics.Collidables;
+using BepuUtilities;
+using BepuUtilities.Collections;
+using BepuUtilities.Memory;
+using System;
+using System.Collections.Generic;
+using System.Diagnostics;
 using System.Numerics;
 using System.Runtime.CompilerServices;
-using BepuPhysics.Collidables;
-using BepuUtilities;
-using BepuUtilities.Memory;
+using System.Text;
 
 namespace BepuPhysics.CollisionDetection
 {
@@ -40,7 +44,7 @@ namespace BepuPhysics.CollisionDetection
         {
             Inner.OnChildCompletedEmpty(ref report, ref batcher);
         }
-
+        
         public unsafe bool TryFlush<TCallbacks>(int pairId, ref CollisionBatcher<TCallbacks> batcher) where TCallbacks : struct, ICollisionCallbacks
         {
             Debug.Assert(Inner.ChildCount > 0);

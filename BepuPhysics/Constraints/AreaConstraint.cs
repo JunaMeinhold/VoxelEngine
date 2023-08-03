@@ -1,9 +1,10 @@
-﻿using System;
+﻿using BepuPhysics.CollisionDetection;
+using BepuUtilities;
+using BepuUtilities.Memory;
+using System;
 using System.Diagnostics;
 using System.Numerics;
 using System.Runtime.CompilerServices;
-using BepuUtilities;
-using BepuUtilities.Memory;
 using static BepuUtilities.GatherScatter;
 namespace BepuPhysics.Constraints
 {
@@ -121,8 +122,8 @@ namespace BepuPhysics.Constraints
 
         public void WarmStart(
             in Vector3Wide positionA, in QuaternionWide orientationA, in BodyInertiaWide inertiaA,
-            in Vector3Wide positionB, in QuaternionWide orientationB, in BodyInertiaWide inertiaB,
-            in Vector3Wide positionC, in QuaternionWide orientationC, in BodyInertiaWide inertiaC,
+            in Vector3Wide positionB, in QuaternionWide orientationB, in BodyInertiaWide inertiaB, 
+            in Vector3Wide positionC, in QuaternionWide orientationC, in BodyInertiaWide inertiaC, 
             ref AreaConstraintPrestepData prestep, ref Vector<float> accumulatedImpulses, ref BodyVelocityWide wsvA, ref BodyVelocityWide wsvB, ref BodyVelocityWide wsvC)
         {
             ComputeJacobian(positionA, positionB, positionC, out _, out var negatedJacobianA, out var jacobianB, out var jacobianC);

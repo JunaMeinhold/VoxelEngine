@@ -1,6 +1,6 @@
-﻿using System.Runtime.CompilerServices;
-using BepuUtilities;
+﻿using BepuUtilities;
 using BepuUtilities.Memory;
+using System.Runtime.CompilerServices;
 
 namespace BepuPhysics.CollisionDetection.CollisionTasks
 {
@@ -8,7 +8,7 @@ namespace BepuPhysics.CollisionDetection.CollisionTasks
     {
         public Buffer<int> Overlaps;
         public int Count;
-
+        
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe ref int Allocate(BufferPool pool)
         {

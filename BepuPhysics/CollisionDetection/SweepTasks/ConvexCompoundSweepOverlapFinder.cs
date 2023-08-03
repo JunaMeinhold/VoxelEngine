@@ -1,8 +1,11 @@
-﻿using System.Numerics;
-using System.Runtime.CompilerServices;
-using BepuPhysics.Collidables;
+﻿using BepuPhysics.Collidables;
 using BepuPhysics.CollisionDetection.CollisionTasks;
+using BepuUtilities;
+using BepuUtilities.Collections;
 using BepuUtilities.Memory;
+using System.Diagnostics;
+using System.Numerics;
+using System.Runtime.CompilerServices;
 
 namespace BepuPhysics.CollisionDetection.SweepTasks
 {
@@ -22,7 +25,7 @@ namespace BepuPhysics.CollisionDetection.SweepTasks
             Shapes shapes, BufferPool pool, out ChildOverlapsCollection overlaps)
         {
             BoundingBoxHelpers.GetLocalBoundingBoxForSweep(ref shapeA, orientationA, velocityA, offsetB, orientationB, velocityB, maximumT, out var sweep, out var min, out var max);
-
+            
             overlaps = default;
             compoundB.FindLocalOverlaps<ChildOverlapsCollection>(min, max, sweep, maximumT, pool, shapes, Unsafe.AsPointer(ref overlaps));
         }

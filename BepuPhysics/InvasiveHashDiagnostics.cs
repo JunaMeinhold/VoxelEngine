@@ -1,6 +1,10 @@
-﻿using System;
+﻿using BepuUtilities.Collections;
+using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Runtime.CompilerServices;
-using BepuUtilities.Collections;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace BepuPhysics
 {
@@ -112,7 +116,7 @@ namespace BepuPhysics
                 {
                     if (Hashes[CurrentRunIndex][hashTypeIndex][CurrentHashIndex] != Hashes[previousRunIndex][hashTypeIndex][CurrentHashIndex])
                     {
-                        Console.WriteLine($"Hash failure on {(HashDiagnosticType)hashTypeIndex} frame {CurrentHashIndex}, current run {CurrentRunIndex} vs previous {previousRunIndex}: {Hashes[CurrentRunIndex][hashTypeIndex][CurrentHashIndex]} vs {Hashes[previousRunIndex][hashTypeIndex][CurrentHashIndex]}.");
+                        Console.WriteLine($"Hash failure on {(HashDiagnosticType)hashTypeIndex} frame {CurrentHashIndex}, current run {CurrentRunIndex} vs previous {previousRunIndex}: {Hashes[CurrentRunIndex][hashTypeIndex][CurrentHashIndex] } vs {Hashes[previousRunIndex][hashTypeIndex][CurrentHashIndex]}.");
                         anyFailed = true;
                     }
                 }

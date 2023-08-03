@@ -1,7 +1,7 @@
-﻿using System.Numerics;
-using System.Runtime.CompilerServices;
-using BepuPhysics.Collidables;
+﻿using BepuPhysics.Collidables;
 using BepuUtilities;
+using System.Numerics;
+using System.Runtime.CompilerServices;
 
 namespace BepuPhysics.CollisionDetection.SweepTasks
 {
@@ -16,7 +16,7 @@ namespace BepuPhysics.CollisionDetection.SweepTasks
             //Work in the local space of the triangle, since it's quicker to transform the sphere position than the vertices of the triangle.
             Matrix3x3Wide.CreateFromQuaternion(orientationB, out var rB);
             Matrix3x3Wide.TransformByTransposedWithoutOverlap(offsetB, rB, out var localOffsetB);
-
+            
             Vector3Wide.Subtract(b.B, b.A, out var ab);
             Vector3Wide.Subtract(b.C, b.A, out var ac);
             //localOffsetA = -localOffsetB, so pa = triangle.A + localOffsetB.
@@ -86,7 +86,7 @@ namespace BepuPhysics.CollisionDetection.SweepTasks
             distance = localNormalLength - a.Radius;
             intersected = Vector.LessThanOrEqual(distance, Vector<float>.Zero);
 
-
+            
         }
     }
 

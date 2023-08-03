@@ -1,6 +1,11 @@
-﻿using System.Runtime.CompilerServices;
-using BepuPhysics.Collidables;
+﻿using BepuPhysics.Collidables;
+using BepuUtilities;
+using BepuUtilities.Collections;
 using BepuUtilities.Memory;
+using System;
+using System.Diagnostics;
+using System.Numerics;
+using System.Runtime.CompilerServices;
 
 namespace BepuPhysics.CollisionDetection.CollisionTasks
 {
@@ -41,7 +46,7 @@ namespace BepuPhysics.CollisionDetection.CollisionTasks
             PairType = CollisionTaskPairType.BoundsTestedPair;
         }
 
-        public override unsafe void ExecuteBatch<TCallbacks>(ref UntypedList batch, ref CollisionBatcher<TCallbacks> batcher)
+        public unsafe override void ExecuteBatch<TCallbacks>(ref UntypedList batch, ref CollisionBatcher<TCallbacks> batcher)
         {
             var pairs = batch.Buffer.As<BoundsTestedPair>();
             Unsafe.SkipInit(out TOverlapFinder overlapFinder);
@@ -99,7 +104,7 @@ namespace BepuPhysics.CollisionDetection.CollisionTasks
                                 var childAToChildB = pair.OffsetB + childPoseB.Position - childPoseA.Position;
                                 if (pair.FlipMask < 0)
                                 {
-                                    //By reversing the order of the parameters, the manifold orientation is flipped. This compensates for the flip induced by order requirements on this task.
+                                    //By reversing the order of the parameters, the manifold orientation is flipped. This compensates for the flip induced by order requirements on this task.                          
                                     batcher.AddDirectly(childTypeB, childTypeA, childShapeDataB, childShapeDataA,
                                         -childAToChildB, childPoseB.Orientation, childPoseA.Orientation, pair.SpeculativeMargin, subpairContinuation);
                                 }
@@ -116,6 +121,8 @@ namespace BepuPhysics.CollisionDetection.CollisionTasks
                         }
                     }
                 }
+
+
             }
             overlaps.Dispose(batcher.Pool);
             //Note that the triangle lists are not disposed here. Those are handed off to the continuations for further analysis.

@@ -1,7 +1,7 @@
 ﻿namespace VoxelEngine.Scenes
 {
-    using BepuUtilities;
     using Vortice.Direct3D11;
+    using VoxelEngine.Mathematics;
     using VoxelEngine.Rendering.D3D.Interfaces;
     using VoxelEngine.Windows;
 
