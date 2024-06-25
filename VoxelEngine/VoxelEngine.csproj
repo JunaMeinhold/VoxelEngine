@@ -1,0 +1,55 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+	<PropertyGroup>
+		<TargetFramework>net7.0-windows</TargetFramework>
+		<ImplicitUsings>enable</ImplicitUsings>
+		<AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+		<Platforms>x64</Platforms>
+	</PropertyGroup>
+
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
+		<DefineConstants>$(DefineConstants);WINDOWS;D3D11;D3D_DEBUG;;SHADER_FORCE_OPTIMIZE</DefineConstants>
+	</PropertyGroup>
+
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+		<DefineConstants>$(DefineConstants);WINDOWS;D3D11;D3D_DEBUG;;SHADER_FORCE_OPTIMIZE</DefineConstants>
+	</PropertyGroup>
+
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|AnyCPU'">
+		<DefineConstants>$(DefineConstants);WINDOWS;D3D11;D3D_DEBUG;;SHADER_FORCE_OPTIMIZE</DefineConstants>
+	</PropertyGroup>
+
+	<PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+		<DefineConstants>$(DefineConstants);WINDOWS;D3D11;D3D_DEBUG;;SHADER_FORCE_OPTIMIZE</DefineConstants>
+	</PropertyGroup>
+
+	<ItemGroup>
+		<PackageReference Include="HexaEngine.DirectXTex" Version="2.0.0" />
+		<PackageReference Include="Vortice.D3DCompiler" Version="2.1.32" />
+		<PackageReference Include="Vortice.Direct3D11" Version="2.1.32" />
+		<PackageReference Include="Vortice.Direct3D12" Version="2.1.32" />
+		<PackageReference Include="Vortice.DirectX" Version="2.1.32" />
+		<PackageReference Include="Vortice.DXGI" Version="2.1.32" />
+		<PackageReference Include="Vortice.Textures" Version="1.0.2" />
+		<PackageReference Include="Vortice.XAudio2" Version="2.1.32" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<ProjectReference Include="..\BepuPhysics\BepuPhysics.csproj" />
+		<ProjectReference Include="..\BepuUtilities\BepuUtilities.csproj" />
+		<ProjectReference Include="..\VoxelEngine.Core\VoxelEngine.Core.csproj" />
+	</ItemGroup>
+
+	<ItemGroup>
+		<None Update="FastNoise.dll">
+			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</None>
+	</ItemGroup>
+
+	<ItemGroup>
+		<Folder Include="Network\" />
+		<Folder Include="Physics\Collidables\" />
+		<Folder Include="Unsafes\" />
+	</ItemGroup>
+
+</Project>
