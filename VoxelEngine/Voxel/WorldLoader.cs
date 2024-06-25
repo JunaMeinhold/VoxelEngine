@@ -2,11 +2,13 @@
 {
     using System.Collections.Concurrent;
     using System.Collections.Generic;
+    using System.Diagnostics;
     using System.Linq;
     using System.Numerics;
     using System.Runtime.CompilerServices;
     using System.Threading;
     using BepuUtilities.Memory;
+    using HexaEngine.Core.Debugging;
     using Vortice.Direct3D11;
     using VoxelEngine.Core;
     using VoxelEngine.Threading;
@@ -57,7 +59,7 @@
 
         private readonly SemaphoreSlim semaphore = new(1);
 
-        public struct Worker
+        public class Worker
         {
             public int Id;
             public Thread Thread;
@@ -73,6 +75,7 @@
             ioIdle = ioThreads;
             for (int i = 0; i < threads; i++)
             {
+                workers[i] = new Worker();
                 workers[i].Id = i;
                 workers[i].Handle = new AutoResetEvent(false);
                 workers[i].Thread = new Thread(LoadVoid);
@@ -85,6 +88,7 @@
 
             for (int i = 0; i < ioThreads; i++)
             {
+                ioWorkers[i] = new Worker();
                 ioWorkers[i].Id = i;
                 ioWorkers[i].Handle = new AutoResetEvent(false);
                 ioWorkers[i].Thread = new Thread(IOVoid);
