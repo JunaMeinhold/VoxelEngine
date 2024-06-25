@@ -1,12 +1,10 @@
 ﻿namespace VoxelEngine.Voxel
 {
     using System.Numerics;
-    using System.Runtime.InteropServices;
-    using VoxelEngine.IO;
 
     public static class ChunkSerializer
     {
-        public static unsafe int Serialize(Stream stream, Chunk chunk)
+        public static unsafe void Serialize(Stream stream, Chunk chunk)
         {
             long begin = stream.Position;
 
@@ -48,34 +46,26 @@
                         for (; j < topJ; j++, access++)
                         {
                             ref Block b = ref chunk.Data[access];
-
-                            if (newRun && b.Type != Chunk.EMPTY)
+                            if (newRun || run.Type != b.Type)
                             {
-                                run.Type = b.Type;
-                                run.Position = new(i, j, k);
-                                run.Count = 1;
-                                newRun = false;
-                            }
-                            else if (run.Type == b.Type && b.Type != Chunk.EMPTY)
-                            {
-                                run.Count++;
-                            }
-                            else
-                            {
-                                blocksWritten++;
-
+                                if (!newRun)
+                                {
+                                    blocksWritten++;
+                                    run.Write(stream);
+                                }
                                 if (b.Type != Chunk.EMPTY)
                                 {
                                     run.Type = b.Type;
-                                    run.Position = new(i, j, k);
+                                    run.X = (byte)i;
+                                    run.Y = (byte)j;
+                                    run.Z = (byte)k;
                                     run.Count = 1;
+                                    newRun = false;
                                 }
-                                else
-                                {
-                                    newRun = true;
-                                }
-
-                                run.Write(stream);
+                            }
+                            else if (b.Type != Chunk.EMPTY)
+                            {
+                                run.Count++;
                             }
                         }
 
@@ -92,45 +82,6 @@
             stream.Position = begin;
             ChunkHeader.Write(stream, blocksWritten);
             stream.Position = end;
-
-            return (int)(end - begin);
-        }
-
-        public static unsafe int Deserialize(Chunk chunk, byte* data, int length)
-        {
-            Span<byte> span = new(data, length);
-
-            if (chunk.Data is null)
-            {
-                chunk.Data = AllocTAndZero<Block>(Chunk.CHUNK_SIZE_CUBED);
-                chunk.MinY = AllocTAndZero<byte>(Chunk.CHUNK_SIZE_SQUARED);
-                chunk.MaxY = AllocTAndZero<byte>(Chunk.CHUNK_SIZE_SQUARED);
-                Memset(chunk.MinY, Chunk.CHUNK_SIZE, Chunk.CHUNK_SIZE_SQUARED);
-            }
-
-            int index = ChunkHeader.Read(span, out int recordCount);
-
-            Memcpy(data + index, chunk.MinY, Chunk.CHUNK_SIZE_SQUARED);
-            index += Chunk.CHUNK_SIZE_SQUARED;
-            Memcpy(data + index, chunk.MaxY, Chunk.CHUNK_SIZE_SQUARED);
-            index += Chunk.CHUNK_SIZE_SQUARED;
-
-            index += chunk.BlockMetadata.Deserialize(span[index..]);
-            index += chunk.BiomeMetadata.Deserialize(span[index..]);
-
-            ChunkRecord* records = (ChunkRecord*)(data + index);
-            for (int i = 0; i < recordCount; i++, records++)
-            {
-                ChunkRecord record = *records;
-                for (int y = 0; y < record.Count; y++)
-                {
-                    Vector3 pos = record.Position;
-                    pos.Y += y;
-                    chunk.Data[pos.MapToIndex(Chunk.CHUNK_SIZE, Chunk.CHUNK_SIZE)] = new Block(record.Type);
-                }
-            }
-
-            return index + recordCount * sizeof(ChunkRecord);
         }
 
         public static unsafe void Deserialize(Chunk chunk, Stream stream)
@@ -160,8 +111,8 @@
 
                 for (int y = 0; y < record.Count; y++)
                 {
-                    Vector3 pos = record.Position;
-                    pos.Y += y;
+                    Vector3 pos = new(record.X, record.Y + y, record.Z);
+
                     chunk.Data[pos.MapToIndex(Chunk.CHUNK_SIZE, Chunk.CHUNK_SIZE)] = new Block(record.Type);
                 }
             }

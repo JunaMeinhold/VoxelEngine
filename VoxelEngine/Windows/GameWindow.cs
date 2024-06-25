@@ -25,7 +25,7 @@
         private DebugDrawD3D11Renderer debugDraw;
         private bool resize;
 
-        public GameWindow(Scene scene) : base(1280, 720)
+        public GameWindow(Scene scene) : base(1920, 1080)
         {
             this.scene = scene;
         }

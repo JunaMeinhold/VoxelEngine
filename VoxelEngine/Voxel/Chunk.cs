@@ -237,20 +237,12 @@ namespace VoxelEngine.Voxel
             VoxelMeshFactory.GenerateMesh(VertexBuffer, this);
         }
 
-        public unsafe int Serialize(Stream stream)
+        public unsafe void Serialize(Stream stream)
         {
             lock (_lock)
             {
                 DirtyDisk = false;
-                return ChunkSerializer.Serialize(stream, this);
-            }
-        }
-
-        public unsafe int Deserialize(byte* data, int length)
-        {
-            lock (_lock)
-            {
-                return ChunkSerializer.Deserialize(this, data, length);
+                ChunkSerializer.Serialize(stream, this);
             }
         }
 

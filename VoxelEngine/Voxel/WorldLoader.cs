@@ -141,7 +141,7 @@
 
         public int ChunkCount => loadedChunks.Count;
 
-        public bool DoNotSave { get; set; } = false;
+        public bool DoNotSave { get; set; }
 
         private static IEnumerable<Vector2> GetIndices(Vector3 center, int radius)
         {

@@ -1,40 +1,44 @@
 ﻿namespace VoxelEngine.Voxel
 {
     using System.Buffers.Binary;
-    using System.Numerics;
 
     public struct ChunkRecord
     {
         public ushort Type;
-        public Vector3 Position;
+        public byte X;
+        public byte Y;
+        public byte Z;
         public byte Count;
 
-        public ChunkRecord(ushort type, Vector3 position)
+        public ChunkRecord(ushort type, byte x, byte y, byte z, byte count)
         {
             Type = type;
-            Position = position;
+            X = x;
+            Y = y;
+            Z = z;
+            Count = count;
         }
 
         public readonly void Write(Stream stream)
         {
-            Span<byte> buffer = stackalloc byte[15];
+            Span<byte> buffer = stackalloc byte[7]; // Smaller buffer size
             BinaryPrimitives.WriteUInt16LittleEndian(buffer, Type);
-            BinaryPrimitives.WriteSingleLittleEndian(buffer[2..], Position.X);
-            BinaryPrimitives.WriteSingleLittleEndian(buffer[6..], Position.Y);
-            BinaryPrimitives.WriteSingleLittleEndian(buffer[10..], Position.Z);
-            buffer[14] = Count;
+            buffer[2] = X;
+            buffer[3] = Y;
+            buffer[4] = Z;
+            buffer[5] = Count;
             stream.Write(buffer);
         }
 
         public void Read(Stream stream)
         {
-            Span<byte> buffer = stackalloc byte[15];
+            Span<byte> buffer = stackalloc byte[7]; // Match the new struct size
             stream.Read(buffer);
             Type = BinaryPrimitives.ReadUInt16LittleEndian(buffer);
-            Position.X = BinaryPrimitives.ReadSingleLittleEndian(buffer[2..]);
-            Position.Y = BinaryPrimitives.ReadSingleLittleEndian(buffer[6..]);
-            Position.Z = BinaryPrimitives.ReadSingleLittleEndian(buffer[10..]);
-            Count = buffer[14];
+            X = buffer[2];
+            Y = buffer[3];
+            Z = buffer[4];
+            Count = buffer[5];
         }
     }
 }
