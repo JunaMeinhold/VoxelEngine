@@ -6,6 +6,7 @@
     using System.Numerics;
     using System.Runtime.InteropServices;
     using BepuUtilities.Memory;
+    using VoxelEngine.IO;
 
     public struct ChunkSegment
     {
@@ -118,24 +119,22 @@
         {
             string filename = Path.Combine(world.Path, $"r.{Position.X}.{Position.Y}.vxr");
             FileStream fs = File.OpenRead(filename);
-            byte* data = (byte*)Marshal.AllocHGlobal((nint)fs.Length);
-            Span<byte> span = new(data, (int)fs.Length);
-            _ = fs.Read(span);
-            int index = 0;
-            int count = BinaryPrimitives.ReadInt32LittleEndian(span[index..]);
-            index += 4;
+
+            int count = fs.ReadInt32();
+
             Chunks = new Chunk[count];
 
             for (int i = 0; i < count; i++)
             {
-                Chunks[i] = new(world, (int)Position.X, i, (int)Position.Y);
-                index += Chunks[i].Deserialize(data + index, (int)(fs.Length - index));
-                world.Chunks[Chunks[i].Position] = Chunks[i];
+                Chunk chunk = new(world, (int)Position.X, i, (int)Position.Y);
+                chunk.Deserialize(fs);
+                Chunks[i] = chunk;
+                world.Chunks[Chunks[i].Position] = chunk;
             }
+
             world.Set(this);
             fs.Close();
             fs.Dispose();
-            Marshal.FreeHGlobal((nint)data);
         }
 
         public static ChunkSegment CreateFrom(WorldMap world, Vector3 pos)

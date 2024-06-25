@@ -2,6 +2,7 @@
 {
     using System.Numerics;
     using System.Runtime.InteropServices;
+    using VoxelEngine.IO;
 
     public static class ChunkSerializer
     {
@@ -20,11 +21,6 @@
             int blocksWritten = 0;
             if (chunk.Data != null)
             {
-                const int bufferSize = 64;
-                Span<ChunkRecord> buffer = stackalloc ChunkRecord[bufferSize]; // (2B * 4B * 3 + 1B) * 64 = 1600B
-                Span<byte> binBuffer = MemoryMarshal.AsBytes(buffer);
-                int bufI = 0;
-
                 for (int k = 0; k < Chunk.CHUNK_SIZE; k++)
                 {
                     // Calculate this once, rather than multiple times in the inner loop
@@ -66,7 +62,6 @@
                             }
                             else
                             {
-                                buffer[bufI++] = run;
                                 blocksWritten++;
 
                                 if (b.Type != Chunk.EMPTY)
@@ -80,32 +75,16 @@
                                     newRun = true;
                                 }
 
-                                if (bufI == bufferSize)
-                                {
-                                    stream.Write(binBuffer);
-                                    bufI = 0;
-                                }
+                                run.Write(stream);
                             }
                         }
 
                         if (!newRun)
                         {
-                            buffer[bufI++] = run;
                             blocksWritten++;
-
-                            if (bufI == bufferSize)
-                            {
-                                stream.Write(binBuffer);
-                                bufI = 0;
-                            }
+                            run.Write(stream);
                         }
                     }
-                }
-
-                if (bufI != 0)
-                {
-                    stream.Write(binBuffer[..(bufI * sizeof(ChunkRecord))]);
-                    bufI = 0;
                 }
             }
 
@@ -152,6 +131,40 @@
             }
 
             return index + recordCount * sizeof(ChunkRecord);
+        }
+
+        public static unsafe void Deserialize(Chunk chunk, Stream stream)
+        {
+            if (chunk.Data is null)
+            {
+                chunk.Data = AllocTAndZero<Block>(Chunk.CHUNK_SIZE_CUBED);
+                chunk.MinY = AllocTAndZero<byte>(Chunk.CHUNK_SIZE_SQUARED);
+                chunk.MaxY = AllocTAndZero<byte>(Chunk.CHUNK_SIZE_SQUARED);
+                Memset(chunk.MinY, Chunk.CHUNK_SIZE, Chunk.CHUNK_SIZE_SQUARED);
+            }
+
+            ChunkHeader.Read(stream, out int recordCount);
+
+            stream.Read(new Span<byte>(chunk.MinY, Chunk.CHUNK_SIZE_SQUARED));
+            stream.Read(new Span<byte>(chunk.MaxY, Chunk.CHUNK_SIZE_SQUARED));
+
+            chunk.BlockMetadata.Deserialize(stream);
+            chunk.BiomeMetadata.Deserialize(stream);
+
+            ChunkRecord record = default;
+            for (int i = 0; i < recordCount; i++)
+            {
+                int left = recordCount - i;
+
+                record.Read(stream);
+
+                for (int y = 0; y < record.Count; y++)
+                {
+                    Vector3 pos = record.Position;
+                    pos.Y += y;
+                    chunk.Data[pos.MapToIndex(Chunk.CHUNK_SIZE, Chunk.CHUNK_SIZE)] = new Block(record.Type);
+                }
+            }
         }
     }
 }

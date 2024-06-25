@@ -2,13 +2,11 @@
 {
     using System.Collections.Concurrent;
     using System.Collections.Generic;
-    using System.Diagnostics;
     using System.Linq;
     using System.Numerics;
     using System.Runtime.CompilerServices;
     using System.Threading;
     using BepuUtilities.Memory;
-    using HexaEngine.Core.Debugging;
     using Vortice.Direct3D11;
     using VoxelEngine.Core;
     using VoxelEngine.Threading;
@@ -54,8 +52,8 @@
         private readonly Worker[] workers;
         private readonly Worker[] ioWorkers;
         private bool running = true;
-        private int idle = 0;
-        private int ioIdle = 0;
+        private int idle;
+        private int ioIdle;
 
         private readonly SemaphoreSlim semaphore = new(1);
 
@@ -75,24 +73,34 @@
             ioIdle = ioThreads;
             for (int i = 0; i < threads; i++)
             {
-                workers[i] = new Worker();
-                workers[i].Id = i;
-                workers[i].Handle = new AutoResetEvent(false);
-                workers[i].Thread = new Thread(LoadVoid);
-                workers[i].Thread.Name = "ChunkLoader Worker";
+                workers[i] = new Worker()
+                {
+                    Id = i,
+                    Handle = new AutoResetEvent(false),
+                    Thread = new Thread(LoadVoid)
+                    {
+                        Name = $"ChunkLoader Worker {i}"
+                    },
+                    Pool = new()
+                };
+
                 workers[i].Thread.Start(i);
-                workers[i].Pool = new();
             }
 
             ioWorkers = new Worker[ioThreads];
 
             for (int i = 0; i < ioThreads; i++)
             {
-                ioWorkers[i] = new Worker();
-                ioWorkers[i].Id = i;
-                ioWorkers[i].Handle = new AutoResetEvent(false);
-                ioWorkers[i].Thread = new Thread(IOVoid);
-                ioWorkers[i].Thread.Name = "ChunkLoader IO Worker";
+                ioWorkers[i] = new Worker()
+                {
+                    Id = i,
+                    Handle = new AutoResetEvent(false),
+                    Thread = new Thread(IOVoid)
+                    {
+                        Name = $"ChunkLoader IO Worker {i}"
+                    },
+                };
+
                 ioWorkers[i].Thread.Start(i);
             }
 
@@ -133,7 +141,7 @@
 
         public int ChunkCount => loadedChunks.Count;
 
-        public bool DoNotSave { get; set; } = true;
+        public bool DoNotSave { get; set; } = false;
 
         private static IEnumerable<Vector2> GetIndices(Vector3 center, int radius)
         {

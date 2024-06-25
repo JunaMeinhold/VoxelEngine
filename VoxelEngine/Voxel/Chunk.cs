@@ -39,6 +39,8 @@ namespace VoxelEngine.Voxel
 
         public bool HasMissingNeighbours;
 
+        public readonly object _lock = new();
+
         public Chunk(WorldMap map, int x, int y, int z, bool generated = false)
         {
             Map = map;
@@ -65,54 +67,60 @@ namespace VoxelEngine.Voxel
 
         private void RemoveRefsFrom(Chunk chunk)
         {
-            if (cXN == chunk)
+            lock (_lock)
             {
-                cXN = null;
-            }
+                if (cXN == chunk)
+                {
+                    cXN = null;
+                }
 
-            if (cXP == chunk)
-            {
-                cXP = null;
-            }
+                if (cXP == chunk)
+                {
+                    cXP = null;
+                }
 
-            if (cYN == chunk)
-            {
-                cYN = null;
-            }
+                if (cYN == chunk)
+                {
+                    cYN = null;
+                }
 
-            if (cYP == chunk)
-            {
-                cYP = null;
-            }
+                if (cYP == chunk)
+                {
+                    cYP = null;
+                }
 
-            if (cZN == chunk)
-            {
-                cZN = null;
-            }
+                if (cZN == chunk)
+                {
+                    cZN = null;
+                }
 
-            if (cZP == chunk)
-            {
-                cZP = null;
+                if (cZP == chunk)
+                {
+                    cZP = null;
+                }
             }
         }
 
         public void UnloadFromMem()
         {
-            Map.Chunks.Remove(this);
-            Map = null;
-            cXN?.RemoveRefsFrom(this);
-            cXP?.RemoveRefsFrom(this);
-            cYN?.RemoveRefsFrom(this);
-            cYP?.RemoveRefsFrom(this);
-            cZN?.RemoveRefsFrom(this);
-            cZP?.RemoveRefsFrom(this);
-            cXN = cXP = cYN = cYP = cZN = cZP = null;
-            Free(Data);
-            Free(MinY);
-            Free(MaxY);
-            Data = null;
-            MinY = null;
-            MaxY = null;
+            lock (_lock)
+            {
+                Map.Chunks.Remove(this);
+                Map = null;
+                cXN?.RemoveRefsFrom(this);
+                cXP?.RemoveRefsFrom(this);
+                cYN?.RemoveRefsFrom(this);
+                cYP?.RemoveRefsFrom(this);
+                cZN?.RemoveRefsFrom(this);
+                cZP?.RemoveRefsFrom(this);
+                cXN = cXP = cYN = cYP = cZN = cZP = null;
+                Free(Data);
+                Free(MinY);
+                Free(MaxY);
+                Data = null;
+                MinY = null;
+                MaxY = null;
+            }
         }
 
         /// <summary>
@@ -130,16 +138,19 @@ namespace VoxelEngine.Voxel
         /// </summary>
         public void Update()
         {
-            if (Data is null)
+            lock (_lock)
             {
-                return;
-            }
+                if (Data is null)
+                {
+                    return;
+                }
 
-            ChunkHelper = new();
-            GenerateMesh();
-            Dirty = false;
-            ChunkHelper.Release();
-            ChunkHelper = default;
+                ChunkHelper = new();
+                GenerateMesh();
+                Dirty = false;
+                ChunkHelper.Release();
+                ChunkHelper = default;
+            }
         }
 
         /// <summary>
@@ -147,57 +158,66 @@ namespace VoxelEngine.Voxel
         /// </summary>
         public void UnloadFromGPU()
         {
-            InBuffer = false;
-            VertexBuffer.Dispose();
-            VertexBuffer = null;
+            lock (_lock)
+            {
+                InBuffer = false;
+                VertexBuffer.Dispose();
+                VertexBuffer = null;
+            }
         }
 
         public void SetBlockInternal(Block block, int x, int y, int z)
         {
-            DirtyDisk = true;
-            Dirty = true;
-            // Chunk data accessed quickly using bit masks
-            int index = Extensions.MapToIndex(x, y, z, CHUNK_SIZE, CHUNK_SIZE);
-            Data[index] = block;
-
-            // Could be made better but for now it is okay.
-            byte min = 0;
-            byte max = 0;
-            for (byte i = 0; i < CHUNK_SIZE; i++)
+            lock (_lock)
             {
-                int j = Extensions.MapToIndex(x, i, z, CHUNK_SIZE, CHUNK_SIZE);
-                if (i == min)
-                {
-                    if (Data[j].Type == 0)
-                    {
-                        min++;
-                    }
-                }
-                else
-                {
-                    if (Data[j].Type != 0)
-                    {
-                        max = i;
-                    }
-                }
-            }
-            max++;
+                DirtyDisk = true;
+                Dirty = true;
+                // Chunk data accessed quickly using bit masks
+                int index = Extensions.MapToIndex(x, y, z, CHUNK_SIZE, CHUNK_SIZE);
+                Data[index] = block;
 
-            MinY[new Vector2(x, z).MapToIndex(CHUNK_SIZE)] = min;
-            MaxY[new Vector2(x, z).MapToIndex(CHUNK_SIZE)] = max;
+                // Could be made better but for now it is okay.
+                byte min = 0;
+                byte max = 0;
+                for (byte i = 0; i < CHUNK_SIZE; i++)
+                {
+                    int j = Extensions.MapToIndex(x, i, z, CHUNK_SIZE, CHUNK_SIZE);
+                    if (i == min)
+                    {
+                        if (Data[j].Type == 0)
+                        {
+                            min++;
+                        }
+                    }
+                    else
+                    {
+                        if (Data[j].Type != 0)
+                        {
+                            max = i;
+                        }
+                    }
+                }
+                max++;
+
+                MinY[new Vector2(x, z).MapToIndex(CHUNK_SIZE)] = min;
+                MaxY[new Vector2(x, z).MapToIndex(CHUNK_SIZE)] = max;
+            }
         }
 
         public Block GetBlockInternal(int x, int y, int z)
         {
-            // Chunk data accessed quickly using bit masks
-            int index = Extensions.MapToIndex(x, y, z, CHUNK_SIZE, CHUNK_SIZE);
-            if (index < CHUNK_SIZE_CUBED)
+            lock (_lock)
             {
-                return Data[index];
-            }
-            else
-            {
-                return default;
+                // Chunk data accessed quickly using bit masks
+                int index = Extensions.MapToIndex(x, y, z, CHUNK_SIZE, CHUNK_SIZE);
+                if (index < CHUNK_SIZE_CUBED)
+                {
+                    return Data[index];
+                }
+                else
+                {
+                    return default;
+                }
             }
         }
 
@@ -219,35 +239,55 @@ namespace VoxelEngine.Voxel
 
         public unsafe int Serialize(Stream stream)
         {
-            DirtyDisk = false;
-            return ChunkSerializer.Serialize(stream, this);
+            lock (_lock)
+            {
+                DirtyDisk = false;
+                return ChunkSerializer.Serialize(stream, this);
+            }
         }
 
         public unsafe int Deserialize(byte* data, int length)
         {
-            return ChunkSerializer.Deserialize(this, data, length);
+            lock (_lock)
+            {
+                return ChunkSerializer.Deserialize(this, data, length);
+            }
+        }
+
+        public unsafe void Deserialize(Stream stream)
+        {
+            lock (_lock)
+            {
+                ChunkSerializer.Deserialize(this, stream);
+            }
         }
 
         public void LoadToSimulation(BufferPool pool)
         {
-            if (InSimulation)
+            lock (_lock)
             {
-                return;
-            }
+                if (InSimulation)
+                {
+                    return;
+                }
 
-            Handle = new(SceneManager.Current.Simulation, pool, this);
-            InSimulation = true;
+                Handle = new(SceneManager.Current.Simulation, pool, this);
+                InSimulation = true;
+            }
         }
 
         public void UnloadFormSimulation()
         {
-            if (!InSimulation)
+            lock (_lock)
             {
-                return;
-            }
+                if (!InSimulation)
+                {
+                    return;
+                }
 
-            Handle.Free(SceneManager.Current.Simulation);
-            InSimulation = false;
+                Handle.Free(SceneManager.Current.Simulation);
+                InSimulation = false;
+            }
         }
 
         private string GetDebuggerDisplay()
