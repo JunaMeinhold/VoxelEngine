@@ -6,14 +6,13 @@
     using Vortice.Direct3D;
     using Vortice.Direct3D11;
     using Vortice.DXGI;
-    using VoxelEngine.Rendering.D3D;
-    using VoxelEngine.Rendering.D3D.Buffers;
+    using VoxelEngine.Graphics.Buffers;
+    using VoxelEngine.Graphics.Shaders;
     using VoxelEngine.Rendering.D3D.Interfaces;
-    using VoxelEngine.Rendering.D3D.Shaders;
     using VoxelEngine.Rendering.Shaders;
     using VoxelEngine.Voxel;
 
-    public class ChunkDepthPipeline : Pipeline
+    public class ChunkDepthPipeline : GraphicsPipeline
     {
         private readonly ConstantBuffer<ModelViewProjBuffer> mvpBuffer;
         private readonly ConstantBuffer<WorldData> worldDataBuffer;
@@ -29,14 +28,10 @@
         {
             VertexShader = "forward/depth/voxel/vs.hlsl",
             PixelShader = "forward/depth/voxel/ps.hlsl",
-            Rasterizer = RasterizerDescription.CullBack,
-            DepthStencil = DepthStencilDescription.Default,
-            Blend = BlendDescription.Opaque,
-            Topology = PrimitiveTopology.TriangleList,
-        })
+        }, GraphicsPipelineState.Default)
         {
-            mvpBuffer = new(device, ShaderStage.Vertex, 0);
-            worldDataBuffer = new(device, ShaderStage.Vertex, 1);
+            mvpBuffer = new(device, CpuAccessFlags.Write);
+            worldDataBuffer = new(device, CpuAccessFlags.Write);
             ConstantBuffers.Add(mvpBuffer.Buffer, ShaderStage.Vertex, 0);
             ConstantBuffers.Add(worldDataBuffer.Buffer, ShaderStage.Vertex, 1);
         }
@@ -44,8 +39,8 @@
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Update(ID3D11DeviceContext context, IView view, Chunk chunk)
         {
-            mvpBuffer.Write(context, new ModelViewProjBuffer(view, Matrix4x4.CreateTranslation(chunk.Position * Chunk.CHUNK_SIZE)));
-            worldDataBuffer.Write(context, new WorldData() { chunkOffset = chunk.Position });
+            mvpBuffer.Update(context, new ModelViewProjBuffer(view, Matrix4x4.CreateTranslation(chunk.Position * Chunk.CHUNK_SIZE)));
+            worldDataBuffer.Update(context, new WorldData() { chunkOffset = chunk.Position });
         }
     }
 }

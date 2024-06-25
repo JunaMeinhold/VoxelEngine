@@ -7,7 +7,10 @@
 
     public class WorldController : ScriptComponent
     {
+        private Vector3 CurrentPlayerChunkSegmentPos;
         private Vector3 CurrentPlayerChunkPos;
+        private Vector3 CurrentPlayerLocalChunkPos;
+        private Vector3 CurrentPlayerPos;
         private bool invalidate = true;
         private World world;
 
@@ -29,6 +32,8 @@
             float y = pos.Y % Chunk.CHUNK_SIZE;
             float z = pos.Z % Chunk.CHUNK_SIZE;
 
+            CurrentPlayerLocalChunkPos = new((int)x, (int)y, (int)z);
+
             Vector3 chunkPos = pos - new Vector3(x, y, z);
             if (x < 0)
             {
@@ -44,27 +49,32 @@
             }
 
             chunkPos /= Chunk.CHUNK_SIZE;
+
+            CurrentPlayerChunkPos = new Vector3((int)chunkPos.X, (int)chunkPos.Y, (int)chunkPos.Z);
+            CurrentPlayerPos = CurrentPlayerLocalChunkPos + CurrentPlayerChunkPos * Chunk.CHUNK_SIZE;
             chunkPos = new Vector3((int)chunkPos.X, 0, (int)chunkPos.Z);
 
-            if (chunkPos.X == CurrentPlayerChunkPos.X & chunkPos.Z == CurrentPlayerChunkPos.Z & !invalidate)
+            if (chunkPos.X == CurrentPlayerChunkSegmentPos.X & chunkPos.Z == CurrentPlayerChunkSegmentPos.Z & !invalidate)
             {
                 return;
             }
 
             invalidate = false;
-            CurrentPlayerChunkPos = chunkPos;
+            CurrentPlayerChunkSegmentPos = chunkPos;
             world.WorldLoader.Dispatch(chunkPos);
         }
 
         public override void Update()
         {
-            ImGui.Text($"Current Chunk: {CurrentPlayerChunkPos}");
-            ImGui.Text($"Chunk Loader: Idle: {world.WorldLoader.Idle}");
-            ImGui.Text($"Chunk Update Queue: updates: {world.WorldLoader.UpdateQueueCount}, uploads: {world.WorldLoader.UploadQueueCount}");
-            ImGui.Text($"Chunk Unload Queue: unloads: {world.WorldLoader.UnloadQueueCount}, io: {world.WorldLoader.UnloadIOQueueCount}");
-            ImGui.Text($"Chunk IO Queue: saves: unload: {world.WorldLoader.UnloadIOQueueCount}");
+            ImGui.Text($"Chunk Segment: {CurrentPlayerChunkSegmentPos}");
+            ImGui.Text($"Chunk: {CurrentPlayerChunkPos}");
+            ImGui.Text($"Local Position: {CurrentPlayerLocalChunkPos}");
+            ImGui.Text($"Position: {CurrentPlayerPos}");
+            ImGui.Separator();
+            ImGui.Text($"Loader: loads/unloads/updates: {world.WorldLoader.LoadQueueCount}/{world.WorldLoader.UnloadQueueCount}/{world.WorldLoader.UpdateQueueCount}, gen {world.WorldLoader.GenerationQueueCount}, uploads: {world.WorldLoader.UploadQueueCount}, {(world.WorldLoader.Idle ? "Idle" : "")}");
+            ImGui.Text($"IO: loads/unloads/saves: {world.WorldLoader.LoadIOQueueCount}/{world.WorldLoader.UnloadIOQueueCount}/{world.WorldLoader.SaveIOQueueCount}, {(world.WorldLoader.IOIdle ? "Idle" : "")}");
             ImGui.Text($"Loaded Render Regions: {world.WorldLoader.RenderRegionCount}");
-            ImGui.Text($"Loaded Chunk Regions: {world.WorldLoader.ChunkRegionCount}");
+            ImGui.Text($"Loaded Chunk Segments: {world.WorldLoader.ChunkSegmentCount}");
             ImGui.Text($"Loaded Chunks: {world.WorldLoader.ChunkCount}");
         }
     }

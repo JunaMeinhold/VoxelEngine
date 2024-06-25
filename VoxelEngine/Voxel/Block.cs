@@ -1,10 +1,10 @@
 ﻿namespace VoxelEngine.Voxel
 {
-    using System.Runtime.CompilerServices;
+    using System;
     using System.Runtime.InteropServices;
 
     [StructLayout(LayoutKind.Sequential)]
-    public struct Block
+    public struct Block : IEquatable<Block>
     {
         public ushort Type;
 
@@ -13,33 +13,31 @@
             Type = type;
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public override readonly bool Equals(object obj)
-        {
-            if (obj is Block b)
-            {
-                return b.Type != Type;
-            }
+        public static readonly Block Air = new(0);
 
-            return false;
+        public override bool Equals(object obj)
+        {
+            return obj is Block block && Equals(block);
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public readonly bool Equals(Block other)
+        {
+            return Type == other.Type;
+        }
+
+        public override readonly int GetHashCode()
+        {
+            return HashCode.Combine(Type);
+        }
+
         public static bool operator ==(Block left, Block right)
         {
-            return left.Equals(right);
+            return left.Type == right.Type;
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static bool operator !=(Block left, Block right)
         {
             return !(left == right);
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public override readonly int GetHashCode()
-        {
-            return Type.GetHashCode();
         }
     }
 }

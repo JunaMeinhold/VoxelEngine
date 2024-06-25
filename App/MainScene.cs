@@ -26,7 +26,7 @@
 
             // Creates the world.
             World world = new("world");
-            world.Generator = new PerlinChunkGenerator(68458);
+            world.Generator = new DefaultChunkGenerator(68458);
             world.AddComponent(new WorldController());
             world.AddComponent(new BlockHighlightRenderer());
             Add(world);

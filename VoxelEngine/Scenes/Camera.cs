@@ -2,6 +2,7 @@
 {
     using System.Numerics;
     using Vortice.Direct3D11;
+    using Vortice.Mathematics;
     using VoxelEngine.Core;
     using VoxelEngine.Core.Windows.Events;
     using VoxelEngine.Mathematics;
@@ -67,6 +68,26 @@
         }
     }
 
+    public struct CBWorld
+    {
+        public Matrix4x4 World;
+        public Matrix4x4 WorldInv;
+
+        public CBWorld(Matrix4x4 transform)
+        {
+            Matrix4x4.Invert(transform, out var inverse);
+            World = Matrix4x4.Transpose(transform);
+            WorldInv = Matrix4x4.Transpose(inverse);
+        }
+
+        public CBWorld(Transform transform)
+        {
+            Matrix4x4.Invert(transform.Global, out var inverse);
+            World = Matrix4x4.Transpose(transform.Global);
+            WorldInv = Matrix4x4.Transpose(inverse);
+        }
+    }
+
     public struct CBCamera
     {
         public Matrix4x4 View;
@@ -92,6 +113,20 @@
             Far = camera.Far;
             Near = camera.Near;
             ScreenDim = screenDim;
+        }
+
+        public CBCamera(Camera camera, Viewport screenDim)
+        {
+            Proj = Matrix4x4.Transpose(camera.Transform.Projection);
+            View = Matrix4x4.Transpose(camera.Transform.View);
+            ProjInv = Matrix4x4.Transpose(camera.Transform.ProjectionInv);
+            ViewInv = Matrix4x4.Transpose(camera.Transform.ViewInv);
+            ViewProj = Matrix4x4.Transpose(camera.Transform.ViewProjection);
+            ViewProjInv = Matrix4x4.Transpose(camera.Transform.ViewProjectionInv);
+            PrevViewProj = Matrix4x4.Transpose(camera.Transform.PrevViewProjection);
+            Far = camera.Far;
+            Near = camera.Near;
+            ScreenDim = new(screenDim.Width, screenDim.Height);
         }
 
         public CBCamera(Camera camera, Vector2 screenDim, Matrix4x4 last)

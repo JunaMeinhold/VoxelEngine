@@ -164,10 +164,10 @@ float4 main(PS_INPUT pixel) : SV_TARGET
             DebugDraw.NewFrame();
         }
 
-        public void EndDraw()
+        public void EndDraw(ID3D11RenderTargetView rtv, ID3D11DepthStencilView dsv = null)
         {
             DebugDraw.Render();
-            Render(DebugDraw.GetQueue(), DebugDraw.GetCamera());
+            Render(DebugDraw.GetQueue(), DebugDraw.GetCamera(), rtv, dsv);
         }
 
         private static unsafe void SetupRenderState(Viewport drawData, ID3D11DeviceContext ctx)
@@ -190,7 +190,7 @@ float4 main(PS_INPUT pixel) : SV_TARGET
             ctx.VSSetConstantBuffer(0, constantBuffer);
         }
 
-        private void Render(DebugDrawCommandQueue queue, Matrix4x4 camera)
+        private void Render(DebugDrawCommandQueue queue, Matrix4x4 camera, ID3D11RenderTargetView rtv, ID3D11DepthStencilView dsv)
         {
             if (queue.VertexCount > vertexBufferSize || vertexBuffer == null)
             {
@@ -237,11 +237,22 @@ float4 main(PS_INPUT pixel) : SV_TARGET
 
             int voffset = 0;
             uint ioffset = 0;
-
+            bool depthWasEnabled = false;
+            context.OMSetRenderTargets(rtv, null);
             for (int i = 0; i < queue.Commands.Count; i++)
             {
                 DebugDrawCommand cmd = queue.Commands[i];
 
+                if (cmd.EnableDepth && !depthWasEnabled)
+                {
+                    context.OMSetRenderTargets(rtv, dsv);
+                    depthWasEnabled = true;
+                }
+                else if (depthWasEnabled)
+                {
+                    context.OMSetRenderTargets(rtv, null);
+                    depthWasEnabled = false;
+                }
                 context.IASetPrimitiveTopology(cmd.Topology);
                 context.DrawIndexedInstanced((int)cmd.nIndices, 1, (int)ioffset, voffset, 0);
                 voffset += (int)cmd.nVertices;

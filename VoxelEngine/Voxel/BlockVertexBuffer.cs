@@ -205,7 +205,7 @@ namespace VoxelEngine.Voxel
 
         public void BufferData(ChunkVertexBuffer vertexBuffer, Vector3 offset)
         {
-            if (vertexBuffer.Count == 0)
+            if (vertexBuffer == null || vertexBuffer.Count == 0)
             {
                 return;
             }

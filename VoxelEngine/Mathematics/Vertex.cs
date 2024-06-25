@@ -3,36 +3,13 @@
     using System;
     using System.Numerics;
     using System.Runtime.InteropServices;
-    using Vortice.DXGI;
-    using VoxelEngine.Rendering.D3D.Attributes;
 
     [StructLayout(LayoutKind.Sequential)]
-    [PerVertexData]
     public struct Vertex
     {
-        [SemanticName("POSITION")]
-        [SemanticIndex(0)]
-        [Offset(0)]
-        [Format(Format.R32G32B32A32_Float)]
         public Vector4 Position;
-
-        [SemanticName("TEXCOORD")]
-        [SemanticIndex(0)]
-        [Offset(-1)]
-        [Format(Format.R32G32B32_Float)]
         public Vector3 Texture;
-
-        [SemanticName("NORMAL")]
-        [SemanticIndex(0)]
-        [Offset(-1)]
-        [Format(Format.R32G32B32_Float)]
         public Vector3 Normal;
-
-        [SemanticName("TANGENT")]
-        [SemanticIndex(0)]
-        [Offset(-1)]
-        [Format(Format.R32G32B32_Float)]
-        [SemanticOptional]
         public Vector3 Tangent;
 
         public void InvertTexture()

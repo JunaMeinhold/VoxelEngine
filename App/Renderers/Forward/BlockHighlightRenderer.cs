@@ -4,18 +4,24 @@
     using System.Runtime.CompilerServices;
     using App.Pipelines.Forward;
     using Vortice.Direct3D11;
-    using VoxelEngine.Mathematics;
-    using VoxelEngine.Objects.Primitives;
+    using Vortice.Mathematics;
+    using VoxelEngine.Graphics.Buffers;
+    using VoxelEngine.Graphics.Primitives;
+    using VoxelEngine.Graphics.Shaders;
     using VoxelEngine.Rendering.D3D.Interfaces;
-    using VoxelEngine.Rendering.D3D.Shaders;
     using VoxelEngine.Scenes;
     using VoxelEngine.Voxel;
+    using BoundingBox = VoxelEngine.Mathematics.BoundingBox;
 
     public class BlockHighlightRenderer : IForwardRenderComponent
     {
+        private ConstantBuffer<ModelViewProjBuffer> mvpBuffer;
+        private ConstantBuffer<Color4> colorBuffer;
         private World _world;
-        private ShaderPipeline<LinePipeline> linePipeline;
+        private LinePipeline linePipeline;
         private LineBox lineBox;
+
+        public Color4 Color;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Initialize(ID3D11Device device, GameObject element)
@@ -24,9 +30,12 @@
             {
                 _world = world;
             }
-
+            mvpBuffer = new(device, CpuAccessFlags.Write);
+            colorBuffer = new(device, CpuAccessFlags.Write);
             linePipeline = new(device);
-            linePipeline.ShaderLogic.Color = Vortice.Mathematics.Colors.Gray;
+            linePipeline.ConstantBuffers.Append(mvpBuffer, ShaderStage.Vertex);
+            linePipeline.ConstantBuffers.Append(colorBuffer, ShaderStage.Pixel);
+            Color = Colors.Gray;
             lineBox = new();
         }
 
@@ -35,8 +44,13 @@
         {
             if (_world.Player.IsLookingAtBlock)
             {
+                mvpBuffer.Update(context, new ModelViewProjBuffer(view, Matrix4x4.CreateScale(0.5f) * Matrix4x4.CreateTranslation(_world.Player.LookAtBlock + new Vector3(0.5f))));
+                colorBuffer.Update(context, Color);
+
                 lineBox.Bind(context);
-                linePipeline.DrawIndexed(context, view, Matrix4x4.CreateScale(0.5f) * Matrix4x4.CreateTranslation(_world.Player.LookAtBlock + new Vector3(0.5f)), lineBox.IndexBuffer.IndexCount, 0, 0);
+                linePipeline.Begin(context);
+                context.DrawIndexed(lineBox.IndexBuffer.Count, 0, 0);
+                linePipeline.End(context);
             }
         }
 
@@ -45,6 +59,10 @@
         {
             linePipeline.Dispose();
             linePipeline = null;
+            mvpBuffer.Dispose();
+            mvpBuffer = null;
+            colorBuffer.Dispose();
+            colorBuffer = null;
             lineBox.Dispose();
             lineBox = null;
             _world = null;

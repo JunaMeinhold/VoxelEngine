@@ -2,13 +2,13 @@
 {
     using System.Diagnostics;
     using HexaEngine.Editor;
-    using HexaEngine.ImGuiNET;
     using HexaEngine.Rendering.Renderers;
     using VoxelEngine.Core;
     using VoxelEngine.Core.Input;
     using VoxelEngine.Core.Input.Events;
     using VoxelEngine.Core.Windows;
     using VoxelEngine.Core.Windows.Events;
+    using VoxelEngine.Debugging;
     using VoxelEngine.Rendering.D3D;
     using VoxelEngine.Rendering.DXGI;
     using VoxelEngine.Rendering.Shaders;
@@ -74,14 +74,14 @@
                 SceneManager.Current?.Render();
             }
 
-            ImGui.Text($"{1 / Time.Delta}");
+            ImGuiConsole.Draw();
 
             swapChain.SetTarget(D3D11DeviceManager.ID3D11DeviceContext);
             DebugDraw.SetViewport(new(Width, Height));
-            debugDraw.EndDraw();
+            debugDraw.EndDraw(swapChain.RenderTarget.RTV, swapChain.DepthStencil?.DSV);
             renderer.EndFrame();
 
-            swapChain.Present(Nucleus.Settings.VSync ? 1 : 0);
+            swapChain.Present(0);
 
             LimitFrameRate();
         }
@@ -138,7 +138,7 @@
             base.OnKeyboardInput(args);
             if (args.KeyCode == Key.F5)
             {
-                renderDispatcher.Invoke(Pipeline.ReloadShaders);
+                renderDispatcher.Invoke(GraphicsPipeline.ReloadShaders);
             }
             if (args.KeyCode == Key.F9)
             {

@@ -24,7 +24,7 @@ namespace VoxelEngine.Physics.Characters
     //Constraint descriptions provide an explicit mapping from the array-of-structures format to the internal array-of-structures-of-arrays format used by the solver.
     //Note that there is a separate description for the one and two body case- constraint implementations take advantage of the lack of a second body to reduce data gathering requirements.
     /// <summary>
-    /// Description of a character motion constraint where the support is static.
+    /// desc of a character motion constraint where the support is static.
     /// </summary>
     public struct StaticCharacterMotionConstraint : IOneBodyConstraintDescription<StaticCharacterMotionConstraint>
     {
@@ -295,7 +295,7 @@ namespace VoxelEngine.Physics.Characters
     //Constraint descriptions provide an explicit mapping from the array-of-structures format to the internal array-of-structures-of-arrays format used by the solver.
     //Note that there is a separate description for the one and two body case- constraint implementations take advantage of the lack of a second body to reduce data gathering requirements.
     /// <summary>
-    /// Description of a character motion constraint where the support is dynamic.
+    /// desc of a character motion constraint where the support is dynamic.
     /// </summary>
     public struct DynamicCharacterMotionConstraint : ITwoBodyConstraintDescription<DynamicCharacterMotionConstraint>
     {

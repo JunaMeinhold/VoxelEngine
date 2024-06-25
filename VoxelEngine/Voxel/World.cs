@@ -32,7 +32,7 @@
 
         public IReadOnlyList<Chunk> LoadedChunks => WorldLoader.LoadedChunks;
 
-        public IReadOnlyList<ChunkRegion> LoadedChunkRegions => WorldLoader.LoadedChunkRegions;
+        public IReadOnlyList<ChunkSegment> LoadedChunkSegments => WorldLoader.LoadedChunkSegments;
 
 #if !USE_LEGACY_LOADER
         public IReadOnlyList<RenderRegion> LoadedRenderRegions => WorldLoader.LoadedRenderRegions;
@@ -118,7 +118,7 @@
             return c.GetBlockInternal(xlocal, ylocal, zlocal);
         }
 
-        public static bool InChunkBounds(int x, int y, int z)
+        public static bool InWorldLimits(int x, int y, int z)
         {
             if (x < CHUNK_AMOUNT_X_MIN || x >= CHUNK_AMOUNT_X ||
                 y < CHUNK_AMOUNT_Y_MIN || y >= CHUNK_AMOUNT_Y ||

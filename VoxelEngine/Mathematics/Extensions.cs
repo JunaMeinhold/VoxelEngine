@@ -13,6 +13,8 @@
 
         public const float PIDIV2 = MathF.PI / 2;
 
+        public const float FRAC_PI_2 = 1.57079632679489661923132169163975144f;
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static int Round(this float x)
         {
@@ -308,6 +310,84 @@
         public static float Lerp(float x, float y, float s)
         {
             return x * (1 - s) + y * s;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector2 Pow(Vector2 a, float b)
+        {
+            return new(MathF.Pow(a.X, b), MathF.Pow(a.Y, b));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector3 Pow(Vector3 a, float b)
+        {
+            return new(MathF.Pow(a.X, b), MathF.Pow(a.Y, b), MathF.Pow(a.Z, b));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector4 Pow(Vector4 a, float b)
+        {
+            return new(MathF.Pow(a.X, b), MathF.Pow(a.Y, b), MathF.Pow(a.Z, b), MathF.Pow(a.W, b));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector2 Pow(Vector2 a, Vector2 b)
+        {
+            return new(MathF.Pow(a.X, b.X), MathF.Pow(a.Y, b.Y));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector3 Pow(Vector3 a, Vector3 b)
+        {
+            return new(MathF.Pow(a.X, b.X), MathF.Pow(a.Y, b.Y), MathF.Pow(a.Z, b.Z));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector4 Pow(Vector4 a, Vector4 b)
+        {
+            return new(MathF.Pow(a.X, b.X), MathF.Pow(a.Y, b.Y), MathF.Pow(a.Z, b.Z), MathF.Pow(a.W, b.W));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector2 Exp(Vector2 a)
+        {
+            return new(MathF.Exp(a.X), MathF.Exp(a.Y));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector3 Exp(Vector3 a)
+        {
+            return new(MathF.Exp(a.X), MathF.Exp(a.Y), MathF.Exp(a.Z));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector4 Exp(Vector4 a)
+        {
+            return new(MathF.Exp(a.X), MathF.Exp(a.Y), MathF.Exp(a.Z), MathF.Exp(a.W));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static float Exp2(float x)
+        {
+            return BitConverter.Int32BitsToSingle(((int)(x * 0x00800000 + 126.0f)) << 23);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector2 Exp2(Vector2 a)
+        {
+            return new(Exp2(a.X), Exp2(a.Y));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector3 Exp2(Vector3 a)
+        {
+            return new(Exp2(a.X), Exp2(a.Y), Exp2(a.Z));
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Vector4 Exp2(Vector4 a)
+        {
+            return new(Exp2(a.X), Exp2(a.Y), Exp2(a.Z), Exp2(a.W));
         }
     }
 }

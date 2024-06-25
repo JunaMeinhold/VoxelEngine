@@ -47,7 +47,6 @@
 	</ItemGroup>
 
 	<ItemGroup>
-		<Folder Include="Network\" />
 		<Folder Include="Physics\Collidables\" />
 		<Folder Include="Unsafes\" />
 	</ItemGroup>

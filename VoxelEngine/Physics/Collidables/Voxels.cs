@@ -180,7 +180,7 @@
         /// </summary>
         /// <typeparam name="TRayHitHandler">Type of the callback to execute for every ray test candidate and every hit.</typeparam>
         /// <param name="pose">Pose of the voxels during the ray test.</param>
-        /// <param name="rays">Set of rays to cast against the voxels.</param>
+        /// <param name="rays">Bind of rays to cast against the voxels.</param>
         /// <param name="hitHandler">Callbacks to execute.</param>
         public readonly unsafe void RayTest<TRayHitHandler>(in RigidPose pose, ref RaySource rays, ref TRayHitHandler hitHandler) where TRayHitHandler : struct, IShapeRayHitHandler
         {

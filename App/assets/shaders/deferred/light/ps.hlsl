@@ -1,8 +1,13 @@
- #include "../../common.hlsl"
+#include "../../common.hlsl"
 #include "../../gbuffer.hlsl"
 #include "../../lights.hlsl"
 #include "../../camera.hlsl"
-#include "defs.hlsl"
+
+struct PixelInput
+{
+    float4 pos : SV_Position;
+    float2 tex : TEXCOORD;
+};
 
 cbuffer directionalLightBuffer : register(b0)
 {
@@ -16,13 +21,14 @@ Texture2D<float4> specularTexture : register(t3);
 Texture2D<float> depthTexture : register(t4);
 
 Texture2DArray lightDepthMap : register(t5);
+Texture2D<float> aoTexture : register(t6);
 
 SamplerState samplerLinearClamp : register(s0);
 SamplerState samplerDepth : register(s4);
 
 float ShadowCalculation(DirectionalLightSD light, float3 fragPosWorldSpace, float3 normal, Texture2DArray depthTex, SamplerState state)
 {
-    float cascadePlaneDistances[16] = (float[16]) light.cascades;
+    float cascadePlaneDistances[8] = (float[8]) light.cascades;
     float farPlane = 100;
 
     float w;
@@ -53,7 +59,7 @@ float ShadowCalculation(DirectionalLightSD light, float3 fragPosWorldSpace, floa
 
     // calculate bias (based on depth map resolution and slope)
     normal = normalize(normal);
-    float bias = max(0.005 * (1.0 - dot(normal, light.dir)), 0.0005);
+    float bias = max(0.0005 * (1.0 - dot(normal, -light.dir)), 0.00005);
     const float biasModifier = 0.5f;
     if (layer == cascadeCount)
     {
@@ -91,7 +97,7 @@ float ShadowCalculation(DirectionalLightSD light, float3 fragPosWorldSpace, floa
 
 float ShadowCalculationDebug(DirectionalLightSD light, float3 fragPosWorldSpace, Texture2DArray depthTex)
 {
-    float cascadePlaneDistances[16] = (float[16]) light.cascades;
+    float cascadePlaneDistances[8] = (float[8]) light.cascades;
     float farPlane = 100;
 
     float w;
@@ -199,9 +205,11 @@ float4 main(PixelInput input) : SV_TARGET
     float3 position = GetPositionWS(input.tex, depth);
     float3 V = normalize(GetCameraPos() - position);
 
+    float ao = aoTexture.SampleLevel(samplerLinearClamp, input.tex, 0);
+
     float3 color = ComputeDirectionalLight(attrs, position, V, directionalLight) * attrs.albedo;
 
-    color += attrs.albedo * 0.2f;
+    color += attrs.albedo * 0.5f * ao;
 
     return float4(color, 1);
 }

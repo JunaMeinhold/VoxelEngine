@@ -7,7 +7,7 @@
     using BepuUtilities.Memory;
     using VoxelEngine.Voxel;
 
-    public struct ChunkStaticHandle
+    public unsafe struct ChunkStaticHandle
     {
         public StaticHandle Handle;
         public BigCompound Compound;
@@ -43,7 +43,7 @@
                     // X and Z runs search upwards to create runs, so start at the bottom.
                     for (; j < topJ; j++, access++)
                     {
-                        ref Block b = ref chunk.Data[access];
+                        Block b = chunk.Data[access];
 
                         if (b.Type != Chunk.EMPTY)
                         {

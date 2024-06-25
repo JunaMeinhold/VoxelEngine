@@ -132,7 +132,7 @@
         public static uint Bitcount(this uint value)
         {
             uint v = value;
-            v -= ((v >> 1) & 0x55555555); // reuse input as temporary
+            v -= (v >> 1) & 0x55555555; // reuse input as temporary
             v = (v & 0x33333333) + ((v >> 2) & 0x33333333); // temp
             uint c = ((v + (v >> 4) & 0xF0F0F0F) * 0x1010101) >> 24; // count
             return c;
@@ -558,7 +558,7 @@
 
         public static void* ReAlloc(void* pointer, uint count)
         {
-            return (void*)Marshal.ReAllocHGlobal((nint)pointer, (nint)(count));
+            return (void*)Marshal.ReAllocHGlobal((nint)pointer, (nint)count);
         }
 
         public static void* ReAlloc(void* pointer, nint count)
@@ -776,10 +776,43 @@
         /// Allocates an pointer array and zeros it.
         /// </summary>
         /// <param name="length">The length.</param>
+        public static T* AllocTAndZero<T>() where T : unmanaged
+        {
+            var result = AllocT<T>();
+            ZeroMemory(result, sizeof(T));
+            return result;
+        }
+
+        /// <summary>
+        /// Allocates an pointer array and zeros it.
+        /// </summary>
+        /// <param name="length">The length.</param>
         public static void** AllocArrayAndZero(uint length)
         {
             var result = AllocArray(length);
             ZeroMemory(result, (int)(sizeof(nint) * length));
+            return result;
+        }
+
+        /// <summary>
+        /// Allocates an pointer array and zeros it.
+        /// </summary>
+        /// <param name="length">The length.</param>
+        public static T* AllocTAndZero<T>(uint length) where T : unmanaged
+        {
+            var result = AllocT<T>(length);
+            ZeroMemory(result, (int)(sizeof(T) * length));
+            return result;
+        }
+
+        /// <summary>
+        /// Allocates an pointer array and zeros it.
+        /// </summary>
+        /// <param name="length">The length.</param>
+        public static T* AllocTAndZero<T>(int length) where T : unmanaged
+        {
+            var result = AllocT<T>(length);
+            ZeroMemory(result, sizeof(T) * length);
             return result;
         }
 

@@ -387,7 +387,7 @@
             bd->MouseCursors[(int)ImGuiMouseCursor.Hand] = SdlCheckError(sdl.CreateSystemCursor(SystemCursor.SystemCursorHand));
             bd->MouseCursors[(int)ImGuiMouseCursor.NotAllowed] = SdlCheckError(sdl.CreateSystemCursor(SystemCursor.SystemCursorNo));
 
-            // Set platform dependent data in viewport
+            // Bind platform dependent data in viewport
             // Our mouse update function expect PlatformHandle to be filled for the main viewport
             ImGuiViewport* main_viewport = ImGui.GetMainViewport();
             main_viewport->PlatformHandle = window;
@@ -409,7 +409,7 @@
             {
                 SdlCheckError();
             }
-            // From 2.0.5: Set SDL hint to receive mouse click events on window focus, otherwise SDL doesn't emit the event.
+            // From 2.0.5: Bind SDL hint to receive mouse click events on window focus, otherwise SDL doesn't emit the event.
             // Without this, when clicking to gain focus, our widgets wouldn't activate even though they showed as hovered.
             // (This is unfortunately a global SDL setting, so enabling it might have a side-effect on your application.
             // It is unlikely to make a difference, but if your app absolutely needs to ignore the initial on-focus click:
@@ -495,7 +495,7 @@
             {
                 if (io.WantSetMousePos)
                 {
-                    // (Optional) Set OS mouse position from Dear ImGui if requested (rarely used, only when ImGuiConfigFlags_NavEnableSetMousePos is enabled by user)
+                    // (Optional) Bind OS mouse position from Dear ImGui if requested (rarely used, only when ImGuiConfigFlags_NavEnableSetMousePos is enabled by user)
                     if ((io.ConfigFlags & ImGuiConfigFlags.ViewportsEnable) != 0)
                     {
                         sdl.WarpMouseGlobal((int)io.MousePos.X, (int)io.MousePos.Y).SdlThrowIfNeg();

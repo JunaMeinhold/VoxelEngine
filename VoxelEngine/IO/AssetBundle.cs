@@ -9,7 +9,7 @@
         public AssetBundle(string path)
         {
             FileStream fs = File.OpenRead(path);
-            int count = fs.ReadInt();
+            int count = fs.ReadInt32();
             Assets = new Asset[count];
             for (int i = 0; i < count; i++)
             {

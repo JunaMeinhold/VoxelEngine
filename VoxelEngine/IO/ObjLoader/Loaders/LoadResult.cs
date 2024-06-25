@@ -3,10 +3,10 @@ namespace VoxelEngine.IO.ObjLoader.Loaders
     using System.Collections.Generic;
     using System.Numerics;
     using Vortice.Direct3D11;
+    using VoxelEngine.Graphics.Buffers;
     using VoxelEngine.IO.ObjLoader.Data;
     using VoxelEngine.IO.ObjLoader.Data.Elements;
     using VoxelEngine.IO.ObjLoader.Data.VertexData;
-    using VoxelEngine.Rendering.D3D;
 
     public class LoadResult
     {

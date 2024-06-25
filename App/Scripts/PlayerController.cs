@@ -164,16 +164,16 @@
                 player.SelectedBlockId = id;
             }
 
-            Vector2 delta = Mouse.Delta;
+            Vector2 delta = Mouse.Delta * 0.004f;
 
             if (delta.X != 0)
             {
-                transform.Rotation += new Vector3(delta.X * AngluarSpeed * Time.Delta, 0, 0);
+                transform.Rotation += new Vector3(delta.X * AngluarSpeed, 0, 0);
             }
 
             if (delta.Y != 0)
             {
-                transform.Rotation += new Vector3(0, delta.Y * AngluarSpeed * Time.Delta, 0);
+                transform.Rotation += new Vector3(0, delta.Y * AngluarSpeed, 0);
                 if (transform.Rotation.Y < 269 & transform.Rotation.Y > 180)
                 {
                     transform.Rotation = new Vector3(transform.Rotation.X, 269, transform.Rotation.Z);

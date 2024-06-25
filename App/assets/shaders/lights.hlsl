@@ -1,7 +1,7 @@
 struct DirectionalLightSD
 {
-    matrix views[16];
-    float4 cascades[4];
+    float4x4 views[8];
+    float4 cascades[2];
     float4 color;
     float3 dir;
     bool castsShadows;

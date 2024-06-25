@@ -28,11 +28,11 @@
 
         public static int FrameRate => frameRate;
 
-        public static float GameTime => gameTime;
+        public static float GameTime { get => gameTime; set => gameTime = value; }
 
         public static float GameTimeNormalized => gameTimeNormalized;
 
-        public static float TimeScale = 60 * 10;
+        public static float TimeScale = 60 * 100;
 
         public static event EventHandler FixedUpdate;
 

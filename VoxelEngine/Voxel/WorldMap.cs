@@ -15,9 +15,8 @@
         public const int CHUNK_AMOUNT_X_MIN = int.MinValue;
         public const int CHUNK_AMOUNT_Y_MIN = 0;
         public const int CHUNK_AMOUNT_Z_MIN = int.MinValue;
-        public string Path { get; protected set; }
 
-        // Returns true if there is no block at this global map position
+        public string Path { get; protected set; }
 
         public WorldMap()
         {
@@ -28,7 +27,7 @@
             return IsNoBlock(pos.X.Round(), pos.Y.Round(), pos.Z.Round());
         }
 
-        public bool IsNoBlock(int x, int y, int z)
+        public unsafe bool IsNoBlock(int x, int y, int z)
         {
             int xglobal = x / Chunk.CHUNK_SIZE;
             int xlocal = x % Chunk.CHUNK_SIZE;
@@ -51,7 +50,6 @@
                 return true;
             }
 
-            // Chunk accessed quickly using bitwise shifts
             Chunk c = Chunks[xglobal, yglobal, zglobal];
 
             // To lower memory usage, a chunk is null if it has no blocks
@@ -112,7 +110,7 @@
             return Chunks[(int)x, (int)y, (int)z];
         }
 
-        public void Set(ChunkRegion region)
+        public void Set(ChunkSegment region)
         {
             if (region.Position.X < CHUNK_AMOUNT_X_MIN || region.Position.X >= CHUNK_AMOUNT_X ||
                 region.Position.Y < CHUNK_AMOUNT_Y_MIN || region.Position.Y >= CHUNK_AMOUNT_Y)
@@ -126,7 +124,7 @@
             }
         }
 
-        public ChunkRegion GetRegion(Vector3 pos)
+        public ChunkSegment GetSegment(Vector3 pos)
         {
             if (pos.X < CHUNK_AMOUNT_X_MIN || pos.X >= CHUNK_AMOUNT_X ||
                 pos.Y < CHUNK_AMOUNT_Y_MIN || pos.Y >= CHUNK_AMOUNT_Y ||
@@ -135,10 +133,10 @@
                 return default;
             }
 
-            return ChunkRegion.CreateFrom(this, pos);
+            return ChunkSegment.CreateFrom(this, pos);
         }
 
-        public ChunkRegion GetRegion(float x, float z)
+        public ChunkSegment GetSegment(float x, float z)
         {
             if (x < CHUNK_AMOUNT_X_MIN || x >= CHUNK_AMOUNT_X ||
                 z < CHUNK_AMOUNT_Y_MIN || z >= CHUNK_AMOUNT_Z)
@@ -146,7 +144,7 @@
                 return default;
             }
 
-            return ChunkRegion.CreateFrom(this, x, z);
+            return ChunkSegment.CreateFrom(this, x, z);
         }
     }
 }

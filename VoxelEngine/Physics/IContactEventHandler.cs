@@ -15,7 +15,7 @@
         /// <typeparam name="TManifold">Type of the contact manifold detected.</typeparam>
         /// <param name="eventSource">Collidable that the event was attached to.</param>
         /// <param name="pair">Collidable pair triggering the event.</param>
-        /// <param name="contactManifold">Set of remaining contacts in the collision.</param>
+        /// <param name="contactManifold">Bind of remaining contacts in the collision.</param>
         /// <param name="contactOffset">Offset from the pair's local origin to the new contact.</param>
         /// <param name="contactNormal">Normal of the new contact.</param>
         /// <param name="depth">Depth of the new contact.</param>
@@ -33,7 +33,7 @@
         /// <typeparam name="TManifold">Type of the contact manifold detected.</typeparam>
         /// <param name="eventSource">Collidable that the event was attached to.</param>
         /// <param name="pair">Collidable pair triggering the event.</param>
-        /// <param name="contactManifold">Set of remaining contacts in the collision.</param>
+        /// <param name="contactManifold">Bind of remaining contacts in the collision.</param>
         /// <param name="removedFeatureId">Feature id of the contact that was removed and is no longer present in the contact manifold.</param>
         /// <param name="workerIndex">Index of the worker thread that fired this event.</param>
         void OnContactRemoved<TManifold>(CollidableReference eventSource, CollidablePair pair, ref TManifold contactManifold, int removedFeatureId, int workerIndex) where TManifold : unmanaged, IContactManifold<TManifold>
@@ -46,7 +46,7 @@
         /// <typeparam name="TManifold">Type of the contact manifold detected.</typeparam>
         /// <param name="eventSource">Collidable that the event was attached to.</param>
         /// <param name="pair">Collidable pair triggering the event.</param>
-        /// <param name="contactManifold">Set of remaining contacts in the collision.</param>
+        /// <param name="contactManifold">Bind of remaining contacts in the collision.</param>
         /// <param name="workerIndex">Index of the worker thread that fired this event.</param>
         void OnStartedTouching<TManifold>(CollidableReference eventSource, CollidablePair pair, ref TManifold contactManifold, int workerIndex) where TManifold : unmanaged, IContactManifold<TManifold>
         {
@@ -58,7 +58,7 @@
         /// <typeparam name="TManifold">Type of the contact manifold detected.</typeparam>
         /// <param name="eventSource">Collidable that the event was attached to.</param>
         /// <param name="pair">Collidable pair triggering the event.</param>
-        /// <param name="contactManifold">Set of remaining contacts in the collision.</param>
+        /// <param name="contactManifold">Bind of remaining contacts in the collision.</param>
         /// <param name="workerIndex">Index of the worker thread that fired this event.</param>
         void OnTouching<TManifold>(CollidableReference eventSource, CollidablePair pair, ref TManifold contactManifold, int workerIndex) where TManifold : unmanaged, IContactManifold<TManifold>
         {
@@ -70,7 +70,7 @@
         /// <typeparam name="TManifold">Type of the contact manifold detected.</typeparam>
         /// <param name="eventSource">Collidable that the event was attached to.</param>
         /// <param name="pair">Collidable pair triggering the event.</param>
-        /// <param name="contactManifold">Set of remaining contacts in the collision.</param>
+        /// <param name="contactManifold">Bind of remaining contacts in the collision.</param>
         /// <param name="workerIndex">Index of the worker thread that fired this event.</param>
         void OnStoppedTouching<TManifold>(CollidableReference eventSource, CollidablePair pair, ref TManifold contactManifold, int workerIndex) where TManifold : unmanaged, IContactManifold<TManifold>
         {
@@ -82,7 +82,7 @@
         /// <typeparam name="TManifold">Type of the contact manifold detected.</typeparam>
         /// <param name="eventSource">Collidable that the event was attached to.</param>
         /// <param name="pair">Collidable pair triggering the event.</param>
-        /// <param name="contactManifold">Set of remaining contacts in the collision.</param>
+        /// <param name="contactManifold">Bind of remaining contacts in the collision.</param>
         /// <param name="workerIndex">Index of the worker thread that fired this event.</param>
         void OnPairCreated<TManifold>(CollidableReference eventSource, CollidablePair pair, ref TManifold contactManifold, int workerIndex) where TManifold : unmanaged, IContactManifold<TManifold>
         {
@@ -94,7 +94,7 @@
         /// <typeparam name="TManifold">Type of the contact manifold detected.</typeparam>
         /// <param name="eventSource">Collidable that the event was attached to.</param>
         /// <param name="pair">Collidable pair triggering the event.</param>
-        /// <param name="contactManifold">Set of remaining contacts in the collision.</param>
+        /// <param name="contactManifold">Bind of remaining contacts in the collision.</param>
         /// <param name="workerIndex">Index of the worker thread that fired this event.</param>
         void OnPairUpdated<TManifold>(CollidableReference eventSource, CollidablePair pair, ref TManifold contactManifold, int workerIndex) where TManifold : unmanaged, IContactManifold<TManifold>
         {

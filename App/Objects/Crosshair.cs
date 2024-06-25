@@ -2,8 +2,8 @@
 {
     using App.Renderers.Forward;
     using Vortice.Direct3D11;
+    using VoxelEngine.Graphics.Buffers;
     using VoxelEngine.Mathematics;
-    using VoxelEngine.Rendering.D3D;
     using VoxelEngine.Scenes;
 
     public class Crosshair : GameObject

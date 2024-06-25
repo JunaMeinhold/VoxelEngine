@@ -83,7 +83,7 @@
             return Matrix4x4.Transpose(viewProjOut);
         }
 
-        public static unsafe void GetCascades(CameraTransform camera, float[] result, int count)
+        public static unsafe void GetCascades(CameraTransform camera, float* result, int count)
         {
             float farClip = camera.Far;
             float nearClip = camera.Near;
@@ -149,7 +149,7 @@
             return result;
         }
 
-        public static unsafe Matrix4x4[] GetLightSpaceMatrices(CameraTransform camera, Transform light, Matrix4x4[] ret, float[] cascades, BoundingFrustum[] frustra, int cascadesCount = 4)
+        public static unsafe Matrix4x4* GetLightSpaceMatrices(CameraTransform camera, Transform light, Matrix4x4* ret, float* cascades, BoundingFrustum[] frustra, int cascadesCount = 4)
         {
             float fov = camera.Fov.ToRad();
             float aspect = camera.AspectRatio;

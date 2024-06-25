@@ -4,13 +4,12 @@
     using System.Runtime.CompilerServices;
     using System.Runtime.InteropServices;
     using Vortice.Direct3D11;
-    using VoxelEngine.Rendering.D3D;
-    using VoxelEngine.Rendering.D3D.Interfaces;
-    using VoxelEngine.Rendering.D3D.Shaders;
+    using VoxelEngine.Graphics.Buffers;
+    using VoxelEngine.Graphics.Shaders;
     using VoxelEngine.Rendering.Shaders;
     using VoxelEngine.Voxel;
 
-    public class CSMChunkPipeline : Pipeline
+    public class CSMChunkPipeline : GraphicsPipeline
     {
         private readonly ConstantBuffer<Matrix4x4> mvpBuffer;
         private readonly ConstantBuffer<WorldData> worldDataBuffer;
@@ -27,31 +26,37 @@
         {
             VertexShader = "forward/csm/voxel/vs.hlsl",
             GeometryShader = "forward/csm/voxel/gs.hlsl",
+        }, new GraphicsPipelineState()
+        {
             Rasterizer = RasterizerDescription.CullFront,
-            DepthStencil = DepthStencilDescription.Default,
-            Blend = BlendDescription.Opaque,
-            Topology = Vortice.Direct3D.PrimitiveTopology.TriangleList,
         })
         {
-            mvpBuffer = new(device);
-            worldDataBuffer = new(device);
-            cascadeBuffer = new(device, 16);
+            mvpBuffer = new(device, CpuAccessFlags.Write);
+            worldDataBuffer = new(device, CpuAccessFlags.Write);
+            cascadeBuffer = new(device, CpuAccessFlags.Write, 16);
 
             ConstantBuffers.AppendRange(new ID3D11Buffer[] { mvpBuffer, worldDataBuffer }, ShaderStage.Vertex);
             ConstantBuffers.Append(cascadeBuffer, ShaderStage.Geometry);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Update(ID3D11DeviceContext context, Matrix4x4[] views)
+        public unsafe void Update(ID3D11DeviceContext context, Matrix4x4* views)
         {
-            cascadeBuffer.Write(context, views);
+            cascadeBuffer.Update(context, views, 8);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Update(ID3D11DeviceContext context, Chunk chunk)
         {
-            mvpBuffer.Write(context, Matrix4x4.Transpose(Matrix4x4.CreateTranslation(chunk.Position * Chunk.CHUNK_SIZE)));
-            worldDataBuffer.Write(context, new WorldData() { chunkOffset = chunk.Position });
+            mvpBuffer.Update(context, Matrix4x4.Transpose(Matrix4x4.CreateTranslation(chunk.Position * Chunk.CHUNK_SIZE)));
+            worldDataBuffer.Update(context, new WorldData() { chunkOffset = chunk.Position });
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Update(ID3D11DeviceContext context)
+        {
+            mvpBuffer.Update(context, Matrix4x4.Transpose(Matrix4x4.Identity));
+            worldDataBuffer.Update(context, new WorldData() { chunkOffset = Vector3.Zero });
         }
     }
 }

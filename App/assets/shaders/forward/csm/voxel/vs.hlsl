@@ -12,12 +12,12 @@ cbuffer WorldData : register(b1)
     float padd;
 };
 
-GeometryInput main(int aData : POSITION)
+GeometryInput main(int aData : POSITION, float3 offset : POSITION1)
 {
     GeometryInput output;
-	
-    float3 position = float3(float(aData & (63)), float((aData >> 6) & (63)), float((aData >> 12) & (63)));
+
+    float3 position = float3(float(aData & (63)), float((aData >> 6) & (63)), float((aData >> 12) & (63))) + offset;
 
     output.position = mul(float4(position, 1), world);
-	return output;
+    return output;
 }

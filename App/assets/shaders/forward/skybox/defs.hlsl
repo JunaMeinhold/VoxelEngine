@@ -11,17 +11,17 @@
 // FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
 // WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 
-
 struct PixelInputType
 {
-	float4 position : SV_POSITION;
-	float3 tex : TEXCOORD0;
+    float4 position : SV_POSITION;
+    float3 pos : POSITION;
+    float3 tex : TEXCOORD0;
 };
 
 struct VertexInputType
 {
-	float4 position : POSITION;
-	float3 tex : TEXCOORD0;
-	float3 normal : NORMAL;
-	float3 tangent : TANGENT;
+    float4 position : POSITION;
+    float3 tex : TEXCOORD0;
+    float3 normal : NORMAL;
+    float3 tangent : TANGENT;
 };

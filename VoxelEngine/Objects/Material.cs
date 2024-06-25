@@ -4,8 +4,8 @@
     using System.Numerics;
     using System.Runtime.InteropServices;
     using Vortice.Direct3D11;
+    using VoxelEngine.Graphics.Shaders;
     using VoxelEngine.Rendering.D3D;
-    using VoxelEngine.Rendering.D3D.Shaders;
 
     public class Material : IDisposable
     {
@@ -86,53 +86,43 @@
         {
             if (AmbientTextureMap != null)
             {
-                Ambient = new();
-                Ambient.Load(device, AmbientTextureMap);
+                Ambient = new(device, AmbientTextureMap);
             }
             if (DiffuseTextureMap != null)
             {
-                Diffuse = new();
-                Diffuse.Load(device, DiffuseTextureMap);
+                Diffuse = new(device, DiffuseTextureMap);
             }
             if (SpecularTextureMap != null)
             {
-                Specular = new();
-                Specular.Load(device, SpecularTextureMap);
+                Specular = new(device, SpecularTextureMap);
             }
             if (SpecularHighlightTextureMap != null)
             {
-                SpecularHighlight = new();
-                SpecularHighlight.Load(device, SpecularHighlightTextureMap);
+                SpecularHighlight = new(device, SpecularHighlightTextureMap);
             }
             if (BumpMap != null)
             {
-                Bump = new();
-                Bump.Load(device, BumpMap);
+                Bump = new(device, BumpMap);
             }
             if (DisplacementMap != null)
             {
-                Displacement = new();
-                Displacement.Load(device, DisplacementMap);
+                Displacement = new(device, DisplacementMap);
             }
             if (StencilDecalMap != null)
             {
-                StencilDecal = new();
-                StencilDecal.Load(device, StencilDecalMap);
+                StencilDecal = new(device, StencilDecalMap);
             }
             if (AlphaTextureMap != null)
             {
-                AlphaTexture = new();
-                AlphaTexture.Load(device, AlphaTextureMap);
+                AlphaTexture = new(device, AlphaTextureMap);
             }
             if (MetallicTextureMap != null)
             {
-                MetallicTexture = new();
-                MetallicTexture.Load(device, MetallicTextureMap);
+                MetallicTexture = new(device, MetallicTextureMap);
             }
             if (RoughnessTextureMap != null)
             {
-                RoughnessTexture = new();
-                RoughnessTexture.Load(device, RoughnessTextureMap);
+                RoughnessTexture = new(device, RoughnessTextureMap);
             }
         }
 

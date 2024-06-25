@@ -9,18 +9,24 @@
     using VoxelEngine.Physics.Collidables;
     using VoxelEngine.Voxel;
 
-    public struct ChunkStaticHandle2
+    public unsafe struct ChunkStaticHandle2
     {
         public StaticHandle Handle;
         public Voxels Voxels;
         public TypedIndex Shape;
+        public BufferPool Pool;
         public bool IsEmpty;
 
         [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         public ChunkStaticHandle2(Simulation simulation, BufferPool pool, Chunk chunk)
         {
-            QuickList<Vector3> list = new(Chunk.CHUNK_SIZE_CUBED, pool);
+            Pool = pool;
+            QuickList<Vector3> list;
+
+            list = new(Chunk.CHUNK_SIZE_CUBED, pool);
+
             Vector3 globalOffset = chunk.Position * Chunk.CHUNK_SIZE;
+
             for (int k = 0; k < Chunk.CHUNK_SIZE; k++)
             {
                 // Calculate this once, rather than multiple times in the inner loop
@@ -44,7 +50,7 @@
                     // X and Z runs search upwards to create runs, so start at the bottom.
                     for (; j < topJ; j++, access++)
                     {
-                        ref Block b = ref chunk.Data[access];
+                        Block b = chunk.Data[access];
 
                         if (b.Type != Chunk.EMPTY)
                         {
@@ -57,6 +63,7 @@
             if (list.Count == 0)
             {
                 list.Dispose(pool);
+
                 Handle = default;
                 Voxels = default;
                 Shape = default;
@@ -64,15 +71,16 @@
                 return;
             }
 
-            Voxels = new Voxels(list, new Vector3(1, 1, 1), pool);
+            Voxels = new Voxels(list, new Vector3(1), pool);
+
             lock (simulation)
             {
                 Shape = simulation.Shapes.Add(Voxels);
-                Handle = simulation.Statics.Add(new StaticDescription(chunk.Position, Shape));
+                Handle = simulation.Statics.Add(new StaticDescription(Vector3.Zero, Shape));
             }
         }
 
-        public void Free(Simulation simulation, BufferPool pool)
+        public void Free(Simulation simulation)
         {
             if (IsEmpty | simulation == null)
             {
@@ -81,9 +89,10 @@
             lock (simulation)
             {
                 simulation.Statics.Remove(Handle);
-                Voxels.Dispose(pool);
                 simulation.Shapes.Remove(Shape);
             }
+
+            Voxels.Dispose(Pool);
         }
     }
 }

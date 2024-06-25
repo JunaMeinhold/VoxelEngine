@@ -48,7 +48,7 @@
             return (float)((value + 1.0) / 2.0);
         }
 
-        public static void MapToChunks(Chunk[] chunks, Vector3 pos, Block block)
+        public static unsafe void MapToChunks(Chunk[] chunks, Vector3 pos, Block block)
         {
             int cheight = 0;
             int height = (int)pos.Y;

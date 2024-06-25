@@ -1,72 +1,97 @@
-﻿//#define USE_LEGACY_LOADER
-
-namespace VoxelEngine.Voxel
+﻿namespace VoxelEngine.Voxel
 {
     using System.Collections.Concurrent;
     using System.Collections.Generic;
+    using System.Linq;
     using System.Numerics;
     using System.Runtime.CompilerServices;
     using System.Threading;
+    using BepuUtilities.Memory;
     using Vortice.Direct3D11;
     using VoxelEngine.Core;
+    using VoxelEngine.Threading;
 
     public class WorldLoader : IDisposable
     {
-        private readonly AutoResetEvent waitHandle = new(false);
-        private readonly AutoResetEvent waitIOHandle = new(false);
-        private Vector2[] indicesCache;
+        private Vector2[] indicesRenderCache;
+        private Vector2[] indicesPreloadCache;
 
-        // Contains the position history of the player.
-        private readonly ConcurrentQueue<Vector3> positionQueue = new();
+        private readonly HashSet<Vector2> loadedRegionIds = new();
 
-        // Contains chunks that are marked as dirty from a block update.
-        private readonly ConcurrentQueue<ChunkRegion> updateQueue = new();
+        private readonly ConcurrentQueue<ChunkSegment> loadIOQueue = new();
 
-#if USE_LEGACY_LOADER
+        private readonly ConcurrentQueue<ChunkSegment> generationQueue = new();
 
-        // Contains chunks that needed to upload data to the gpu.
-        private readonly ConcurrentQueue<ChunkRegion> uploadQueue = new();
+        private readonly ConcurrentQueue<ChunkSegment> loadQueue = new();
 
-#else
+        // Contains chunks that are marked as dirty from an block update.
+        private readonly ConcurrentQueue<ChunkSegment> updateQueue = new();
 
         // Contains chunks that needed to upload data to the gpu.
         private readonly ConcurrentQueue<RenderRegion> uploadQueue = new();
 
-#endif
-
         // Contains chunks that will be added to LoadedChunks list.
-        private readonly ConcurrentQueue<ChunkRegion> integrationQueue = new();
+        private readonly ConcurrentQueue<ChunkSegment> integrationQueue = new();
 
         // Contains chunks that will be unloaded form the simulation and LoadedChunks list.
-        private readonly ConcurrentQueue<ChunkRegion> unloadQueue = new();
+        private readonly ConcurrentQueue<ChunkSegment> unloadQueue = new();
 
         // Contains chunks that will be unloaded from the gpu and will be send to unloadQueue.
-        private readonly ConcurrentQueue<ChunkRegion> unloadIOQueue = new();
+        private readonly ConcurrentQueue<ChunkSegment> unloadIOQueue = new();
+
+        private readonly ConcurrentQueue<ChunkSegment> saveIOQueue = new();
 
         // Contains chunks that are marked as loaded internal to prevent loading chunks multiple times.
-        private readonly List<ChunkRegion> loadedInternal = new();
+        private readonly ConcurrentList<ChunkSegment> loadedInternal = new();
 
-        // Constains chunks that will be rendered and simulated.
+        // Contains chunks that will be rendered and simulated.
         private readonly List<Chunk> loadedChunks = new();
 
-#if !USE_LEGACY_LOADER
-        private readonly List<RenderRegion> renderRegions = new();
-#endif
-        private readonly Thread thread;
-        private readonly Thread ioThread;
-        private bool running = true;
-        private bool idle = true;
-        private bool ioIdle = true;
+        private readonly ConcurrentList<RenderRegion> renderRegions = new();
 
-        public WorldLoader(World world)
+        private readonly Worker[] workers;
+        private readonly Worker[] ioWorkers;
+        private bool running = true;
+        private int idle = 0;
+        private int ioIdle = 0;
+
+        private readonly SemaphoreSlim semaphore = new(1);
+
+        public struct Worker
+        {
+            public int Id;
+            public Thread Thread;
+            public AutoResetEvent Handle;
+            public BufferPool Pool;
+        }
+
+        public WorldLoader(World world, int threads = 8, int ioThreads = 1)
         {
             World = world;
-            thread = new Thread(LoadVoid);
-            thread.Name = "ChunkLoaderThread";
-            thread.Start();
-            ioThread = new Thread(IOVoid);
-            ioThread.Name = "ChunkLoaderIOThread";
-            ioThread.Start();
+            workers = new Worker[threads];
+            idle = threads;
+            ioIdle = ioThreads;
+            for (int i = 0; i < threads; i++)
+            {
+                workers[i].Id = i;
+                workers[i].Handle = new AutoResetEvent(false);
+                workers[i].Thread = new Thread(LoadVoid);
+                workers[i].Thread.Name = "ChunkLoader Worker";
+                workers[i].Thread.Start(i);
+                workers[i].Pool = new();
+            }
+
+            ioWorkers = new Worker[ioThreads];
+
+            for (int i = 0; i < ioThreads; i++)
+            {
+                ioWorkers[i].Id = i;
+                ioWorkers[i].Handle = new AutoResetEvent(false);
+                ioWorkers[i].Thread = new Thread(IOVoid);
+                ioWorkers[i].Thread.Name = "ChunkLoader IO Worker";
+                ioWorkers[i].Thread.Start(i);
+            }
+
             RegenerateCache();
         }
 
@@ -74,47 +99,70 @@ namespace VoxelEngine.Voxel
 
         public IReadOnlyList<Chunk> LoadedChunks => loadedChunks;
 
-        public IReadOnlyList<ChunkRegion> LoadedChunkRegions => loadedInternal;
-#if !USE_LEGACY_LOADER
-        public IReadOnlyList<RenderRegion> LoadedRenderRegions => renderRegions;
-#endif
-        public bool Idle => idle;
+        public IReadOnlyList<ChunkSegment> LoadedChunkSegments => loadedInternal;
 
-        public bool IOIdle => ioIdle;
+        public IReadOnlyList<RenderRegion> LoadedRenderRegions => renderRegions;
+
+        public bool Idle => idle == 0;
+
+        public bool IOIdle => ioIdle == 0;
 
         public int UpdateQueueCount => updateQueue.Count;
 
         public int UploadQueueCount => uploadQueue.Count;
 
+        public int GenerationQueueCount => generationQueue.Count;
+
+        public int LoadQueueCount => loadQueue.Count;
+
         public int UnloadQueueCount => unloadQueue.Count;
 
         public int UnloadIOQueueCount => unloadIOQueue.Count;
-#if !USE_LEGACY_LOADER
+
+        public int LoadIOQueueCount => loadIOQueue.Count;
+
+        public int SaveIOQueueCount => saveIOQueue.Count;
+
         public int RenderRegionCount => renderRegions.Count;
-#else
-        public int RenderRegionCount => 0;
-#endif
-        public int ChunkRegionCount => loadedInternal.Count;
+
+        public int ChunkSegmentCount => loadedInternal.Count;
 
         public int ChunkCount => loadedChunks.Count;
 
-        private static IEnumerable<Vector2> GetIndices(Vector3 center)
+        public bool DoNotSave { get; set; } = true;
+
+        private static IEnumerable<Vector2> GetIndices(Vector3 center, int radius)
         {
-            int halfDistance = (int)(Nucleus.Settings.ChunkRenderDistance * 0.5f);
-            for (int x = -halfDistance; x < halfDistance; x++)
+            for (int x = -radius; x < radius; x++)
             {
-                for (int z = -halfDistance; z < halfDistance; z++)
+                for (int z = -radius; z < radius; z++)
                 {
                     yield return new Vector2(x, z) + new Vector2(center.X, center.Z);
                 }
             }
         }
 
+        private void SignalWorkers()
+        {
+            for (int i = 0; i < workers.Length; i++)
+            {
+                workers[i].Handle.Set();
+            }
+        }
+
+        private void SignalIOWorkers()
+        {
+            for (int i = 0; i < ioWorkers.Length; i++)
+            {
+                ioWorkers[i].Handle.Set();
+            }
+        }
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void RegenerateCache()
         {
-            indicesCache = GetIndices(Vector3.Zero).ToArray();
-
+            indicesRenderCache = GetIndices(Vector3.Zero, Nucleus.Settings.ChunkRenderDistance).ToArray();
+            indicesPreloadCache = GetIndices(Vector3.Zero, Nucleus.Settings.ChunkRenderDistance).ToArray();
             static int compare(Vector2 a, Vector2 b)
             {
                 float da = Vector2.Distance(Vector2.Zero, a);
@@ -132,21 +180,23 @@ namespace VoxelEngine.Voxel
                 return 0;
             }
 
-            Array.Sort(indicesCache, compare);
+            Array.Sort(indicesRenderCache, compare);
+            Array.Sort(indicesPreloadCache, compare);
         }
-
-#if !USE_LEGACY_LOADER
 
         private RenderRegion FindRenderRegion(Vector2 pos)
         {
+            semaphore.Wait();
             for (int i = 0; i < renderRegions.Count; i++)
             {
                 RenderRegion renderRegion = renderRegions[i];
                 if (renderRegion.ContainsRegionPos(pos))
                 {
+                    semaphore.Release();
                     return renderRegion;
                 }
             }
+
             const int regionSize = 4;
             float x = pos.X % regionSize;
             float y = pos.Y % regionSize;
@@ -160,29 +210,71 @@ namespace VoxelEngine.Voxel
             {
                 p.Y -= regionSize;
             }
-            RenderRegion region = new(p, new(regionSize));
+
+            RenderRegion region;
+
+            region = new(p, new(regionSize));
             renderRegions.Add(region);
 
+            semaphore.Release();
             return region;
         }
 
-#endif
-
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Dispatch(Vector3 vector)
+        public void Dispatch(Vector3 pos)
         {
-            positionQueue.Clear();
-            positionQueue.Enqueue(vector);
-            waitHandle.Set();
+            loadedChunksIndices.Clear();
+
+            // Load chunks
+            for (int i = 0; i < indicesRenderCache.Length; i++)
+            {
+                Vector2 vector = indicesRenderCache[i];
+                Vector2 vec = new(vector.X + pos.X, vector.Y + pos.Z);
+                loadedChunksIndices.Add(vec);
+                Vector3 chunkVGlobal = new(vec.X, 0, vec.Y);
+
+                if (loadedRegionIds.Contains(vec))
+                {
+                    continue;
+                }
+
+                loadedRegionIds.Add(vec);
+
+                if (!World.InWorldLimits((int)chunkVGlobal.X, 0, (int)chunkVGlobal.Z))
+                {
+                    continue;
+                }
+
+                ChunkSegment segment = World.GetSegment(chunkVGlobal);
+                loadIOQueue.Enqueue(segment);
+            }
+
+            // Unload chunks
+            for (int i = 0; i < loadedInternal.Count; i++)
+            {
+                ChunkSegment segment = loadedInternal[i];
+                if (!loadedChunksIndices.Contains(segment.Position))
+                {
+                    unloadIOQueue.Enqueue(segment);
+                }
+                loadedRegionIds.Remove(segment.Position);
+            }
+
+            SignalIOWorkers();
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Dispatch(Chunk chunk)
         {
             chunk.UnloadFormSimulation();
-            ChunkRegion region = World.GetRegion(chunk.Position);
-            updateQueue.Enqueue(region);
-            waitHandle.Set();
+            ChunkSegment segment = World.GetSegment(chunk.Position);
+            if (updateQueue.Contains(segment))
+            {
+                return;
+            }
+            updateQueue.Enqueue(segment);
+            saveIOQueue.Enqueue(segment);
+            SignalIOWorkers();
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -192,28 +284,23 @@ namespace VoxelEngine.Voxel
             {
                 return;
             }
-#if USE_LEGACY_LOADER
-            while (uploadQueue.TryDequeue(out ChunkRegion region))
-            {
-                region.Upload(device);
-            }
-#else
+
             while (uploadQueue.TryDequeue(out RenderRegion region))
             {
                 region.Update(device, context);
             }
-#endif
-            while (integrationQueue.TryDequeue(out ChunkRegion region))
+
+            while (integrationQueue.TryDequeue(out ChunkSegment segment))
             {
-                loadedChunks.AddRange(region.Chunks);
+                loadedChunks.AddRange(segment.Chunks);
             }
 
-            while (unloadQueue.TryDequeue(out ChunkRegion region))
+            while (unloadQueue.TryDequeue(out ChunkSegment segment))
             {
-                region.Unload();
-                for (int i = 0; i < region.Chunks.Length; i++)
+                for (int i = 0; i < segment.Chunks.Length; i++)
                 {
-                    Chunk chunk = region.Chunks[i];
+                    Chunk chunk = segment.Chunks[i];
+                    chunk.UnloadFromGPU();
                     chunk.UnloadFormSimulation();
                     _ = loadedChunks.Remove(chunk);
                 }
@@ -221,62 +308,84 @@ namespace VoxelEngine.Voxel
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void PreLoadBatch(Vector3 chunkVGlobal)
+        private void LoadIORegion(ChunkSegment segment)
         {
-            if (!World.InChunkBounds((int)chunkVGlobal.X, 0, (int)chunkVGlobal.Z))
+            if (loadedInternal.Contains(segment))
             {
                 return;
             }
 
-            ChunkRegion region = World.GetRegion(chunkVGlobal);
-            if (loadedInternal.Contains(region))
+            if (segment.IsEmpty | !segment.InMemory)
             {
-                return;
-            }
-
-            if (region.IsEmpty | !region.InMemory)
-            {
-                if (region.ExistOnDisk(World))
+                if (segment.ExistOnDisk(World))
                 {
-                    region.LoadFromDiskUnsafe(World);
+                    segment.LoadFromDisk(World);
                 }
                 else
                 {
-                    region.Generate(World);
+                    generationQueue.Enqueue(segment);
                 }
             }
 
-            if (!region.InMemory)
+            loadQueue.Enqueue(segment);
+        }
+
+        private void GenerateRegion(ChunkSegment segment)
+        {
+            segment.Generate(World);
+            saveIOQueue.Enqueue(segment);
+            loadQueue.Enqueue(segment);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void LoadRegion(ChunkSegment segment, BufferPool pool)
+        {
+            if (!segment.InMemory)
             {
                 return;
             }
 
-            region.Load();
-            loadedInternal.Add(region);
-            integrationQueue.Enqueue(region);
-#if USE_LEGACY_LOADER
-            uploadQueue.Enqueue(region);
-#else
-            RenderRegion renderRegion = FindRenderRegion(region.Position);
-            renderRegion.ChunkRegions.Add(region);
+            segment.Load(pool);
+
+            loadedInternal.Add(segment);
+            integrationQueue.Enqueue(segment);
+
+            RenderRegion renderRegion = FindRenderRegion(segment.Position);
+            renderRegion.AddRegion(segment);
             if (!uploadQueue.Contains(renderRegion))
             {
                 uploadQueue.Enqueue(renderRegion);
             }
-#endif
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void Unload(ChunkRegion region)
+        private void UpdateRegion(ChunkSegment segment, BufferPool pool)
         {
-            if (region.IsEmpty)
+            if (!segment.InMemory)
             {
                 return;
             }
-#if !USE_LEGACY_LOADER
-            RenderRegion renderRegion = FindRenderRegion(region.Position);
-            renderRegion.ChunkRegions.Remove(region);
-            if (renderRegion.ChunkRegions.Count == 0)
+
+            segment.Load(pool);
+
+            RenderRegion renderRegion = FindRenderRegion(segment.Position);
+            if (!uploadQueue.Contains(renderRegion))
+            {
+                uploadQueue.Enqueue(renderRegion);
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void UnloadIORegion(ChunkSegment segment)
+        {
+            if (segment.IsEmpty)
+            {
+                return;
+            }
+
+            RenderRegion renderRegion = FindRenderRegion(segment.Position);
+            renderRegion.RemoveRegion(segment);
+            if (renderRegion.RegionCount == 0)
             {
                 renderRegions.Remove(renderRegion);
                 renderRegion.Release();
@@ -285,84 +394,89 @@ namespace VoxelEngine.Voxel
             {
                 uploadQueue.Enqueue(renderRegion);
             }
-#endif
 
-            region.Save();
-            _ = loadedInternal.Remove(region);
+            segment.SaveToDisk();
+            segment.UnloadFromMem();
+            loadedInternal.Remove(segment);
+            unloadQueue.Enqueue(segment);
         }
 
-        private readonly HashSet<Vector2> loadedChunksIndices = new(Nucleus.Settings.ChunkRenderDistance * Nucleus.Settings.ChunkRenderDistance);
+        private readonly HashSet<Vector2> loadedChunksIndices = new(Nucleus.Settings.ChunkRenderDistance * 2 * Nucleus.Settings.ChunkRenderDistance * 2);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void LoadVoid()
+        private void LoadVoid(object param)
         {
+            int id = (int)param;
+            Worker worker = workers[id];
             while (running)
             {
-                while (updateQueue.TryDequeue(out ChunkRegion region) && running)
                 {
-                    region.Load();
-#if USE_LEGACY_LOADER
-                    uploadQueue.Enqueue(region);
-#else
-                    RenderRegion renderRegion = FindRenderRegion(region.Position);
-                    if (!uploadQueue.Contains(renderRegion))
+                    if (updateQueue.TryDequeue(out ChunkSegment segment) && running)
                     {
-                        uploadQueue.Enqueue(renderRegion);
+                        UpdateRegion(segment, worker.Pool);
                     }
-#endif
                 }
 
-                if (positionQueue.TryDequeue(out Vector3 pos) && running)
+                bool gen = !generationQueue.IsEmpty;
                 {
-                    loadedChunksIndices.Clear();
-
-                    // Load chunks
-                    for (int i = 0; i < indicesCache.Length; i++)
+                    if (generationQueue.TryDequeue(out ChunkSegment segment) && running)
                     {
-                        Vector2 vector = indicesCache[i];
-                        Vector2 vec = new(vector.X + pos.X, vector.Y + pos.Z);
-                        loadedChunksIndices.Add(vec);
-                        PreLoadBatch(new Vector3(vec.X, 0, vec.Y));
+                        GenerateRegion(segment);
                     }
-
-                    // Unload chunks
-                    for (int i = 0; i < loadedInternal.Count; i++)
-                    {
-                        ChunkRegion region = loadedInternal[i];
-                        if (!loadedChunksIndices.Contains(region.Position))
-                        {
-                            unloadIOQueue.Enqueue(region);
-                        }
-                    }
-
-                    waitIOHandle.Set();
+                }
+                if (gen)
+                {
+                    SignalIOWorkers();
                 }
 
-                if (running)
                 {
-                    idle = true;
-                    waitHandle.WaitOne();
-                    idle = false;
+                    if (loadQueue.TryDequeue(out ChunkSegment segment) && running)
+                    {
+                        LoadRegion(segment, worker.Pool);
+                    }
+                }
+
+                if (running && updateQueue.IsEmpty && generationQueue.IsEmpty && loadQueue.IsEmpty)
+                {
+                    Interlocked.Decrement(ref idle);
+                    worker.Handle.WaitOne();
+                    Interlocked.Increment(ref idle);
                 }
             }
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void IOVoid()
+        private void IOVoid(object param)
         {
+            int id = (int)param;
+            Worker worker = ioWorkers[id];
             while (running)
             {
-                while (unloadIOQueue.TryDequeue(out ChunkRegion region))
+                while (unloadIOQueue.TryDequeue(out ChunkSegment segment) && running)
                 {
-                    Unload(region);
-                    unloadQueue.Enqueue(region);
+                    UnloadIORegion(segment);
                 }
+
+                while (saveIOQueue.TryDequeue(out ChunkSegment segment) && running)
+                {
+                    if (!DoNotSave)
+                    {
+                        segment.SaveToDisk();
+                    }
+                }
+
+                while (loadIOQueue.TryDequeue(out ChunkSegment segment) && running)
+                {
+                    LoadIORegion(segment);
+                }
+
+                SignalWorkers();
 
                 if (running)
                 {
-                    ioIdle = true;
-                    waitIOHandle.WaitOne();
-                    ioIdle = false;
+                    Interlocked.Decrement(ref ioIdle);
+                    worker.Handle.WaitOne();
+                    Interlocked.Increment(ref ioIdle);
                 }
             }
         }
@@ -370,23 +484,29 @@ namespace VoxelEngine.Voxel
         public void Dispose()
         {
             running = false;
-            waitHandle.Set();
-            waitIOHandle.Set();
-            thread.Join();
-            ioThread.Join();
+
+            for (int i = 0; i < workers.Length; i++)
+            {
+                workers[i].Handle.Set();
+                workers[i].Thread.Join();
+            }
+
+            for (int i = 0; i < ioWorkers.Length; i++)
+            {
+                ioWorkers[i].Handle.Set();
+                ioWorkers[i].Thread.Join();
+            }
 
             for (int i = 0; i < loadedInternal.Count; i++)
             {
-                ChunkRegion region = loadedInternal[i];
-                region.Unload();
+                ChunkSegment segment = loadedInternal[i];
+                segment.Unload();
             }
 
-#if !USE_LEGACY_LOADER
             for (int i = 0; i < renderRegions.Count; i++)
             {
                 renderRegions[i].Release();
             }
-#endif
 
             loadedInternal.Clear();
             GC.SuppressFinalize(this);

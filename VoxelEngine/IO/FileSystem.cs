@@ -57,9 +57,16 @@
 
         public static string[] ReadAllLines(string path)
         {
-            VirtualStream fs = Open(path);
-            StreamReader reader = new(fs);
+            using VirtualStream fs = Open(path);
+            using StreamReader reader = new(fs);
             return reader.ReadToEnd().Split(Environment.NewLine);
+        }
+
+        public static string ReadAllText(string path)
+        {
+            using VirtualStream fs = Open(path);
+            using StreamReader reader = new(fs);
+            return reader.ReadToEnd();
         }
     }
 }

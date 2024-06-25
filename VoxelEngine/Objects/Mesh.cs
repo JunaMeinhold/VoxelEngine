@@ -2,7 +2,7 @@
 {
     using System.Runtime.CompilerServices;
     using Vortice.Direct3D11;
-    using VoxelEngine.Rendering.D3D;
+    using VoxelEngine.Graphics.Buffers;
     using VoxelEngine.Rendering.Shaders;
     using VoxelEngine.Resources;
 
@@ -63,19 +63,21 @@
             return BindType.None;
         }
 
-        public void DrawAuto(ID3D11DeviceContext context, Pipeline pipeline)
+        public void DrawAuto(ID3D11DeviceContext context, GraphicsPipeline pipeline)
         {
             if (HasIndexBuffer)
             {
                 VertexBuffer.Bind(context, 0);
                 IndexBuffer.Bind(context);
-                pipeline.DrawIndexed(context, IndexBuffer.IndexCount, 0, 0);
+                pipeline.Begin(context);
+                context.DrawIndexed(IndexBuffer.Count, 0, 0);
                 return;
             }
             if (HasVertexBuffer)
             {
                 VertexBuffer.Bind(context, 0);
-                pipeline.Draw(context, VertexBuffer.VertexCount, 0);
+                pipeline.Begin(context);
+                context.Draw(VertexBuffer.Count, 0);
                 return;
             }
         }
