@@ -1,25 +1,45 @@
 ﻿namespace VoxelEngine.Rendering.D3D
 {
     using System.Runtime.CompilerServices;
-    using Vortice.Direct3D11;
-    using Vortice.DXGI;
+    using Silk.NET.Direct3D11;
+    using Silk.NET.DXGI;
+    using VoxelEngine.Graphics.D3D.Interfaces;
     using VoxelEngine.Graphics.Shaders;
     using VoxelEngine.IO;
     using VoxelEngine.Rendering.D3D.Interfaces;
     using VoxelEngine.Resources;
 
+    public interface IShaderResourceView : IDeviceChild
+    {
+    }
+
+    public interface IResource : IDeviceChild
+    {
+    }
+
+    public interface ITexture3D : IDeviceChild
+    {
+    }
+
+    public interface IGraphicsDevice : IDeviceChild
+    {
+        IShaderResourceView CreateShaderResourceView(IResource resource);
+
+        ITexture3D CreateTexture3D(Texture3DDesc description);
+    }
+
     public unsafe class Texture3D : Resource, IShaderResource
     {
         private readonly string dbgName;
-        private Texture3DDescription description;
+        private Texture3DDesc description;
         private Format format;
         private int width;
         private int height;
         private int mipLevels;
         private int arraySize;
-        private CpuAccessFlags cpuAccessFlags;
+        private CpuAccessFlag cpuAccessFlags;
         private GpuAccessFlags gpuAccessFlags;
-        private ResourceOptionFlags miscFlag;
+        private ResourceMiscFlag miscFlag;
         private bool canWrite;
         private bool canRead;
 
@@ -29,7 +49,7 @@
         private int slicePitch;
         private byte* local;
 
-        private ID3D11Texture3D texture;
+        private ITexture3D texture;
         private ID3D11UnorderedAccessView uav;
         private ID3D11ShaderResourceView srv;
         private ID3D11RenderTargetView rtv;
@@ -39,9 +59,9 @@
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Texture3D(ID3D11Device device, string path)
+        public Texture3D(IGraphicsDevice device, string path)
         {
-            ID3D11Texture3D image = TextureHelper.LoadTexture3DFile(device, Paths.CurrentTexturePath + path);
+            ITexture3D image = TextureHelper.LoadTexture3DFile(device, Paths.CurrentTexturePath + path);
             texture = image;
             texture.DebugName = nameof(Texture3D);
             srv = device.CreateShaderResourceView(texture);
@@ -49,71 +69,71 @@
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Texture3D(ID3D11Device device, Format format, int width, int height, int arraySize = 1, int mipLevels = 0, CpuAccessFlags cpuAccessFlags = CpuAccessFlags.None, GpuAccessFlags gpuAccessFlags = GpuAccessFlags.None, ResourceOptionFlags miscFlags = ResourceOptionFlags.None)
+        public Texture3D(IGraphicsDevice device, Format format, int width, int height, int arraySize = 1, int mipLevels = 0, CpuAccessFlag cpuAccessFlags = CpuAccessFlag.None, GpuAccessFlags gpuAccessFlags = GpuAccessFlags.None, ResourceMiscFlag miscFlags = ResourceMiscFlag.None)
         {
-            Texture3DDescription description = new(format, width, height, arraySize, mipLevels, BindFlags.None, ResourceUsage.Default, cpuAccessFlags, miscFlags);
-            if ((cpuAccessFlags & CpuAccessFlags.Read) != 0 && (gpuAccessFlags & GpuAccessFlags.Read) != 0)
+            Texture3DDesc description = new((uint)width, (uint)height, (uint)arraySize, (uint)mipLevels, format, Usage.Default, (uint)BindFlag.None, (uint)cpuAccessFlags, (uint)miscFlags);
+            if ((cpuAccessFlags & CpuAccessFlag.Read) != 0 && (gpuAccessFlags & GpuAccessFlags.Read) != 0)
             {
                 throw new ArgumentException("Cpu and Gpu cannot read at the same time");
             }
 
-            if ((cpuAccessFlags & CpuAccessFlags.Write) != 0 && (gpuAccessFlags & GpuAccessFlags.Write) != 0)
+            if ((cpuAccessFlags & CpuAccessFlag.Write) != 0 && (gpuAccessFlags & GpuAccessFlags.Write) != 0)
             {
                 throw new ArgumentException("Cpu and Gpu cannot write at the same time");
             }
 
-            if (cpuAccessFlags != CpuAccessFlags.None && (gpuAccessFlags & GpuAccessFlags.UA) != 0)
+            if (cpuAccessFlags != CpuAccessFlag.None && (gpuAccessFlags & GpuAccessFlags.UA) != 0)
             {
                 throw new ArgumentException("Cpu and Gpu cannot use rw with uva at the same time");
             }
 
             if ((gpuAccessFlags & GpuAccessFlags.Read) != 0)
             {
-                description.Usage = ResourceUsage.Default;
-                description.BindFlags |= BindFlags.ShaderResource;
+                description.Usage = Usage.Default;
+                description.BindFlags |= (uint)BindFlag.ShaderResource;
             }
 
             if ((gpuAccessFlags & GpuAccessFlags.Write) != 0)
             {
-                description.Usage = ResourceUsage.Default;
-                description.BindFlags |= BindFlags.RenderTarget;
+                description.Usage = Usage.Default;
+                description.BindFlags |= (uint)BindFlag.RenderTarget;
             }
 
             if ((gpuAccessFlags & GpuAccessFlags.UA) != 0)
             {
-                description.Usage = ResourceUsage.Default;
-                description.BindFlags |= BindFlags.UnorderedAccess;
+                description.Usage = Usage.Default;
+                description.BindFlags |= (uint)BindFlag.UnorderedAccess;
             }
 
-            if ((cpuAccessFlags & CpuAccessFlags.Write) != 0)
+            if ((cpuAccessFlags & CpuAccessFlag.Write) != 0)
             {
-                description.Usage = ResourceUsage.Dynamic;
-                description.BindFlags = BindFlags.ShaderResource;
+                description.Usage = Usage.Dynamic;
+                description.BindFlags = (uint)BindFlag.ShaderResource;
             }
 
-            if ((cpuAccessFlags & CpuAccessFlags.Read) != 0)
+            if ((cpuAccessFlags & CpuAccessFlag.Read) != 0)
             {
-                description.Usage = ResourceUsage.Staging;
-                description.BindFlags = BindFlags.None;
+                description.Usage = Usage.Staging;
+                description.BindFlags = (uint)BindFlag.None;
             }
 
-            ID3D11Texture3D image = device.CreateTexture3D(description);
+            ITexture3D image = device.CreateTexture3D(description);
             texture = image;
             texture.DebugName = nameof(Texture3D);
 
-            if ((description.BindFlags & BindFlags.UnorderedAccess) != 0)
+            if ((description.BindFlags & (uint)BindFlag.UnorderedAccess) != 0)
             {
                 uav = device.CreateUnorderedAccessView(texture, new(texture, arraySize > 1 ? UnorderedAccessViewDimension.Texture2DArray : UnorderedAccessViewDimension.Texture2D));
                 uav.DebugName = nameof(Texture3D) + ".UAV";
             }
 
-            if ((description.BindFlags & BindFlags.ShaderResource) != 0)
+            if ((description.BindFlags & (uint)BindFlag.ShaderResource) != 0)
             {
                 srv = device.CreateShaderResourceView(texture);
                 srv.DebugName = nameof(Texture3D) + ".SRV";
             }
 
-            if ((description.BindFlags & BindFlags.RenderTarget) != 0)
+            if ((description.BindFlags & (uint)BindFlag.RenderTarget) != 0)
             {
                 rtv = device.CreateRenderTargetView(texture);
                 rtv.DebugName = nameof(Texture3D) + ".RTV";
@@ -121,7 +141,7 @@
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Texture3D(ID3D11Device device, Texture3DDescription description, SubresourceData initialData)
+        public Texture3D(ID3D11Device device, Texture3DDesc description, SubresourceData initialData)
         {
             ID3D11Texture3D image = device.CreateTexture3D(description, new SubresourceData[] { initialData });
             texture = image;
@@ -131,7 +151,7 @@
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Texture3D(ID3D11Device device, Texture3DDescription description, SubresourceData[] initialData)
+        public Texture3D(ID3D11Device device, Texture3DDesc description, SubresourceData[] initialData)
         {
             ID3D11Texture3D image = device.CreateTexture3D(description, initialData);
             texture = image;
@@ -158,34 +178,7 @@
 
         public ID3D11SamplerState Sampler;
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Bind(ID3D11DeviceContext context, int slot, ShaderStage stage)
-        {
-            switch (stage)
-            {
-                case ShaderStage.Vertex:
-                    context.VSSetShaderResource(slot, srv);
-                    context.VSSetSampler(slot, Sampler);
-                    break;
-
-                case ShaderStage.Hull:
-                    context.HSSetShaderResource(slot, srv);
-                    context.HSSetSampler(slot, Sampler);
-                    break;
-
-                case ShaderStage.Domain:
-                    context.DSSetShaderResource(slot, srv);
-                    context.DSSetSampler(slot, Sampler);
-                    break;
-
-                case ShaderStage.Pixel:
-                    context.PSSetShaderResource(slot, srv);
-                    context.PSSetSampler(slot, Sampler);
-                    break;
-            }
-        }
-
-        public void Resize(ID3D11Device device, Format format, int width, int height, int arraySize, int mipLevels, CpuAccessFlags cpuAccessFlags, GpuAccessFlags gpuAccessFlags = GpuAccessFlags.Read, ResourceOptionFlags miscFlag = ResourceOptionFlags.None)
+        public void Resize(ID3D11Device device, Format format, int width, int height, int arraySize, int mipLevels, CpuAccessFlag cpuAccessFlags, GpuAccessFlags gpuAccessFlags = GpuAccessFlags.Read, ResourceMiscFlag miscFlag = ResourceMiscFlag.None)
         {
             this.format = format;
             this.width = width;
@@ -195,33 +188,33 @@
             this.cpuAccessFlags = cpuAccessFlags;
             this.gpuAccessFlags = gpuAccessFlags;
             this.miscFlag = miscFlag;
-            description = new(format, width, height, arraySize, mipLevels, BindFlags.ShaderResource | BindFlags.RenderTarget, ResourceUsage.Default, cpuAccessFlags, miscFlag);
+            description = new((uint)width, (uint)height, (uint)arraySize, (uint)mipLevels, format, Usage.Default, (uint)BindFlag.ShaderResource | (uint)BindFlag.RenderTarget, (uint)cpuAccessFlags, (uint)miscFlag);
 
-            if ((cpuAccessFlags & CpuAccessFlags.Read) != 0 && (gpuAccessFlags & GpuAccessFlags.Read) != 0)
+            if ((cpuAccessFlags & CpuAccessFlag.Read) != 0 && (gpuAccessFlags & GpuAccessFlags.Read) != 0)
             {
                 throw new ArgumentException("Cpu and Gpu cannot read at the same time");
             }
 
-            if ((cpuAccessFlags & CpuAccessFlags.Write) != 0 && (gpuAccessFlags & GpuAccessFlags.Write) != 0)
+            if ((cpuAccessFlags & CpuAccessFlag.Write) != 0 && (gpuAccessFlags & GpuAccessFlags.Write) != 0)
             {
                 throw new ArgumentException("Cpu and Gpu cannot write at the same time");
             }
 
-            if ((cpuAccessFlags & CpuAccessFlags.Write) != 0)
+            if ((cpuAccessFlags & CpuAccessFlag.Write) != 0)
             {
-                description.Usage = ResourceUsage.Dynamic;
-                description.BindFlags = BindFlags.ShaderResource;
+                description.Usage = Usage.Dynamic;
+                description.BindFlags = (uint)BindFlag.ShaderResource;
                 canWrite = true;
             }
 
-            if ((cpuAccessFlags & CpuAccessFlags.Read) != 0)
+            if ((cpuAccessFlags & CpuAccessFlag.Read) != 0)
             {
-                description.Usage = ResourceUsage.Staging;
-                description.BindFlags = BindFlags.None;
+                description.Usage = Usage.Staging;
+                description.BindFlags = (uint)BindFlag.None;
                 canRead = true;
             }
 
-            if (cpuAccessFlags != CpuAccessFlags.None)
+            if (cpuAccessFlags != CpuAccessFlag.None)
             {
                 local = (byte*)Alloc(rowPitch * height);
                 ZeroMemory(local, rowPitch * height);
@@ -234,19 +227,19 @@
             texture = device.CreateTexture3D(description);
             texture.DebugName = dbgName;
 
-            if ((description.BindFlags & BindFlags.UnorderedAccess) != 0)
+            if ((description.BindFlags & (uint)BindFlag.UnorderedAccess) != 0)
             {
                 uav = device.CreateUnorderedAccessView(texture, new(texture, arraySize > 1 ? UnorderedAccessViewDimension.Texture2DArray : UnorderedAccessViewDimension.Texture2D));
                 uav.DebugName = dbgName + ".UAV";
             }
 
-            if ((description.BindFlags & BindFlags.ShaderResource) != 0)
+            if ((description.BindFlags & (uint)BindFlag.ShaderResource) != 0)
             {
                 srv = device.CreateShaderResourceView(texture);
                 srv.DebugName = dbgName + ".SRV";
             }
 
-            if ((description.BindFlags & BindFlags.RenderTarget) != 0)
+            if ((description.BindFlags & (uint)BindFlag.RenderTarget) != 0)
             {
                 rtv = device.CreateRenderTargetView(texture);
                 rtv.DebugName = dbgName + ".RTV";

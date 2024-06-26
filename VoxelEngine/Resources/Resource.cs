@@ -3,6 +3,7 @@
     using System;
     using System.Diagnostics;
 
+    [Obsolete]
     public abstract class Resource : IDisposable
     {
         public Resource()

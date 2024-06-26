@@ -1,18 +1,22 @@
 ﻿namespace VoxelEngine.Audio
 {
-    using Vortice.XAudio2;
+    using Hexa.NET.XAudio2;
+    using HexaGen.Runtime.COM;
 
-    public class SubmixVoice : VoiceGroup
+    public unsafe class SubmixVoice : VoiceGroup
     {
         private bool disposedValue;
 
         public SubmixVoice()
         {
-            Voice = Audio2SubmixVoice = AudioManager.IXAudio2.CreateSubmixVoice();
+            IXAudio2SubmixVoice* submixVoice;
+            AudioManager.IXAudio2.CreateSubmixVoice(&submixVoice, 0, 0, 0, 0, null, null);
+            Audio2SubmixVoice = submixVoice;
+            Voice = (IXAudio2Voice*)submixVoice;
             AudioManager.VoiceGroups.Add(this);
         }
 
-        public IXAudio2SubmixVoice Audio2SubmixVoice { get; set; }
+        public ComPtr<IXAudio2SubmixVoice> Audio2SubmixVoice { get; set; }
 
         protected virtual void Dispose(bool disposing)
         {

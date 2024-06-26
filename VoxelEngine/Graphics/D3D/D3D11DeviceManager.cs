@@ -2,54 +2,60 @@
 {
     using System.Diagnostics;
     using System.Runtime.CompilerServices;
-    using Vortice.Direct3D;
-    using Vortice.Direct3D11;
-    using Vortice.Direct3D11.Debug;
-    using Vortice.DXGI;
+    using Silk.NET.Core.Native;
+    using Silk.NET.Direct3D11;
+    using Silk.NET.DXGI;
 
-    public static class D3D11DeviceManager
+    public static unsafe class D3D11DeviceManager
     {
-        internal static readonly FeatureLevel[] FeatureLevels =
-        {
-            FeatureLevel.Level_12_1,
-            FeatureLevel.Level_12_0,
-            FeatureLevel.Level_11_1,
-            FeatureLevel.Level_11_0,
-        };
+        public static readonly D3D11 D3D11 = D3D11.GetApi();
 
-        private static FeatureLevel _featureLevel;
-        private static ID3D11Device1 iD3D11Device;
-        private static ID3D11DeviceContext1 iD3D11DeviceContext;
+        private static D3DFeatureLevel _featureLevel;
+        private static ComPtr<ID3D11Device5> iD3D11Device;
+        private static ComPtr<ID3D11DeviceContext4> iD3D11DeviceContext;
 
-        public static ID3D11Device1 ID3D11Device => iD3D11Device;
+        public static ComPtr<ID3D11Device5> ID3D11Device => iD3D11Device;
 
-        public static ID3D11DeviceContext1 ID3D11DeviceContext => iD3D11DeviceContext;
+        public static ComPtr<ID3D11DeviceContext4> ID3D11DeviceContext => iD3D11DeviceContext;
 
-        public static FeatureLevel FeatureLevel => _featureLevel;
+        public static D3DFeatureLevel FeatureLevel => _featureLevel;
 
 #if D3D_DEBUG
-        public static ID3D11Debug DebugDevice { get; private set; }
+        public static ComPtr<ID3D11Debug> DebugDevice { get; private set; }
+
 #endif
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void InitializeDevice(IDXGIAdapter4 adapter)
+        public static void InitializeDevice(ComPtr<IDXGIAdapter4> adapter)
         {
-            DeviceCreationFlags flags = DeviceCreationFlags.BgraSupport;
+            CreateDeviceFlag flags = CreateDeviceFlag.BgraSupport;
 #if D3D_DEBUG
-            flags |= DeviceCreationFlags.Debug;
+            flags |= CreateDeviceFlag.Debug;
 #endif
 
 #if D3D11On12
             D3D11On12DeviceManager.InitializeDevice(adapter, flags, FeatureLevels, out iD3D11Device, out iD3D11DeviceContext, out _featureLevel);
 #else
-
-            D3D11.D3D11CreateDevice(adapter, DriverType.Unknown, flags, FeatureLevels, out ID3D11Device tempDevice, out _featureLevel, out ID3D11DeviceContext tempContext);
-            iD3D11Device = tempDevice.QueryInterface<ID3D11Device1>();
-            iD3D11Device.DebugName = nameof(ID3D11Device);
-            iD3D11DeviceContext = tempContext.QueryInterface<ID3D11DeviceContext1>();
-            iD3D11DeviceContext.DebugName = nameof(ID3D11DeviceContext);
-            tempContext.Dispose();
-            tempDevice.Dispose();
+            const int featureLevelCount = 5;
+            D3DFeatureLevel* featureLevels = stackalloc D3DFeatureLevel[]
+            {
+                D3DFeatureLevel.Level122,
+                D3DFeatureLevel.Level121,
+                D3DFeatureLevel.Level120,
+                D3DFeatureLevel.Level111,
+                D3DFeatureLevel.Level110,
+            };
+            D3DFeatureLevel featureLevel;
+            ID3D11Device* tempDevice;
+            ID3D11DeviceContext* tempContext;
+            D3D11.CreateDevice((IDXGIAdapter*)adapter.Handle, D3DDriverType.Unknown, 0, (uint)flags, featureLevels, featureLevelCount, 0, &tempDevice, &featureLevel, &tempContext);
+            _featureLevel = featureLevel;
+            iD3D11Device = tempDevice->QueryInterface<ID3D11Device5>();
+            SetDebugName(iD3D11Device, nameof(ID3D11Device));
+            iD3D11DeviceContext = tempContext->QueryInterface<ID3D11DeviceContext4>();
+            SetDebugName(iD3D11DeviceContext, nameof(ID3D11DeviceContext));
+            tempContext->Release();
+            tempDevice->Release();
 
 #endif
 
@@ -77,16 +83,16 @@
         {
 #if D3D_DEBUG
             Debug.WriteLine("BEGIN REPORT");
-            DebugDevice.ReportLiveDeviceObjects(ReportLiveDeviceObjectFlags.Detail);
+            DebugDevice.ReportLiveDeviceObjects(RldoFlags.Detail);
             Debug.WriteLine("END REPORT" + Environment.NewLine);
 #endif
-            iD3D11DeviceContext.UnsetSOTargets();
+
             iD3D11DeviceContext.ClearState();
             iD3D11DeviceContext.Flush();
 
 #if D3D_DEBUG
             Debug.WriteLine("BEGIN REPORT AFTER FLUSH");
-            DebugDevice.ReportLiveDeviceObjects(ReportLiveDeviceObjectFlags.Detail);
+            DebugDevice.ReportLiveDeviceObjects(RldoFlags.Detail);
             Debug.WriteLine("END REPORT AFTER FLUSH" + Environment.NewLine);
 #endif
 
@@ -98,7 +104,7 @@
 
 #if D3D_DEBUG
             Debug.WriteLine("BEGIN REPORT BEFORE TERMINATE");
-            DebugDevice.ReportLiveDeviceObjects(ReportLiveDeviceObjectFlags.Detail);
+            DebugDevice.ReportLiveDeviceObjects(RldoFlags.Detail);
             Debug.WriteLine("END REPORT BEFORE TERMINATE" + Environment.NewLine);
             DebugDevice.Dispose();
             DebugDevice = null;

@@ -1,19 +1,23 @@
 ﻿namespace VoxelEngine.Audio
 {
-    using Vortice.XAudio2;
+    using Hexa.NET.XAudio2;
+    using HexaGen.Runtime.COM;
 
-    public class MasteringVoice : VoiceGroup
+    public unsafe class MasteringVoice : VoiceGroup
     {
         private bool disposedValue;
 
         public MasteringVoice()
         {
-            Voice = Audio2MasteringVoice = AudioManager.IXAudio2.CreateMasteringVoice();
+            IXAudio2MasteringVoice* master;
+            AudioManager.IXAudio2.CreateMasteringVoice(&master, 0, 0, 0, null, null, AudioStreamCategory.Other);
+            Audio2MasteringVoice = master;
+            Voice = (IXAudio2Voice*)master;
             Name = "Master";
             AudioManager.VoiceGroups.Add(this);
         }
 
-        public IXAudio2MasteringVoice Audio2MasteringVoice { get; set; }
+        public ComPtr<IXAudio2MasteringVoice> Audio2MasteringVoice { get; set; }
 
         protected virtual void Dispose(bool disposing)
         {

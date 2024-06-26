@@ -1,11 +1,22 @@
 ﻿namespace VoxelEngine.Audio
 {
-    using Vortice.XAudio2;
+    using Hexa.NET.XAudio2;
+    using HexaGen.Runtime.COM;
 
-    public class Voice
+    public unsafe class Voice
     {
         public string Name { get; set; }
 
-        public IXAudio2Voice Audio2Voice { get; set; }
+        public ComPtr<IXAudio2Voice> Audio2Voice { get; set; }
+
+        public XAudio2VoiceDetails VoiceDetails
+        {
+            get
+            {
+                XAudio2VoiceDetails details;
+                Audio2Voice.GetVoiceDetails(&details);
+                return details;
+            }
+        }
     }
 }

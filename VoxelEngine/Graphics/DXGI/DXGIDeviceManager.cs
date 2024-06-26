@@ -1,23 +1,26 @@
 ﻿namespace VoxelEngine.Rendering.DXGI
 {
-    using System.Diagnostics;
+    using Silk.NET.Core.Native;
+    using Silk.NET.DXGI;
     using Silk.NET.SDL;
-    using Vortice.DXGI;
+
     using VoxelEngine.Core;
     using VoxelEngine.Core.Windows;
+    using VoxelEngine.Graphics;
     using VoxelEngine.Rendering.D3D;
 
-    public static class DXGIDeviceManager
+    public static unsafe class DXGIDeviceManager
     {
-        private static IDXGIFactory7 factory;
-        private static IDXGIAdapter4 adapter;
+        public static readonly DXGI DXGI = DXGI.GetApi();
+        private static ComPtr<IDXGIFactory7> factory;
+        private static ComPtr<IDXGIAdapter4> adapter;
 
         public static event EventHandler OnResize;
 
         public static void Initialize()
         {
             // Create the DXGIFactory1.
-            DXGI.CreateDXGIFactory2(false, out factory);
+            DXGI.CreateDXGIFactory2(0, out factory);
 
             // Get the HardwareAdapter.
             adapter = GetHardwareAdapter();
@@ -26,25 +29,25 @@
             D3D11DeviceManager.InitializeDevice(adapter);
         }
 
-        public static SwapChain CreateSwapChain(SdlWindow window)
+        public static DXGISwapChain CreateSwapChain(SdlWindow window)
         {
             var (Hwnd, HDC, HInstance) = window.Win32 ?? throw new NotSupportedException();
 
-            SwapChainDescription1 swapChainDescription = new()
+            SwapChainDesc1 swapChainDescription = new()
             {
-                Width = window.Width,
-                Height = window.Height,
-                Format = Format.B8G8R8A8_UNorm,
-                BufferCount = 3,
-                BufferUsage = Usage.RenderTargetOutput,
-                SampleDescription = new SampleDescription(1, 0),
+                Width = (uint)window.Width,
+                Height = (uint)window.Height,
+                Format = Format.FormatB8G8R8A8Unorm,
+                BufferCount = 2,
+                BufferUsage = DXGI.UsageRenderTargetOutput,
+                SampleDesc = new SampleDesc(1, 0),
                 Scaling = Scaling.Stretch,
                 SwapEffect = SwapEffect.FlipSequential,
-                Flags = SwapChainFlags.AllowModeSwitch | SwapChainFlags.AllowTearing,
+                Flags = (uint)(SwapChainFlag.AllowModeSwitch | SwapChainFlag.AllowTearing),
                 Stereo = false,
             };
 
-            SwapChainFullscreenDescription fullscreenDescription = new()
+            SwapChainFullscreenDesc fullscreenDescription = new()
             {
                 Windowed = true,
                 RefreshRate = new Rational(0, 1),
@@ -52,12 +55,13 @@
                 ScanlineOrdering = ModeScanlineOrder.Unspecified
             };
 
-            IDXGISwapChain1 swapChain = factory.CreateSwapChainForHwnd(D3D11DeviceManager.ID3D11Device, Hwnd, swapChainDescription, fullscreenDescription);
+            IDXGISwapChain1* swapChain;
+            factory.CreateSwapChainForHwnd((IUnknown*)D3D11DeviceManager.ID3D11Device.Handle, Hwnd, &swapChainDescription, &fullscreenDescription, (IDXGIOutput*)null, &swapChain).ThrowHResult();
 
             return new(D3D11DeviceManager.ID3D11Device, swapChain, swapChainDescription);
         }
 
-        public static unsafe SwapChain CreateSwapChain(Window* window)
+        public static unsafe DXGISwapChain CreateSwapChain(Window* window)
         {
             int width, height;
             Application.sdl.GetWindowSize(window, &width, &height);
@@ -66,20 +70,20 @@
             Application.sdl.GetVersion(&wmInfo.Version);
             Application.sdl.GetWindowWMInfo(window, &wmInfo);
 
-            SwapChainDescription1 swapChainDescription = new()
+            SwapChainDesc1 swapChainDescription = new()
             {
-                Width = width,
-                Height = height,
-                Format = Format.B8G8R8A8_UNorm,
-                BufferCount = 3,
-                BufferUsage = Usage.RenderTargetOutput,
-                SampleDescription = new SampleDescription(1, 0),
+                Width = (uint)width,
+                Height = (uint)height,
+                Format = Format.FormatB8G8R8A8Unorm,
+                BufferCount = 2,
+                BufferUsage = DXGI.UsageRenderTargetOutput,
+                SampleDesc = new SampleDesc(1, 0),
                 Scaling = Scaling.Stretch,
                 SwapEffect = SwapEffect.FlipSequential,
-                Flags = SwapChainFlags.AllowModeSwitch | SwapChainFlags.AllowTearing,
+                Flags = (uint)(SwapChainFlag.AllowModeSwitch | SwapChainFlag.AllowTearing),
             };
 
-            SwapChainFullscreenDescription fullscreenDescription = new()
+            SwapChainFullscreenDesc fullscreenDescription = new()
             {
                 Windowed = true,
                 RefreshRate = new Rational(0, 1),
@@ -87,8 +91,10 @@
                 ScanlineOrdering = ModeScanlineOrder.Unspecified
             };
 
+            factory.CreateSwapChainForHwnd(D3D11DeviceManager.ID3D11Device, wmInfo.Info.Win.Hwnd, &swapChainDescription, &fullscreenDescription, (IDXGIOutput*)null, out ComPtr<IDXGISwapChain1> swapChain);
+
             // Create SwapChain.
-            return new(D3D11DeviceManager.ID3D11Device, factory.CreateSwapChainForHwnd(D3D11DeviceManager.ID3D11Device, wmInfo.Info.Win.Hwnd, swapChainDescription, fullscreenDescription), swapChainDescription);
+            return new(D3D11DeviceManager.ID3D11Device, swapChain);
         }
 
         public static void Dispose()
@@ -98,32 +104,35 @@
             D3D11DeviceManager.Dispose();
         }
 
-        private static IDXGIAdapter4 GetHardwareAdapter()
+        private static ComPtr<IDXGIAdapter4> GetHardwareAdapter()
         {
-            IDXGIAdapter4 selected = null;
+            ComPtr<IDXGIAdapter4> selected = null;
 
-            for (int adapterIndex = 0;
-                factory.EnumAdapterByGpuPreference(adapterIndex, GpuPreference.HighPerformance, out IDXGIAdapter4 adapter) !=
-                ResultCode.NotFound;
+            for (uint adapterIndex = 0;
+                factory.EnumAdapterByGpuPreference(adapterIndex, GpuPreference.HighPerformance, out ComPtr<IDXGIAdapter4> adapter) !=
+                (int)ResultCode.DXGI_ERROR_NOT_FOUND;
                 adapterIndex++)
             {
-                Trace.WriteLine($"Found Adapter {adapter.Description1.Description}");
-                AdapterDescription1 desc = adapter.Description1;
+                AdapterDesc1 desc;
+                adapter.GetDesc1(&desc);
 
-                if ((desc.Flags & AdapterFlags.Software) != AdapterFlags.None)
+                if (((AdapterFlag)desc.Flags & AdapterFlag.Software) != 0)
                 {
                     // Don't select the Basic Render Driver adapter.
                     adapter.Dispose();
                     continue;
                 }
 
-                Trace.WriteLine($"Using {adapter.Description1.Description}");
+                //Trace.WriteLine($"Using {adapter.Description1.Description}");
 
                 selected = adapter;
             }
 
-            if (selected == null)
+            if (selected.Handle == null)
+            {
                 throw new NotSupportedException();
+            }
+
             return selected;
         }
     }

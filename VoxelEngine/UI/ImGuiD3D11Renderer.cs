@@ -484,7 +484,7 @@ namespace HexaEngine.Rendering.Renderers
         /// </summary>
         private class ViewportData
         {
-            public SwapChain SwapChain;
+            public DXGISwapChain SwapChain;
             public RenderTarget RTView;
         };
 

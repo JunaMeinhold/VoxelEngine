@@ -17,7 +17,7 @@
     public class GameWindow : SdlWindow
     {
         private bool firstFrame;
-        private SwapChain swapChain;
+        private DXGISwapChain swapChain;
 
         private readonly Scene scene;
         private Dispatcher renderDispatcher;
@@ -32,7 +32,7 @@
 
         public Dispatcher RenderDispatcher => renderDispatcher;
 
-        public SwapChain SwapChain => swapChain;
+        public DXGISwapChain SwapChain => swapChain;
 
         protected override void OnShown(ShownEventArgs args)
         {

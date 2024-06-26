@@ -2,43 +2,45 @@
 {
     using System.Numerics;
     using System.Runtime.CompilerServices;
-    using Vortice.XAudio2;
+    using Hexa.NET.X3DAudio;
+    using Hexa.NET.XAudio2;
 
-    public class SoundEmitter
+    public unsafe class SoundEmitter
     {
         private bool disposedValue;
+        private X3DAudioEmitter emitter;
 
         public SoundEmitter()
         {
-            Emitter = new();
-            Emitter.CurveDistanceScaler = 1;
+            emitter = new();
+            emitter.CurveDistanceScaler = 1;
         }
 
-        public Emitter Emitter { get; set; }
+        public X3DAudioEmitter Emitter { get => emitter; set => emitter = value; }
 
         public List<SourceVoice> PlayingVoices { get; set; } = new();
 
         public string Group { get; set; } = "Master";
 
-        public Vector3 OrientFront { get => Emitter.OrientFront; set => Emitter.OrientFront = value; }
+        public Vector3 OrientFront { get => emitter.OrientFront; set => emitter.OrientFront = value; }
 
-        public Vector3 OrientTop { get => Emitter.OrientTop; set => Emitter.OrientTop = value; }
+        public Vector3 OrientTop { get => emitter.OrientTop; set => emitter.OrientTop = value; }
 
-        public Vector3 Position { get => Emitter.Position; set => Emitter.Position = value; }
+        public Vector3 Position { get => emitter.Position; set => emitter.Position = value; }
 
-        public Vector3 Velocity { get => Emitter.Velocity; set => Emitter.Velocity = value; }
+        public Vector3 Velocity { get => emitter.Velocity; set => emitter.Velocity = value; }
 
-        public float InnerRadius { get => Emitter.InnerRadius; set => Emitter.InnerRadius = value; }
+        public float InnerRadius { get => emitter.InnerRadius; set => emitter.InnerRadius = value; }
 
-        public float InnerRadiusAngle { get => Emitter.InnerRadiusAngle; set => Emitter.InnerRadiusAngle = value; }
+        public float InnerRadiusAngle { get => emitter.InnerRadiusAngle; set => emitter.InnerRadiusAngle = value; }
 
-        public int ChannelCount { get => Emitter.ChannelCount; set => Emitter.ChannelCount = value; }
+        public uint ChannelCount { get => emitter.ChannelCount; set => emitter.ChannelCount = value; }
 
-        public float ChannelRadius { get => Emitter.ChannelRadius; set => Emitter.ChannelRadius = value; }
+        public float ChannelRadius { get => emitter.ChannelRadius; set => emitter.ChannelRadius = value; }
 
-        public float CurveDistanceScaler { get => Emitter.CurveDistanceScaler; set => Emitter.CurveDistanceScaler = value; }
+        public float CurveDistanceScaler { get => Emitter.CurveDistanceScaler; set => emitter.CurveDistanceScaler = value; }
 
-        public float DopplerScaler { get => Emitter.DopplerScaler; set => Emitter.DopplerScaler = value; }
+        public float DopplerScaler { get => emitter.DopplerScaler; set => emitter.DopplerScaler = value; }
 
         public void Play(SourceVoice voice)
         {
@@ -91,12 +93,22 @@
                     var vo = svoice;
                     var voice = vo.Audio2SourceVoice;
                     var group = AudioManager.GetVoiceGroup(Group);
-                    DspSettings settings = new(voice.VoiceDetails.InputChannels, group.Voice.VoiceDetails.InputChannels);
-                    AudioManager.X3DAudio.Calculate(SoundListener.Active.Listener, Emitter, CalculateFlags.Matrix | CalculateFlags.Doppler | CalculateFlags.LpfDirect | CalculateFlags.Reverb, settings);
-                    voice.SetOutputMatrix(group.Voice, voice.VoiceDetails.InputChannels, group.Voice.VoiceDetails.InputChannels, settings.MatrixCoefficients);
+                    X3DAudioDspSettings settings = new();
+                    settings.SrcChannelCount = svoice.VoiceDetails.InputChannels;
+                    settings.DstChannelCount = group.VoiceDetails.InputChannels;
+                    settings.PMatrixCoefficients = AllocT<float>(svoice.VoiceDetails.InputChannels * group.VoiceDetails.InputChannels);
+
+                    var listener = SoundListener.Active.Listener;
+                    var emitter = Emitter;
+
+                    X3DAudio.X3DAudioCalculate(AudioManager.X3DAudioHandle, &listener, &emitter, X3DAudio.X3DAudio_CALCULATE_MATRIX | X3DAudio.X3DAudio_CALCULATE_DOPPLER | X3DAudio.X3DAudio_CALCULATE_LPF_DIRECT | X3DAudio.X3DAudio_CALCULATE_REVERB, &settings);
+                    voice.SetOutputMatrix(group.Voice, svoice.VoiceDetails.InputChannels, group.VoiceDetails.InputChannels, settings.PMatrixCoefficients, 0);
                     voice.SetFrequencyRatio(settings.DopplerFactor, 0);
-                    FilterParameters parameters = new() { Type = FilterType.LowPassFilter, Frequency = 2.0f * MathF.Sin(MathF.PI / 6.0f * settings.LpfDirectCoefficient), OneOverQ = 1.0f };
-                    voice.SetFilterParameters(parameters, 0);
+
+                    XAudio2FilterParameters parameters = new(XAudio2FilterType.LowPassFilter, 2.0f * MathF.Sin(float.Pi / 6.0f * settings.LPFDirectCoefficient), 1.0f);
+                    voice.SetFilterParameters(&parameters, 0);
+
+                    Free(settings.PMatrixCoefficients);
                 }
             }
         }

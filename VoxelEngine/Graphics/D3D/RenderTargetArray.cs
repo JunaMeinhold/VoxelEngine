@@ -42,7 +42,6 @@
         public void SetTarget(ID3D11DeviceContext context)
         {
             context.OMSetRenderTargets(views, DepthStencil?.DSV);
-            context.RSSetViewport(X, Y, Width, Height, 0, 1);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

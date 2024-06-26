@@ -1,9 +1,9 @@
 ﻿namespace VoxelEngine.Rendering.D3D
 {
     using System.Runtime.CompilerServices;
-    using Vortice.Direct3D11;
-    using Vortice.DXGI;
-    using Vortice.Mathematics;
+    using Silk.NET.Core.Native;
+    using Silk.NET.Direct3D11;
+    using Silk.NET.DXGI;
     using VoxelEngine.Graphics.Shaders;
     using VoxelEngine.IO;
     using VoxelEngine.Rendering.D3D.Interfaces;
@@ -23,15 +23,15 @@
     public unsafe class Texture2D : Resource, IShaderResource
     {
         private readonly string dbgName;
-        private Texture2DDescription description;
+        private Texture2DDesc description;
         private Format format;
         private int width;
         private int height;
         private int mipLevels;
         private int arraySize;
-        private CpuAccessFlags cpuAccessFlags;
+        private CpuAccessFlag cpuAccessFlags;
         private GpuAccessFlags gpuAccessFlags;
-        private ResourceOptionFlags miscFlag;
+        private ResourceMiscFlag miscFlag;
         private bool canWrite;
         private bool canRead;
 
@@ -41,10 +41,10 @@
         private int slicePitch;
         private byte* local;
 
-        private ID3D11Texture2D texture;
-        private ID3D11UnorderedAccessView uav;
-        private ID3D11ShaderResourceView srv;
-        private ID3D11RenderTargetView rtv;
+        private ComPtr<ID3D11Texture2D> texture;
+        private ComPtr<ID3D11UnorderedAccessView> uav;
+        private ComPtr<ID3D11ShaderResourceView> srv;
+        private ComPtr<ID3D11RenderTargetView> rtv;
 
         public Texture2D()
         {
@@ -61,7 +61,7 @@
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Texture2D(ID3D11Device device, Format format, int width, int height, int arraySize = 1, int mipLevels = 0, CpuAccessFlags cpuAccessFlags = CpuAccessFlags.None, GpuAccessFlags gpuAccessFlags = GpuAccessFlags.None, ResourceOptionFlags miscFlags = ResourceOptionFlags.None)
+        public Texture2D(ID3D11Device device, Format format, int width, int height, int arraySize = 1, int mipLevels = 0, CpuAccessFlag cpuAccessFlags = CpuAccessFlag.None, GpuAccessFlags gpuAccessFlags = GpuAccessFlags.None, ResourceOptionFlags miscFlags = ResourceOptionFlags.None)
         {
             this.format = format;
             this.width = width;

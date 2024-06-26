@@ -38,7 +38,7 @@ namespace App.Renderers
     {
         private ConstantBuffer<CBCamera> camera;
 
-        private SwapChain swapChain;
+        private DXGISwapChain swapChain;
         private ChunkGeometryPipeline chunkPrepass;
         private CSMChunkPipeline chunkDepthPrepassCSM;
         private LightPipeline lightPipeline;

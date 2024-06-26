@@ -1,30 +1,60 @@
 ﻿namespace VoxelEngine.Audio
 {
     using System.Numerics;
-    using Vortice.XAudio2;
+    using Hexa.NET.X3DAudio;
 
-    public class SoundListener
+    public unsafe class SoundListener
     {
         private bool disposedValue;
+        private X3DAudioListener listener;
 
         public SoundListener()
         {
-            Listener = new();
+            listener = new();
         }
 
-        public Listener Listener { get; set; }
+        public X3DAudioListener Listener { get => listener; set => listener = value; }
 
         public static SoundListener Active { get; private set; }
 
-        public Vector3 OrientFront { get => Listener.OrientFront; set => Listener.OrientFront = value; }
+        public Vector3 OrientFront { get => listener.OrientFront; set => listener.OrientFront = value; }
 
-        public Vector3 OrientTop { get => Listener.OrientTop; set => Listener.OrientTop = value; }
+        public Vector3 OrientTop { get => listener.OrientTop; set => listener.OrientTop = value; }
 
-        public Vector3 Position { get => Listener.Position; set => Listener.Position = value; }
+        public Vector3 Position { get => listener.Position; set => listener.Position = value; }
 
-        public Vector3 Velocity { get => Listener.Velocity; set => Listener.Velocity = value; }
+        public Vector3 Velocity { get => listener.Velocity; set => listener.Velocity = value; }
 
-        public Cone? Cone { get => Listener.Cone; set => Listener.Cone = value; }
+        public X3DAudioCone? Cone
+        {
+            get
+            {
+                if (listener.PCone == null)
+                {
+                    return null;
+                }
+                return *listener.PCone;
+            }
+            set
+            {
+                if (value == null)
+                {
+                    if (listener.PCone != null)
+                    {
+                        Free(listener.PCone);
+                        listener.PCone = null;
+                    }
+                }
+                else
+                {
+                    if (listener.PCone != null)
+                    {
+                        listener.PCone = AllocTAndZero<X3DAudioCone>();
+                    }
+                    *listener.PCone = value.Value;
+                }
+            }
+        }
 
         public void Activate()
         {
@@ -44,6 +74,11 @@
             if (!disposedValue)
             {
                 Deactivate();
+                if (listener.PCone != null)
+                {
+                    Free(listener.PCone);
+                    listener.PCone = null;
+                }
                 disposedValue = true;
             }
         }

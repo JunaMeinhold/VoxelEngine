@@ -1,14 +1,15 @@
 ﻿namespace VoxelEngine.Audio
 {
     using System.Collections.Generic;
-    using Vortice.Multimedia;
-    using Vortice.XAudio2;
+    using Hexa.NET.X3DAudio;
+    using Hexa.NET.XAudio2;
+    using HexaGen.Runtime.COM;
 
-    public static class AudioManager
+    public static unsafe class AudioManager
     {
-        public static X3DAudio X3DAudio { get; private set; }
+        public static X3DAudioHandle X3DAudioHandle { get; private set; }
 
-        public static IXAudio2 IXAudio2 { get; private set; }
+        public static ComPtr<IXAudio2> IXAudio2 { get; private set; }
 
         public static MasteringVoice MasteringVoice { get; set; }
 
@@ -18,12 +19,19 @@
 
         static AudioManager()
         {
-            IXAudio2 = XAudio2.XAudio2Create(ProcessorSpecifier.UseDefaultProcessor);
+            IXAudio2* comPtr = default;
+            XAudio2.XAudio2CreateWithVersionInfo(&comPtr, 0, XAudio2.XAudio2_USE_DEFAULT_PROCESSOR, 0);
+            IXAudio2 = comPtr;
             IXAudio2.StartEngine();
             MasteringVoice = new();
             SubmixVoice = new();
             VoiceGroups.Add(MasteringVoice);
-            X3DAudio = new((Speakers)MasteringVoice.Audio2MasteringVoice.ChannelMask);
+
+            uint channelMask = 0;
+            MasteringVoice.Audio2MasteringVoice.GetChannelMask(&channelMask);
+
+            X3DAudioHandle handle = new();
+            X3DAudio.X3DAudioInitialize(channelMask, X3DAudio.X3DAudio_SPEED_OF_SOUND, &handle);
         }
 
         public static VoiceGroup GetVoiceGroup(string name)
@@ -31,7 +39,8 @@
             return VoiceGroups.FirstOrDefault(x => x.Name == name);
         }
 
-        public static IEnumerable<VoiceSendDescriptor> GetVoiceSendDescriptors(IEnumerable<string> names)
+        /*
+        public static IEnumerable<XAudio2VoiceSends> GetVoiceSendDescriptors(IEnumerable<string> names)
         {
             foreach (string name in names)
             {
@@ -39,7 +48,7 @@
             }
         }
 
-        public static VoiceSendDescriptor GetVoiceGroupDescriptor(string name)
+        public static XAudio2VoiceSends GetVoiceGroupDescriptor(string name)
         {
             var group = VoiceGroups.FirstOrDefault(x => x.Name == name);
             if (group == null)
@@ -48,7 +57,7 @@
             }
             else
             {
-                var desc = new VoiceSendDescriptor()
+                var desc = new XAudio2VoiceSends()
                 {
                     Flags = 0,
                     OutputVoice = group.Voice,
@@ -56,10 +65,10 @@
                 return desc;
             }
         }
+        */
 
         public static void Dispose()
         {
-            X3DAudio = null;
             MasteringVoice.Dispose();
             IXAudio2.StopEngine();
             IXAudio2.Dispose();
