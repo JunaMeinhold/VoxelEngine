@@ -1,7 +1,7 @@
 ﻿namespace App.Scripts
 {
     using System.Numerics;
-    using HexaEngine.ImGuiNET;
+    using Hexa.NET.ImGui;
     using VoxelEngine.Scripting;
     using VoxelEngine.Voxel;
 

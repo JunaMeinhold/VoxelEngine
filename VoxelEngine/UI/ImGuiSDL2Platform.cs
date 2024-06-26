@@ -5,17 +5,25 @@
     using System.Runtime.InteropServices;
     using HexaEngine.Core;
     using HexaEngine.Core.Unsafes;
-    using HexaEngine.ImGuiNET;
+    using Hexa.NET.ImGui;
     using Silk.NET.Core.Native;
     using Silk.NET.Maths;
     using Silk.NET.SDL;
     using VoxelEngine.Core;
     using VoxelEngine.Core.Input;
     using Window = Silk.NET.SDL.Window;
+    using System.Runtime.CompilerServices;
 
     public static class ImGuiSDL2Platform
     {
         private static readonly Sdl sdl = Sdl.GetApi();
+
+        public enum GamepadMode
+        {
+            AutoFirst,
+            AutoAll,
+            Manual
+        }
 
         /// <summary>
         /// SDL Data
@@ -25,16 +33,21 @@
             public Window* Window;
             public Renderer* Renderer;
             public ulong Time;
+            public byte* ClipboardTextData;
+            public bool UseVulkan;
+            public bool WantUpdateMonitors;
+
             public uint MouseWindowID;
             public int MouseButtonsDown;
             public Cursor** MouseCursors;
             public Cursor* LastMouseCursor;
-            public int PendingMouseLeaveFrame;
-            public byte* ClipboardTextData;
+            public int MouseLastLeaveFrame;
             public bool MouseCanUseGlobalState;
             public bool MouseCanReportHoveredViewport;  // This is hard to use/unreliable on SDL so we'll set ImGuiBackendFlags_HasMouseHoveredViewport dynamically based on state.
-            public bool UseVulkan;
-            public bool WantUpdateMonitors;
+
+            public UnsafeList<Pointer<GameController>> Gamepads;
+            public GamepadMode GamepadMode;
+            public bool WantUpdateGamepadsList;
         }
 
         /// <summary>
@@ -53,7 +66,10 @@
         {
             BackendData* bd = GetBackendData();
             if (bd->ClipboardTextData != null)
+            {
                 sdl.Free(bd->ClipboardTextData);
+            }
+
             bd->ClipboardTextData = sdl.GetClipboardText();
             return bd->ClipboardTextData;
         }
@@ -186,6 +202,8 @@
                 KeyCode.KF10 => ImGuiKey.F10,
                 KeyCode.KF11 => ImGuiKey.F11,
                 KeyCode.KF12 => ImGuiKey.F12,
+                KeyCode.KACBack => ImGuiKey.AppBack,
+                KeyCode.KACForward => ImGuiKey.AppForward,
                 _ => ImGuiKey.None,
             };
         }
@@ -222,7 +240,10 @@
                             int window_x, window_y;
                             var window = sdl.GetWindowFromID(env.Motion.WindowID);
                             if (window == null)
+                            {
                                 SdlCheckError();
+                            }
+
                             sdl.GetWindowPosition(window, &window_x, &window_y);
                             mouse_pos.X += window_x;
                             mouse_pos.Y += window_y;
@@ -255,7 +276,9 @@
                         if (env.Button.Button == Sdl.ButtonX1) { mouse_button = 3; }
                         if (env.Button.Button == Sdl.ButtonX2) { mouse_button = 4; }
                         if (mouse_button == -1)
+                        {
                             break;
+                        }
 
                         io.AddMouseSourceEvent(env.Button.Which == unchecked((uint)-1) ? ImGuiMouseSource.TouchScreen : ImGuiMouseSource.Source);
                         io.AddMouseButtonEvent(mouse_button, env.Type == (int)EventType.Mousebuttondown);
@@ -296,10 +319,13 @@
                         if (window_event == WindowEventID.Enter)
                         {
                             bd->MouseWindowID = env.Window.WindowID;
-                            bd->PendingMouseLeaveFrame = 0;
+                            bd->MouseLastLeaveFrame = 0;
                         }
                         if (window_event == WindowEventID.Leave)
-                            bd->PendingMouseLeaveFrame = ImGui.GetFrameCount() + 1;
+                        {
+                            bd->MouseLastLeaveFrame = ImGui.GetFrameCount() + 1;
+                        }
+
                         if (window_event == WindowEventID.FocusGained)
                         {
                             io.AddFocusEvent(true);
@@ -313,21 +339,40 @@
                         {
                             var window = sdl.GetWindowFromID(env.Window.WindowID);
                             if (window == null)
+                            {
                                 SdlCheckError();
+                            }
+
                             ImGuiViewport* viewport = ImGui.FindViewportByPlatformHandle(window);
 
                             if (viewport != null)
                             {
                                 if (window_event == WindowEventID.Close)
+                                {
                                     viewport->PlatformRequestClose = 1;
+                                }
+
                                 if (window_event == WindowEventID.Moved)
+                                {
                                     viewport->PlatformRequestMove = 1;
+                                }
+
                                 if (window_event == WindowEventID.SizeChanged)
+                                {
                                     viewport->PlatformRequestResize = 1;
+                                }
+
                                 return true;
                             }
                         }
 
+                        return true;
+                    }
+
+                case EventType.Controllerdeviceadded:
+                case EventType.Controllerdeviceremoved:
+                    {
+                        bd->WantUpdateGamepadsList = true;
                         return true;
                     }
             }
@@ -346,8 +391,12 @@
             string sdl_backend = sdl.GetCurrentVideoDriverS();
             string[] global_mouse_whitelist = { "windows", "cocoa", "x11", "DIVE", "VMAN" };
             for (int n = 0; n < global_mouse_whitelist.Length; n++)
+            {
                 if (sdl_backend == global_mouse_whitelist[n])
+                {
                     mouse_can_use_global_state = true;
+                }
+            }
 
             BackendData* bd = AllocT<BackendData>();
             ZeroMemoryT(bd);
@@ -356,7 +405,9 @@
             io.BackendFlags |= ImGuiBackendFlags.HasMouseCursors | ImGuiBackendFlags.HasSetMousePos;
 
             if (mouse_can_use_global_state)
+            {
                 io.BackendFlags |= ImGuiBackendFlags.PlatformHasViewports;
+            }
 
             bd->Window = window;
             bd->Renderer = renderer;
@@ -427,7 +478,9 @@
             // We need SDL_CaptureMouse(), SDL_GetGlobalMouseState() from SDL 2.0.4+ to support multiple viewports.
             // We left the call to ImGui_ImplSDL2_InitPlatformInterface() outside of #ifdef to avoid unused-function warnings.
             if ((io.ConfigFlags & ImGuiConfigFlags.ViewportsEnable) != 0 && (io.BackendFlags & ImGuiBackendFlags.PlatformHasViewports) != 0)
+            {
                 InitPlatformInterface(window, sdlGLContext);
+            }
 
             return true;
         }
@@ -440,7 +493,10 @@
         public static unsafe bool InitForVulkan(Window* window)
         {
             if (!Init(window, null, null))
+            {
                 return false;
+            }
+
             BackendData* bd = GetBackendData();
             bd->UseVulkan = true;
             return true;
@@ -470,11 +526,18 @@
             ShutdownPlatformInterface();
 
             if (bd->ClipboardTextData != null)
+            {
                 sdl.Free(bd->ClipboardTextData);
+            }
+
             for (ImGuiMouseCursor cursor_n = 0; cursor_n < ImGuiMouseCursor.Count; cursor_n++)
+            {
                 sdl.FreeCursor(bd->MouseCursors[(int)cursor_n]);
+            }
+
             Free(bd->MouseCursors);
             bd->LastMouseCursor = null;
+            CloseGamepads();
 
             io.BackendPlatformName = null;
             io.BackendPlatformUserData = null;
@@ -580,72 +643,143 @@
             }
         }
 
+        private static unsafe void CloseGamepads()
+        {
+            var bd = GetBackendData();
+            if (bd->GamepadMode != GamepadMode.Manual)
+            {
+                for (int i = 0; i < bd->Gamepads.Size; i++)
+                {
+                    GameController* gamepad = bd->Gamepads[i];
+                    sdl.GameControllerClose(gamepad);
+                }
+            }
+
+            bd->Gamepads.Resize(0);
+        }
+
+        public static unsafe void SetGamepadMode(GamepadMode mode, GameController** manual_gamepads_array, int manual_gamepads_count)
+        {
+            BackendData* bd = GetBackendData();
+            CloseGamepads();
+            if (mode == GamepadMode.Manual)
+            {
+                Debug.Assert(manual_gamepads_array != null && manual_gamepads_count > 0);
+                for (int n = 0; n < manual_gamepads_count; n++)
+                {
+                    bd->Gamepads.PushBack(manual_gamepads_array[n]);
+                }
+            }
+            else
+            {
+                Debug.Assert(manual_gamepads_array == null && manual_gamepads_count <= 0);
+                bd->WantUpdateGamepadsList = true;
+            }
+            bd->GamepadMode = mode;
+        }
+
+        private static unsafe void UpdateGamepadButton(BackendData* bd, ImGuiIO* io, ImGuiKey key, GameControllerButton button_no)
+        {
+            bool merged_value = false;
+            for (int i = 0; i < bd->Gamepads.Size; i++)
+            {
+                GameController* gamepad = bd->Gamepads[i];
+                merged_value |= sdl.GameControllerGetButton(gamepad, button_no) != 0;
+            }
+
+            io->AddKeyEvent(key, merged_value);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static float Saturate(float v)
+        {
+            return v < 0.0f ? 0.0f : v > 1.0f ? 1.0f : v;
+        }
+
+        private static unsafe void UpdateGamepadAnalog(BackendData* bd, ImGuiIO* io, ImGuiKey key, GameControllerAxis axis_no, float v0, float v1)
+        {
+            float merged_value = 0.0f;
+            for (int i = 0; i < bd->Gamepads.Size; i++)
+            {
+                GameController* gamepad = bd->Gamepads[i];
+                float vn = Saturate((float)(sdl.GameControllerGetAxis(gamepad, axis_no) - v0) / (float)(v1 - v0));
+                if (merged_value < vn)
+                {
+                    merged_value = vn;
+                }
+            }
+            io->AddKeyAnalogEvent(key, merged_value > 0.1f, merged_value);
+        }
+
         private static unsafe void UpdateGamepads()
         {
-            var io = ImGui.GetIO();
-            io.NavInputs.Clear();
-            if ((io.ConfigFlags & ImGuiConfigFlags.NavEnableGamepad) == 0) // FIXME: Technically feeding gamepad shouldn't depend on this now that they are regular inputs.
+            BackendData* bd = GetBackendData();
+            ImGuiIOPtr io = ImGui.GetIO();
+
+            // Update list of controller(s) to use
+            if (bd->WantUpdateGamepadsList && bd->GamepadMode != GamepadMode.Manual)
+            {
+                CloseGamepads();
+                int joystick_count = sdl.NumJoysticks();
+                for (int n = 0; n < joystick_count; n++)
+                {
+                    if (sdl.IsGameController(n) == SdlBool.True)
+                    {
+                        GameController* gamepad = sdl.GameControllerOpen(n);
+                        if (gamepad != null)
+                        {
+                            bd->Gamepads.PushBack(gamepad);
+                            if (bd->GamepadMode == GamepadMode.AutoFirst)
+                            {
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                bd->WantUpdateGamepadsList = false;
+            }
+
+            // FIXME: Technically feeding gamepad shouldn't depend on this now that they are regular inputs.
+            if ((io.ConfigFlags & ImGuiConfigFlags.NavEnableGamepad) == 0)
             {
                 return;
             }
 
-            if (sdl.NumJoysticks() == 0)
+            io.BackendFlags &= ~ImGuiBackendFlags.HasGamepad;
+            if (bd->Gamepads.Size == 0)
             {
-                io.BackendFlags &= ~ImGuiBackendFlags.HasGamepad;
                 return;
             }
-
-            // Get gamepad
-            GameController* game_controller = sdl.GameControllerOpen(0);
-            if (game_controller == null)
-            {
-                SdlCheckError();
-                io.BackendFlags &= ~ImGuiBackendFlags.HasGamepad;
-                return;
-            }
-
-            // Update gamepad inputs
-            void MapButton(ImGuiNavInput NAV_NO, GameControllerButton BUTTON_NO)
-            {
-                io.NavInputs[(int)NAV_NO] = sdl.GameControllerGetButton(game_controller, BUTTON_NO) != 0 ? 1.0f : 0.0f;
-            }
-            void MapAnalog(ImGuiNavInput NAV_NO, GameControllerAxis AXIS_NO, int V0, int V1)
-            {
-                float vn = (float)(sdl.GameControllerGetAxis(game_controller, AXIS_NO) - V0) / (V1 - V0);
-                if (vn > 1.0f)
-                {
-                    vn = 1.0f;
-                }
-
-                if (vn > 0.0f && io.NavInputs[(int)NAV_NO] < vn)
-                {
-                    io.NavInputs[(int)NAV_NO] = vn;
-                }
-                else
-                {
-                    io.NavInputs[(int)NAV_NO] = 0;
-                }
-            }
-
-            const int thumb_dead_zone = 8000;           // SDL_gamecontroller.h suggests using this value.
-            MapButton(ImGuiNavInput.Activate, GameControllerButton.A);               // Cross / A
-            MapButton(ImGuiNavInput.Cancel, GameControllerButton.B);               // Circle / B
-            MapButton(ImGuiNavInput.Menu, GameControllerButton.X);               // Square / X
-            MapButton(ImGuiNavInput.Input, GameControllerButton.Y);               // Triangle / Y
-            MapButton(ImGuiNavInput.DpadLeft, GameControllerButton.DpadLeft);       // D-Pad Left
-            MapButton(ImGuiNavInput.DpadRight, GameControllerButton.DpadRight);      // D-Pad Right
-            MapButton(ImGuiNavInput.DpadUp, GameControllerButton.DpadUp);         // D-Pad Up
-            MapButton(ImGuiNavInput.DpadDown, GameControllerButton.DpadDown);       // D-Pad Down
-            MapButton(ImGuiNavInput.FocusPrev, GameControllerButton.Leftshoulder);    // L1 / LB
-            MapButton(ImGuiNavInput.FocusNext, GameControllerButton.Rightshoulder);   // R1 / RB
-            MapButton(ImGuiNavInput.TweakSlow, GameControllerButton.Leftshoulder);    // L1 / LB
-            MapButton(ImGuiNavInput.TweakFast, GameControllerButton.Rightshoulder);   // R1 / RB
-            MapAnalog(ImGuiNavInput.LStickLeft, GameControllerAxis.Leftx, -thumb_dead_zone, -32768);
-            MapAnalog(ImGuiNavInput.LStickRight, GameControllerAxis.Leftx, +thumb_dead_zone, +32767);
-            MapAnalog(ImGuiNavInput.LStickUp, GameControllerAxis.Lefty, -thumb_dead_zone, -32767);
-            MapAnalog(ImGuiNavInput.LStickDown, GameControllerAxis.Lefty, +thumb_dead_zone, +32767);
 
             io.BackendFlags |= ImGuiBackendFlags.HasGamepad;
+
+            // Update gamepad inputs
+            const int thumb_dead_zone = 8000; // SDL_gamecontroller.h suggests using this value.
+            UpdateGamepadButton(bd, io, ImGuiKey.GamepadStart, GameControllerButton.Start);
+            UpdateGamepadButton(bd, io, ImGuiKey.GamepadBack, GameControllerButton.Back);
+            UpdateGamepadButton(bd, io, ImGuiKey.GamepadFaceLeft, GameControllerButton.X);              // Xbox X, PS Square
+            UpdateGamepadButton(bd, io, ImGuiKey.GamepadFaceRight, GameControllerButton.B);              // Xbox B, PS Circle
+            UpdateGamepadButton(bd, io, ImGuiKey.GamepadFaceUp, GameControllerButton.Y);              // Xbox Y, PS Triangle
+            UpdateGamepadButton(bd, io, ImGuiKey.GamepadFaceDown, GameControllerButton.A);              // Xbox A, PS Cross
+            UpdateGamepadButton(bd, io, ImGuiKey.GamepadDpadLeft, GameControllerButton.DpadLeft);
+            UpdateGamepadButton(bd, io, ImGuiKey.GamepadDpadRight, GameControllerButton.DpadRight);
+            UpdateGamepadButton(bd, io, ImGuiKey.GamepadDpadUp, GameControllerButton.DpadUp);
+            UpdateGamepadButton(bd, io, ImGuiKey.GamepadDpadDown, GameControllerButton.DpadDown);
+            UpdateGamepadButton(bd, io, ImGuiKey.GamepadL1, GameControllerButton.Leftshoulder);
+            UpdateGamepadButton(bd, io, ImGuiKey.GamepadR1, GameControllerButton.Rightshoulder);
+            UpdateGamepadAnalog(bd, io, ImGuiKey.GamepadL2, GameControllerAxis.Triggerleft, 0.0f, 32767);
+            UpdateGamepadAnalog(bd, io, ImGuiKey.GamepadR2, GameControllerAxis.Triggerright, 0.0f, 32767);
+            UpdateGamepadButton(bd, io, ImGuiKey.GamepadL3, GameControllerButton.Leftstick);
+            UpdateGamepadButton(bd, io, ImGuiKey.GamepadR3, GameControllerButton.Rightstick);
+            UpdateGamepadAnalog(bd, io, ImGuiKey.GamepadLStickLeft, GameControllerAxis.Leftx, -thumb_dead_zone, -32768);
+            UpdateGamepadAnalog(bd, io, ImGuiKey.GamepadLStickRight, GameControllerAxis.Leftx, +thumb_dead_zone, +32767);
+            UpdateGamepadAnalog(bd, io, ImGuiKey.GamepadLStickUp, GameControllerAxis.Lefty, -thumb_dead_zone, -32768);
+            UpdateGamepadAnalog(bd, io, ImGuiKey.GamepadLStickDown, GameControllerAxis.Lefty, +thumb_dead_zone, +32767);
+            UpdateGamepadAnalog(bd, io, ImGuiKey.GamepadRStickLeft, GameControllerAxis.Rightx, -thumb_dead_zone, -32768);
+            UpdateGamepadAnalog(bd, io, ImGuiKey.GamepadRStickRight, GameControllerAxis.Rightx, +thumb_dead_zone, +32767);
+            UpdateGamepadAnalog(bd, io, ImGuiKey.GamepadRStickUp, GameControllerAxis.Righty, -thumb_dead_zone, -32768);
+            UpdateGamepadAnalog(bd, io, ImGuiKey.GamepadRStickDown, GameControllerAxis.Righty, +thumb_dead_zone, +32767);
         }
 
         /// <summary>
@@ -701,29 +835,39 @@
 
             io.DisplaySize = new(w, h);
             if (w > 0 && h > 0)
+            {
                 io.DisplayFramebufferScale = new((float)displayW / w, (float)displayH / h);
+            }
 
             if (bd->WantUpdateMonitors)
+            {
                 UpdateMonitors();
+            }
 
             io.DeltaTime = Time.Delta;
 
-            if (bd->PendingMouseLeaveFrame != 0 && bd->PendingMouseLeaveFrame >= ImGui.GetFrameCount() && bd->MouseButtonsDown == 0)
+            if (bd->MouseLastLeaveFrame != 0 && bd->MouseLastLeaveFrame >= ImGui.GetFrameCount() && bd->MouseButtonsDown == 0)
             {
                 bd->MouseWindowID = 0;
-                bd->PendingMouseLeaveFrame = 0;
+                bd->MouseLastLeaveFrame = 0;
                 io.AddMousePosEvent(-float.MaxValue, -float.MaxValue);
             }
 
             var mouseCursor = ImGui.GetIO().MouseDrawCursor ? ImGuiMouseCursor.None : ImGui.GetMouseCursor();
 
             if (bd->MouseCanReportHoveredViewport && ImGui.GetDragDropPayload().IsNull)
+            {
                 io.BackendFlags |= ImGuiBackendFlags.HasMouseHoveredViewport;
+            }
             else
+            {
                 io.BackendFlags &= ~ImGuiBackendFlags.HasMouseHoveredViewport;
+            }
 
             UpdateMouseData();
             UpdateMouseCursor();
+
+            // Update game controllers (if enabled and available)
             UpdateGamepads();
         }
 
@@ -779,7 +923,9 @@
                 sdl.GLSetSwapInterval(0).SdlThrowIfNeg();
             }
             if (use_opengl && backup_context != null)
+            {
                 sdl.GLMakeCurrent(vd->Window, backup_context).SdlThrowIfNeg();
+            }
 
             viewport->PlatformHandle = vd->Window;
             viewport->PlatformHandleRaw = null;
@@ -809,9 +955,15 @@
             if (vd != null)
             {
                 if (vd->GLContext != null && vd->WindowOwned)
+                {
                     sdl.GLDeleteContext(vd->GLContext);
+                }
+
                 if (vd->Window != null && vd->WindowOwned)
+                {
                     sdl.DestroyWindow(vd->Window);
+                }
+
                 SdlCheckError();
                 vd->GLContext = null;
                 vd->Window = null;
@@ -892,7 +1044,9 @@
         {
             ViewportData* vd = (ViewportData*)viewport->PlatformUserData;
             if (vd->GLContext != null)
+            {
                 sdl.GLMakeCurrent(vd->Window, vd->GLContext).SdlThrowIfNeg();
+            }
         }
 
         private static unsafe void SwapBuffers(ImGuiViewport* viewport, void* unknown)

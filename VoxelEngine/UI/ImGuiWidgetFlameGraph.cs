@@ -24,7 +24,7 @@
 namespace HexaEngine.Core.UI
 {
     using System.Numerics;
-    using HexaEngine.ImGuiNET;
+    using Hexa.NET.ImGui;
 
     public static unsafe class ImGuiWidgetFlameGraph
     {

@@ -1,7 +1,7 @@
 ﻿namespace App
 {
     using System.Numerics;
-    using HexaEngine.ImGuiNET;
+    using Hexa.NET.ImGui;
     using Vortice.Direct3D11;
     using VoxelEngine.Mathematics.Noise;
 

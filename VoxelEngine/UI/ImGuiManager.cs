@@ -1,10 +1,10 @@
 ﻿namespace HexaEngine.Rendering.Renderers
 {
     using System.Numerics;
-    using HexaEngine.ImGuiNET;
-    using HexaEngine.ImGuizmoNET;
-    using HexaEngine.ImNodesNET;
-    using HexaEngine.ImPlotNET;
+    using Hexa.NET.ImGui;
+    using Hexa.NET.ImGuizmo;
+    using Hexa.NET.ImNodes;
+    using Hexa.NET.ImPlot;
     using Vortice.Direct3D11;
     using VoxelEngine.Core.Windows;
 
