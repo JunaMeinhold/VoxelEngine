@@ -3,7 +3,7 @@
     using System;
     using System.Runtime.CompilerServices;
     using System.Runtime.InteropServices;
-    using HexaEngine.DirectXTex;
+    using Hexa.NET.DirectXTex;
     using Silk.NET.Core.Native;
     using Vortice.Direct3D11;
     using Vortice.DXGI;

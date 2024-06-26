@@ -4,7 +4,7 @@
     using System.Runtime.CompilerServices;
     using App.Objects;
     using BepuPhysics.Collidables;
-    using HexaEngine.ImGuiNET;
+    using Hexa.NET.ImGui;
     using VoxelEngine.Core;
     using VoxelEngine.Core.Input;
     using VoxelEngine.Mathematics;

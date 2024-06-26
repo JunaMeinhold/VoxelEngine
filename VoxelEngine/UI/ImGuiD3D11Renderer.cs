@@ -10,7 +10,7 @@ namespace HexaEngine.Rendering.Renderers
     using System.Numerics;
     using System.Runtime.InteropServices;
     using HexaEngine.Core.Unsafes;
-    using HexaEngine.ImGuiNET;
+    using Hexa.NET.ImGui;
     using Vortice.DXGI;
     using Vortice.Direct3D;
     using Vortice.Direct3D11;
@@ -127,7 +127,7 @@ namespace HexaEngine.Rendering.Renderers
             var indexResourcePointer = (ImDrawIdx*)indexResource.DataPointer;
             for (int n = 0; n < data->CmdListsCount; n++)
             {
-                var cmdlList = data->CmdLists[n];
+                var cmdlList = data->CmdLists.Data[n];
 
                 var vertBytes = cmdlList->VtxBuffer.Size * sizeof(ImDrawVert);
                 Buffer.MemoryCopy(cmdlList->VtxBuffer.Data, vertexResourcePointer, vertBytes, vertBytes);
@@ -172,7 +172,7 @@ namespace HexaEngine.Rendering.Renderers
             Vector2 clip_off = data->DisplayPos;
             for (int n = 0; n < data->CmdListsCount; n++)
             {
-                var cmdList = data->CmdLists[n];
+                var cmdList = data->CmdLists.Data[n];
 
                 for (int i = 0; i < cmdList->CmdBuffer.Size; i++)
                 {
@@ -274,7 +274,7 @@ namespace HexaEngine.Rendering.Renderers
                 AddressV = TextureAddressMode.Wrap,
                 AddressW = TextureAddressMode.Wrap,
                 MipLODBias = 0f,
-                ComparisonFunction = ComparisonFunction.Always,
+                ComparisonFunc = ComparisonFunction.Always,
                 MinLOD = 0f,
                 MaxLOD = 0f
             };
@@ -372,7 +372,7 @@ namespace HexaEngine.Rendering.Renderers
             blendDesc.RenderTarget[0] = new RenderTargetBlendDescription
             {
                 BlendOperationAlpha = BlendOperation.Add,
-                IsBlendEnabled = true,
+                BlendEnable = true,
                 BlendOperation = BlendOperation.Add,
                 DestinationBlendAlpha = Blend.InverseSourceAlpha,
                 DestinationBlend = Blend.InverseSourceAlpha,

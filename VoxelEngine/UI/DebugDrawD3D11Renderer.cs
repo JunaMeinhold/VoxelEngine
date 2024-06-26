@@ -5,7 +5,7 @@ namespace HexaEngine.Rendering.Renderers
     using System;
     using System.Diagnostics;
     using System.Numerics;
-    using HexaEngine.ImGuiNET;
+    using Hexa.NET.ImGui;
     using Newtonsoft.Json.Linq;
     using Vortice.D3DCompiler;
     using Vortice.Direct3D;
@@ -122,7 +122,7 @@ float4 main(PS_INPUT pixel) : SV_TARGET
             blendDesc.RenderTarget[0] = new RenderTargetBlendDescription
             {
                 BlendOperationAlpha = BlendOperation.Add,
-                IsBlendEnabled = true,
+                BlendEnable = true,
                 BlendOperation = BlendOperation.Add,
                 DestinationBlendAlpha = Blend.InverseSourceAlpha,
                 DestinationBlend = Blend.InverseSourceAlpha,

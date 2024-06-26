@@ -8,7 +8,7 @@
     using System.Runtime.CompilerServices;
     using System.Runtime.InteropServices;
     using System.Text;
-    using HexaEngine.ImGuiNET;
+    using Hexa.NET.ImGui;
     using VoxelEngine.Debugging.Collections;
 
     public struct ConsoleMessage
@@ -234,7 +234,7 @@
         private static void LogWindow()
         {
             float footerHeightToReserve = ImGui.GetStyle().ItemSpacing.Y + ImGui.GetFrameHeightWithSpacing();
-            if (ImGui.BeginChild("ScrollRegion##", new Vector2(0, -footerHeightToReserve), false, 0))
+            if (ImGui.BeginChild("ScrollRegion##", new Vector2(0, -footerHeightToReserve)))
             {
                 // Display colored command output.
                 float timestamp_width = ImGui.CalcTextSize("00:00:00:0000").X;    // Timestamp.

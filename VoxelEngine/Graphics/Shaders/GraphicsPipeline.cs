@@ -3,6 +3,7 @@
     using System.Runtime.CompilerServices;
     using Vortice.Direct3D;
     using Vortice.Direct3D11;
+    using Vortice.Mathematics;
     using VoxelEngine.Debugging;
 
     public class GraphicsPipeline : IDisposable
@@ -308,7 +309,7 @@
             context.PSSetShader(ps);
             context.IASetInputLayout(layout);
             context.RSSetState(RasterizerState);
-            context.OMSetBlendState(BlendState, new(state.BlendFactor));
+            context.OMSetBlendState(BlendState, new Color(state.BlendFactor));
             context.OMSetDepthStencilState(DepthStencilState, (int)state.StencilRef);
 
             ConstantBuffers.Bind(context);

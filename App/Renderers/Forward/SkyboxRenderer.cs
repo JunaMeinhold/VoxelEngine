@@ -6,7 +6,7 @@ namespace App.Renderers.Forward
     using System.Runtime.CompilerServices;
     using System.Runtime.InteropServices;
     using App.Pipelines.Forward;
-    using HexaEngine.ImGuiNET;
+    using Hexa.NET.ImGui;
     using Vortice.Direct3D11;
     using VoxelEngine.Core;
     using VoxelEngine.Graphics.Buffers;

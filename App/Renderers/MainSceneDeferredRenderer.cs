@@ -20,7 +20,7 @@ namespace App.Renderers
     using App.Pipelines.Forward;
     using App.Renderers.Forward;
     using HexaEngine.Editor;
-    using HexaEngine.ImGuiNET;
+    using Hexa.NET.ImGui;
     using Vortice.Direct3D11;
     using VoxelEngine.Core;
     using VoxelEngine.Core.Input;
