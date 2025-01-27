@@ -15,46 +15,63 @@
             Vector3 position = chunk.Position;
 
             // Negative X side
-
             chunk.cXN = chunk.Map.Chunks[(int)(position.X - 1), (int)position.Y, (int)position.Z];
-            if (chunk.cXN is not null && chunk.cXN.Data is null)
+            if (chunk.cXN is not null)
             {
-                chunk.cXN = null;
+                if (chunk.cXN.Data is null)
+                {
+                    chunk.cXN = null;
+                }
             }
 
             // Positive X side
             chunk.cXP = chunk.Map.Chunks[(int)(position.X + 1), (int)position.Y, (int)position.Z];
-            if (chunk.cXP is not null && chunk.cXP.Data is null)
+            if (chunk.cXP is not null)
             {
-                chunk.cXP = null;
+                if (chunk.cXP.Data is null)
+                {
+                    chunk.cXP = null;
+                }
             }
 
             // Negative Y side
             chunk.cYN = chunk.Position.Y > 0 ? chunk.Map.Chunks[(int)position.X, (int)(position.Y - 1), (int)position.Z] : null;
-            if (chunk.cYN is not null && chunk.cYN.Data is null)
+            if (chunk.cYN is not null)
             {
-                chunk.cYN = null;
+                if (chunk.cYN.Data is null)
+                {
+                    chunk.cYN = null;
+                }
             }
 
             // Positive Y side
             chunk.cYP = chunk.Position.Y < WorldMap.CHUNK_AMOUNT_Y - 1 ? chunk.Map.Chunks[(int)position.X, (int)(position.Y + 1), (int)position.Z] : null;
-            if (chunk.cYP is not null && chunk.cYP.Data is null)
+            if (chunk.cYP is not null)
             {
-                chunk.cYP = null;
+                if (chunk.cYP.Data is null)
+                {
+                    chunk.cYP = null;
+                }
             }
 
             // Negative Z neighbour
             chunk.cZN = chunk.Map.Chunks[(int)position.X, (int)position.Y, (int)(position.Z - 1)];
-            if (chunk.cZN is not null && chunk.cZN.Data is null)
+            if (chunk.cZN is not null)
             {
-                chunk.cZN = null;
+                if (chunk.cZN.Data is null)
+                {
+                    chunk.cZN = null;
+                }
             }
 
             // Positive Z side
             chunk.cZP = chunk.Map.Chunks[(int)position.X, (int)position.Y, (int)(position.Z + 1)];
-            if (chunk.cZP is not null && chunk.cZP.Data is null)
+            if (chunk.cZP is not null)
             {
-                chunk.cZP = null;
+                if (chunk.cZP.Data is null)
+                {
+                    chunk.cZP = null;
+                }
             }
 
             chunk.HasMissingNeighbours = chunk.cXN == null || chunk.cXP == null || chunk.cYN == null || chunk.cYP == null || chunk.cZN == null || chunk.cZP == null;
@@ -100,11 +117,11 @@
                     // X and Z runs search upwards to create runs, so start at the bottom.
                     for (; j < topJ; j++, access++)
                     {
-                        ref Block b = ref chunk.Data[access];
+                        Block b = chunk.Data[access];
 
                         if (b.Type != Chunk.EMPTY)
                         {
-                            CreateRun(vertexBuffer, chunk, ref b, i, j, k << 12, i1, k1 << 12, j + chunkY, access, minX, maxX, j == 0, j == Chunk.CHUNK_SIZE_MINUS_ONE, minZ, maxZ, iCS, kCS2);
+                            CreateRun(vertexBuffer, chunk, b, i, j, k << 12, i1, k1 << 12, j + chunkY, access, minX, maxX, j == 0, j == Chunk.CHUNK_SIZE_MINUS_ONE, minZ, maxZ, iCS, kCS2);
                         }
                     }
 
@@ -118,7 +135,7 @@
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void CreateRun(IVoxelVertexBuffer vertexBuffer, Chunk chunk, ref Block b, int i, int j, int k, int i1, int k1, int y, int access, bool minX, bool maxX, bool minY, bool maxY, bool minZ, bool maxZ, int iCS, int kCS2)
+        private static void CreateRun(IVoxelVertexBuffer vertexBuffer, Chunk chunk, Block b, int i, int j, int k, int i1, int k1, int y, int access, bool minX, bool maxX, bool minY, bool maxY, bool minZ, bool maxZ, int iCS, int kCS2)
         {
             ChunkHelper chunkHelper = chunk.ChunkHelper;
             int textureHealth16 = BlockVertex.IndexToTextureShifted[b.Type];
@@ -137,7 +154,7 @@
 
                 for (length = jS1; length < Chunk.CHUNK_SIZE_SHIFTED; length += 1 << 6)
                 {
-                    if (DifferentBlock(chunk, chunkAccess, ref b))
+                    if (DifferentBlock(chunk, chunkAccess, b))
                     {
                         break;
                     }
@@ -158,7 +175,7 @@
 
                 for (length = jS1; length < Chunk.CHUNK_SIZE_SHIFTED; length += 1 << 6)
                 {
-                    if (DifferentBlock(chunk, chunkAccess, ref b))
+                    if (DifferentBlock(chunk, chunkAccess, b))
                     {
                         break;
                     }
@@ -178,7 +195,7 @@
 
                 for (length = jS1; length < Chunk.CHUNK_SIZE_SHIFTED; length += 1 << 6)
                 {
-                    if (DifferentBlock(chunk, chunkAccess, ref b))
+                    if (DifferentBlock(chunk, chunkAccess, b))
                     {
                         break;
                     }
@@ -198,7 +215,7 @@
 
                 for (length = jS1; length < Chunk.CHUNK_SIZE_SHIFTED; length += 1 << 6)
                 {
-                    if (DifferentBlock(chunk, chunkAccess, ref b))
+                    if (DifferentBlock(chunk, chunkAccess, b))
                     {
                         break;
                     }
@@ -218,7 +235,7 @@
 
                 for (length = i1; length < Chunk.CHUNK_SIZE; length++)
                 {
-                    if (DifferentBlock(chunk, chunkAccess, ref b))
+                    if (DifferentBlock(chunk, chunkAccess, b))
                     {
                         break;
                     }
@@ -240,7 +257,7 @@
 
                 for (length = i1; length < Chunk.CHUNK_SIZE; length++)
                 {
-                    if (DifferentBlock(chunk, chunkAccess, ref b))
+                    if (DifferentBlock(chunk, chunkAccess, b))
                     {
                         break;
                     }
@@ -259,7 +276,7 @@
         {
             if (min)
             {
-                if (chunk.cXN == null)
+                if (chunk.cXN == null || chunk.cXN.Data == null)
                 {
                     return true;
                 }
@@ -276,7 +293,7 @@
         {
             if (max)
             {
-                if (chunk.cXP == null)
+                if (chunk.cXP == null || chunk.cXP.Data == null)
                 {
                     return true;
                 }
@@ -298,7 +315,7 @@
                     return true;
                 }
 
-                if (chunk.cYN == null)
+                if (chunk.cYN == null || chunk.cYN.Data == null)
                 {
                     return true;
                 }
@@ -316,7 +333,7 @@
             if (max)
             {
                 // Don't check chunkYPos here as players can move above the map
-                if (chunk.cYP == null)
+                if (chunk.cYP == null || chunk.cYP.Data == null)
                 {
                     return true;
                 }
@@ -336,7 +353,7 @@
         {
             if (min)
             {
-                if (chunk.cZN == null)
+                if (chunk.cZN == null || chunk.cZN.Data == null)
                 {
                     return true;
                 }
@@ -352,7 +369,7 @@
         {
             if (max)
             {
-                if (chunk.cZP == null)
+                if (chunk.cZP == null || chunk.cZP.Data == null)
                 {
                     return true;
                 }
@@ -364,9 +381,9 @@
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static bool DifferentBlock(Chunk chunk, int chunkAccess, ref Block compare)
+        private static bool DifferentBlock(Chunk chunk, int chunkAccess, Block compare)
         {
-            ref Block b = ref chunk.Data[chunkAccess];
+            Block b = chunk.Data[chunkAccess];
             return b.Type != compare.Type;
         }
     }

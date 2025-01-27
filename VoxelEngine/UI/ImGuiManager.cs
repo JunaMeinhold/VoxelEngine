@@ -2,11 +2,18 @@
 {
     using System.Numerics;
     using Hexa.NET.ImGui;
+    using Hexa.NET.ImGui.Backends.D3D11;
+    using Hexa.NET.ImGui.Backends.SDL2;
+    using Hexa.NET.ImGui.Utilities;
     using Hexa.NET.ImGuizmo;
     using Hexa.NET.ImNodes;
     using Hexa.NET.ImPlot;
-    using Vortice.Direct3D11;
+    using VoxelEngine.Core;
     using VoxelEngine.Core.Windows;
+    using SDLWindow = Hexa.NET.SDL2.SDLWindow;
+    using SDLEvent = Hexa.NET.SDL2.SDLEvent;
+    using ID3D11Device = Vortice.Direct3D11.ID3D11Device;
+    using ID3D11DeviceContext = Vortice.Direct3D11.ID3D11DeviceContext;
 
     public class ImGuiManager
     {
@@ -14,7 +21,9 @@
         private ImNodesContextPtr nodesContext;
         private ImPlotContextPtr plotContext;
 
-        public unsafe ImGuiManager(SdlWindow window, ID3D11Device device, ID3D11DeviceContext context, ImGuiConfigFlags flags = ImGuiConfigFlags.NavEnableKeyboard | ImGuiConfigFlags.NavEnableGamepad | ImGuiConfigFlags.DockingEnable | ImGuiConfigFlags.ViewportsEnable)
+        private bool disposedValue;
+
+        public unsafe ImGuiManager(CoreWindow window, ID3D11Device device, ID3D11DeviceContext context, ImGuiConfigFlags flags = ImGuiConfigFlags.NavEnableKeyboard | ImGuiConfigFlags.NavEnableGamepad | ImGuiConfigFlags.DockingEnable | ImGuiConfigFlags.ViewportsEnable)
         {
             guiContext = ImGui.CreateContext(null);
             ImGui.SetCurrentContext(guiContext);
@@ -37,112 +46,28 @@
             io.ConfigViewportsNoAutoMerge = false;
             io.ConfigViewportsNoTaskBarIcon = false;
 
-            var config = ImGui.ImFontConfig();
-            io.Fonts.AddFontDefault(config);
+            uint[] range = [0xE700, 0xF800, 0];
 
-            config.MergeMode = true;
-            config.GlyphMinAdvanceX = 18;
-            config.GlyphOffset = new(0, 4);
-            var range = new char[] { (char)0xE700, (char)0xF800, (char)0 };
-            fixed (char* buffer = range)
-            {
-                var bytes = File.ReadAllBytes("C:\\windows\\fonts\\SegoeIcons.ttf");
-                fixed (byte* buffer2 = bytes)
-                {
-                    io.Fonts.AddFontFromMemoryTTF(buffer2, bytes.Length, 14, config, buffer);
-                }
-            }
+            ImGuiFontBuilder builder = new();
+            builder.AddDefaultFont();
+            builder.SetOption(config => { config.GlyphMinAdvanceX = 18; config.GlyphOffset = new(0, 4); });
+            builder.AddFontFromFileTTF("C:\\windows\\fonts\\SegoeIcons.ttf", 14, range);
 
-            var style = ImGui.GetStyle();
-            var colors = style.Colors;
+            SDLWindow* windowPtr = window.GetWindow();
 
-            colors[(int)ImGuiCol.Text] = new Vector4(1.00f, 1.00f, 1.00f, 1.00f);
-            colors[(int)ImGuiCol.TextDisabled] = new Vector4(0.50f, 0.50f, 0.50f, 1.00f);
-            colors[(int)ImGuiCol.WindowBg] = new Vector4(0.10f, 0.10f, 0.10f, 1.00f);
-            colors[(int)ImGuiCol.ChildBg] = new Vector4(0.00f, 0.00f, 0.00f, 0.00f);
-            colors[(int)ImGuiCol.PopupBg] = new Vector4(0.19f, 0.19f, 0.19f, 0.92f);
-            colors[(int)ImGuiCol.Border] = new Vector4(0.19f, 0.19f, 0.19f, 0.29f);
-            colors[(int)ImGuiCol.BorderShadow] = new Vector4(0.00f, 0.00f, 0.00f, 0.24f);
-            colors[(int)ImGuiCol.FrameBg] = new Vector4(0.05f, 0.05f, 0.05f, 0.54f);
-            colors[(int)ImGuiCol.FrameBgHovered] = new Vector4(0.19f, 0.19f, 0.19f, 0.54f);
-            colors[(int)ImGuiCol.FrameBgActive] = new Vector4(0.20f, 0.22f, 0.23f, 1.00f);
-            colors[(int)ImGuiCol.TitleBg] = new Vector4(0.00f, 0.00f, 0.00f, 1.00f);
-            colors[(int)ImGuiCol.TitleBgActive] = new Vector4(0.06f, 0.06f, 0.06f, 1.00f);
-            colors[(int)ImGuiCol.TitleBgCollapsed] = new Vector4(0.00f, 0.00f, 0.00f, 1.00f);
-            colors[(int)ImGuiCol.MenuBarBg] = new Vector4(0.14f, 0.14f, 0.14f, 1.00f);
-            colors[(int)ImGuiCol.ScrollbarBg] = new Vector4(0.05f, 0.05f, 0.05f, 0.54f);
-            colors[(int)ImGuiCol.ScrollbarGrab] = new Vector4(0.34f, 0.34f, 0.34f, 0.54f);
-            colors[(int)ImGuiCol.ScrollbarGrabHovered] = new Vector4(0.40f, 0.40f, 0.40f, 0.54f);
-            colors[(int)ImGuiCol.ScrollbarGrabActive] = new Vector4(0.56f, 0.56f, 0.56f, 0.54f);
-            colors[(int)ImGuiCol.CheckMark] = new Vector4(0.33f, 0.67f, 0.86f, 1.00f);
-            colors[(int)ImGuiCol.SliderGrab] = new Vector4(0.34f, 0.34f, 0.34f, 0.54f);
-            colors[(int)ImGuiCol.SliderGrabActive] = new Vector4(0.56f, 0.56f, 0.56f, 0.54f);
-            colors[(int)ImGuiCol.Button] = new Vector4(0.05f, 0.05f, 0.05f, 0.54f);
-            colors[(int)ImGuiCol.ButtonHovered] = new Vector4(0.19f, 0.19f, 0.19f, 0.54f);
-            colors[(int)ImGuiCol.ButtonActive] = new Vector4(0.20f, 0.22f, 0.23f, 1.00f);
-            colors[(int)ImGuiCol.Header] = new Vector4(0.00f, 0.00f, 0.00f, 0.52f);
-            colors[(int)ImGuiCol.HeaderHovered] = new Vector4(0.00f, 0.00f, 0.00f, 0.36f);
-            colors[(int)ImGuiCol.HeaderActive] = new Vector4(0.20f, 0.22f, 0.23f, 0.33f);
-            colors[(int)ImGuiCol.Separator] = new Vector4(0.28f, 0.28f, 0.28f, 0.29f);
-            colors[(int)ImGuiCol.SeparatorHovered] = new Vector4(0.44f, 0.44f, 0.44f, 0.29f);
-            colors[(int)ImGuiCol.SeparatorActive] = new Vector4(0.40f, 0.44f, 0.47f, 1.00f);
-            colors[(int)ImGuiCol.ResizeGrip] = new Vector4(0.28f, 0.28f, 0.28f, 0.29f);
-            colors[(int)ImGuiCol.ResizeGripHovered] = new Vector4(0.44f, 0.44f, 0.44f, 0.29f);
-            colors[(int)ImGuiCol.ResizeGripActive] = new Vector4(0.40f, 0.44f, 0.47f, 1.00f);
-            colors[(int)ImGuiCol.Tab] = new Vector4(0.00f, 0.00f, 0.00f, 0.52f);
-            colors[(int)ImGuiCol.TabHovered] = new Vector4(0.14f, 0.14f, 0.14f, 1.00f);
-            colors[(int)ImGuiCol.TabActive] = new Vector4(0.20f, 0.20f, 0.20f, 0.36f);
-            colors[(int)ImGuiCol.TabUnfocused] = new Vector4(0.00f, 0.00f, 0.00f, 0.52f);
-            colors[(int)ImGuiCol.TabUnfocusedActive] = new Vector4(0.14f, 0.14f, 0.14f, 1.00f);
-            colors[(int)ImGuiCol.DockingPreview] = new Vector4(0.33f, 0.67f, 0.86f, 1.00f);
-            colors[(int)ImGuiCol.DockingEmptyBg] = new Vector4(1.00f, 0.00f, 0.00f, 1.00f);
-            colors[(int)ImGuiCol.PlotLines] = new Vector4(1.00f, 0.00f, 0.00f, 1.00f);
-            colors[(int)ImGuiCol.PlotLinesHovered] = new Vector4(1.00f, 0.00f, 0.00f, 1.00f);
-            colors[(int)ImGuiCol.PlotHistogram] = new Vector4(1.00f, 0.00f, 0.00f, 1.00f);
-            colors[(int)ImGuiCol.PlotHistogramHovered] = new Vector4(1.00f, 0.00f, 0.00f, 1.00f);
-            colors[(int)ImGuiCol.TableHeaderBg] = new Vector4(0.00f, 0.00f, 0.00f, 0.52f);
-            colors[(int)ImGuiCol.TableBorderStrong] = new Vector4(0.00f, 0.00f, 0.00f, 0.52f);
-            colors[(int)ImGuiCol.TableBorderLight] = new Vector4(0.28f, 0.28f, 0.28f, 0.29f);
-            colors[(int)ImGuiCol.TableRowBg] = new Vector4(0.00f, 0.00f, 0.00f, 0.00f);
-            colors[(int)ImGuiCol.TableRowBgAlt] = new Vector4(1.00f, 1.00f, 1.00f, 0.06f);
-            colors[(int)ImGuiCol.TextSelectedBg] = new Vector4(0.20f, 0.22f, 0.23f, 1.00f);
-            colors[(int)ImGuiCol.DragDropTarget] = new Vector4(0.33f, 0.67f, 0.86f, 1.00f);
-            colors[(int)ImGuiCol.NavHighlight] = new Vector4(1.00f, 0.00f, 0.00f, 1.00f);
-            colors[(int)ImGuiCol.NavWindowingHighlight] = new Vector4(1.00f, 0.00f, 0.00f, 0.70f);
-            colors[(int)ImGuiCol.NavWindowingDimBg] = new Vector4(1.00f, 0.00f, 0.00f, 0.20f);
-            colors[(int)ImGuiCol.ModalWindowDimBg] = new Vector4(0.10f, 0.10f, 0.10f, 0.00f);
+            ImGuiImplSDL2.SetCurrentContext(guiContext);
+            ImGuiImplSDL2.InitForD3D((Hexa.NET.ImGui.Backends.SDL2.SDLWindow*)windowPtr);
 
-            style.WindowPadding = new Vector2(8.00f, 8.00f);
-            style.FramePadding = new Vector2(5.00f, 2.00f);
-            style.CellPadding = new Vector2(6.00f, 6.00f);
-            style.ItemSpacing = new Vector2(6.00f, 6.00f);
-            style.ItemInnerSpacing = new Vector2(6.00f, 6.00f);
-            style.TouchExtraPadding = new Vector2(0.00f, 0.00f);
-            style.IndentSpacing = 25;
-            style.ScrollbarSize = 15;
-            style.GrabMinSize = 10;
-            style.WindowBorderSize = 1;
-            style.ChildBorderSize = 1;
-            style.PopupBorderSize = 1;
-            style.FrameBorderSize = 1;
-            style.TabBorderSize = 1;
-            style.WindowRounding = 7;
-            style.ChildRounding = 4;
-            style.FrameRounding = 3;
-            style.PopupRounding = 4;
-            style.ScrollbarRounding = 9;
-            style.GrabRounding = 3;
-            style.LogSliderDeadzone = 4;
-            style.TabRounding = 4;
+            ImGuiImplD3D11.SetCurrentContext(guiContext);
+            ImGuiImplD3D11.Init(new((Hexa.NET.ImGui.Backends.D3D11.ID3D11Device*)device.NativePointer), new((Hexa.NET.ImGui.Backends.D3D11.ID3D11DeviceContext*)context.NativePointer));
+            ImGuiImplD3D11.NewFrame();
 
-            if ((io.ConfigFlags & ImGuiConfigFlags.ViewportsEnable) != 0)
-            {
-                style.WindowRounding = 0.0f;
-                style.Colors[(int)ImGuiCol.WindowBg].W = 1.0f;
-            }
+            Application.RegisterHook(MessageHook);
+        }
 
-            ImGuiSDL2Platform.Init(window.GetWindow(), null, null);
-            ImGuiD3D11Renderer.Init(device, context);
+        private static unsafe bool MessageHook(SDLEvent @event)
+        {
+            return ImGuiImplSDL2.ProcessEvent((Hexa.NET.ImGui.Backends.SDL2.SDLEvent*)&@event);
         }
 
         public unsafe void NewFrame()
@@ -155,7 +80,8 @@
             ImNodes.SetCurrentContext(nodesContext);
             ImPlot.SetCurrentContext(plotContext);
 
-            ImGuiSDL2Platform.NewFrame();
+            ImGuiImplSDL2.NewFrame();
+            ImGuiImplD3D11.NewFrame();
             ImGui.NewFrame();
             ImGuizmo.BeginFrame();
 
@@ -164,14 +90,14 @@
             ImGui.PopStyleColor(1);
         }
 
-        public static int DockSpaceId { get; private set; }
+        public static uint DockSpaceId { get; private set; }
 
         public unsafe void EndFrame()
         {
             var io = ImGui.GetIO();
             ImGui.Render();
             ImGui.EndFrame();
-            ImGuiD3D11Renderer.RenderDrawData(ImGui.GetDrawData());
+            ImGuiImplD3D11.RenderDrawData(ImGui.GetDrawData());
 
             if ((io.ConfigFlags & ImGuiConfigFlags.ViewportsEnable) != 0)
             {
@@ -182,8 +108,32 @@
 
         public void Dispose()
         {
-            ImGuiD3D11Renderer.Shutdown();
-            ImGuiSDL2Platform.Shutdown();
+            if (disposedValue)
+            {
+                return;
+            }
+
+            Application.UnregisterHook(MessageHook);
+
+            ImGuiImplD3D11.Shutdown();
+            ImGuiImplSDL2.Shutdown();
+
+            ImGuiImplSDL2.SetCurrentContext(null);
+            ImGuiImplD3D11.SetCurrentContext(null);
+
+            ImNodes.DestroyContext(nodesContext);
+            ImNodes.SetCurrentContext(null);
+            ImPlot.DestroyContext(plotContext);
+            ImPlot.SetCurrentContext(null);
+
+            ImGuizmo.SetImGuiContext(null);
+            ImPlot.SetImGuiContext(null);
+            ImNodes.SetImGuiContext(null);
+
+            ImGui.DestroyContext(guiContext);
+
+            ImGui.SetCurrentContext(null);
+            disposedValue = true;
         }
     }
 }

@@ -3,7 +3,6 @@ using System.Numerics;
 using BepuPhysics;
 using BepuPhysics.Collidables;
 using BepuUtilities;
-using Silk.NET.SDL;
 using VoxelEngine.Core.Input;
 using VoxelEngine.Scenes;
 

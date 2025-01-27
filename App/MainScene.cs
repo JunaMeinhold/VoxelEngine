@@ -17,6 +17,8 @@
             Renderer = new MainSceneDeferredRenderer();
             Camera = new Camera();
             Camera.Far = 1000;
+            Camera.Transform.Position = new(0, 100, 0);
+            Camera.Transform.Rotation = new(0, 0, 0);
             Add(Camera);
             // Creates the skybox.
             Add(new Skybox());
@@ -32,7 +34,7 @@
             Add(world);
 
             // Creates the player.
-            CPlayer player = new(new(0, 16, 0));
+            CPlayer player = new(new(0, 74, 0));
             Add(player);
 
             // Registers the block types.

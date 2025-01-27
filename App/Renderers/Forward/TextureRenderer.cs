@@ -5,6 +5,7 @@ namespace App.Renderers.Forward
     using System.Numerics;
     using System.Runtime.CompilerServices;
     using App.Pipelines.Forward;
+    using Hexa.NET.Mathematics;
     using Vortice.Direct3D11;
     using VoxelEngine.Graphics.Buffers;
     using VoxelEngine.Mathematics;

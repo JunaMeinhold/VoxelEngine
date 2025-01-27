@@ -3,6 +3,7 @@ namespace VoxelEngine.Voxel
     using System.Diagnostics;
     using System.Numerics;
     using BepuUtilities.Memory;
+    using Hexa.NET.Mathematics;
     using VoxelEngine.Mathematics;
     using VoxelEngine.Physics;
     using VoxelEngine.Scenes;
@@ -24,9 +25,9 @@ namespace VoxelEngine.Voxel
         public Vector3 Position;
         public BoundingBox BoundingBox;
 
-        public Block* Data = AllocTAndZero<Block>(CHUNK_SIZE_CUBED);
-        public byte* MinY = AllocTAndZero<byte>(CHUNK_SIZE_SQUARED);
-        public byte* MaxY = AllocTAndZero<byte>(CHUNK_SIZE_SQUARED);
+        public BlockStorage Data = new(0, CHUNK_SIZE_CUBED);
+        public byte* MinY;
+        public byte* MaxY;
 
         public BlockMetadataCollection BlockMetadata = new();
         public BiomeMetadata BiomeMetadata = new();
@@ -35,19 +36,23 @@ namespace VoxelEngine.Voxel
         public ChunkStaticHandle2 Handle;
 
         public ChunkHelper ChunkHelper;
-        public Chunk cXN, cXP, cYN, cYP, cZN, cZP;
+        public Chunk? cXN, cXP, cYN, cYP, cZN, cZP;
 
         public bool HasMissingNeighbours;
 
         public readonly object _lock = new();
 
+        private InternalChunkFlags flags;
+
         public Chunk(WorldMap map, int x, int y, int z, bool generated = false)
         {
+            MinY = AllocT<byte>(CHUNK_SIZE_SQUARED);
+            ZeroMemoryT(MinY, CHUNK_SIZE_SQUARED);
+            MaxY = AllocT<byte>(CHUNK_SIZE_SQUARED);
+            ZeroMemoryT(MaxY, CHUNK_SIZE_SQUARED);
             Map = map;
             Position = new(x, y, z);
-#if USE_LEGACY_LOADER
-            VertexBuffer.DebugName = $"Chunk: {Position}";
-#endif
+
             Vector3 realPos = new Vector3(x, y, z) * CHUNK_SIZE;
             BoundingBox = new BoundingBox(realPos, realPos + new Vector3(CHUNK_SIZE, CHUNK_SIZE, CHUNK_SIZE));
             Memset(MinY, CHUNK_SIZE, CHUNK_SIZE_SQUARED);
@@ -55,49 +60,112 @@ namespace VoxelEngine.Voxel
             Name = $"<{x},{y},{z}>";
         }
 
-        public bool InBuffer { get; private set; }
+        private enum InternalChunkFlags : byte
+        {
+            None = 0,
+            InBuffer = 1,
+            InMemory = 2,
+            InSimulation = 4,
+            Dirty = 8,
+            DiskDirty = 16,
+        }
+
+        public bool InBuffer
+        {
+            get => (flags & InternalChunkFlags.InBuffer) != 0;
+            private set
+            {
+                if (value)
+                {
+                    flags |= InternalChunkFlags.InBuffer;
+                }
+                else
+                {
+                    flags &= ~InternalChunkFlags.InBuffer;
+                }
+            }
+        }
 
         public bool InMemory => Data is not null;
 
-        public bool InSimulation { get; private set; }
+        public bool InSimulation
+        {
+            get => (flags & InternalChunkFlags.InSimulation) != 0;
+            private set
+            {
+                if (value)
+                {
+                    flags |= InternalChunkFlags.InSimulation;
+                }
+                else
+                {
+                    flags &= ~InternalChunkFlags.InSimulation;
+                }
+            }
+        }
 
-        public bool Dirty { get; private set; }
+        public bool Dirty
+        {
+            get => (flags & InternalChunkFlags.Dirty) != 0;
+            private set
+            {
+                if (value)
+                {
+                    flags |= InternalChunkFlags.Dirty;
+                }
+                else
+                {
+                    flags &= ~InternalChunkFlags.Dirty;
+                }
+            }
+        }
 
-        public bool DirtyDisk { get; private set; }
+        public bool DirtyDisk
+        {
+            get => (flags & InternalChunkFlags.DiskDirty) != 0;
+            private set
+            {
+                if (value)
+                {
+                    flags |= InternalChunkFlags.DiskDirty;
+                }
+                else
+                {
+                    flags &= ~InternalChunkFlags.DiskDirty;
+                }
+            }
+        }
 
         private void RemoveRefsFrom(Chunk chunk)
         {
-            lock (_lock)
+            if (cXN == chunk)
             {
-                if (cXN == chunk)
-                {
-                    cXN = null;
-                }
+                cXN = null;
+            }
 
-                if (cXP == chunk)
-                {
-                    cXP = null;
-                }
+            if (cXP == chunk)
+            {
+                cXP = null;
+            }
 
-                if (cYN == chunk)
-                {
-                    cYN = null;
-                }
+            if (cYN == chunk)
+            {
+                cYN = null;
+            }
 
-                if (cYP == chunk)
-                {
-                    cYP = null;
-                }
+            if (cYP == chunk)
+            {
+                cYP = null;
+            }
 
-                if (cZN == chunk)
-                {
-                    cZN = null;
-                }
+            if (cZN == chunk)
+            {
+                cZN = null;
+            }
 
-                if (cZP == chunk)
-                {
-                    cZP = null;
-                }
+            if (cZP == chunk)
+            {
+                cZP = null;
             }
         }
 
@@ -114,7 +182,7 @@ namespace VoxelEngine.Voxel
                 cZN?.RemoveRefsFrom(this);
                 cZP?.RemoveRefsFrom(this);
                 cXN = cXP = cYN = cYP = cZN = cZP = null;
-                Free(Data);
+                Data.Dispose();
                 Free(MinY);
                 Free(MaxY);
                 Data = null;
@@ -161,7 +229,7 @@ namespace VoxelEngine.Voxel
             lock (_lock)
             {
                 InBuffer = false;
-                VertexBuffer.Dispose();
+                VertexBuffer?.Dispose();
                 VertexBuffer = null;
             }
         }
@@ -206,7 +274,6 @@ namespace VoxelEngine.Voxel
 
         public Block GetBlockInternal(int x, int y, int z)
         {
-            lock (_lock)
             {
                 // Chunk data accessed quickly using bit masks
                 int index = Extensions.MapToIndex(x, y, z, CHUNK_SIZE, CHUNK_SIZE);
@@ -284,7 +351,7 @@ namespace VoxelEngine.Voxel
 
         private string GetDebuggerDisplay()
         {
-            return Name;
+            return $"{Name}, Flags: {flags}";
         }
     }
 }

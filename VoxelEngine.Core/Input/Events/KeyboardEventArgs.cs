@@ -1,6 +1,6 @@
 ﻿namespace VoxelEngine.Core.Input.Events
 {
-    using Silk.NET.SDL;
+    using Hexa.NET.SDL2;
     using VoxelEngine.Core.Input;
 
     public class KeyboardEventArgs : EventArgs
@@ -9,7 +9,7 @@
         {
         }
 
-        public KeyboardEventArgs(Key keyCode, KeyState keyState, Scancode scancode)
+        public KeyboardEventArgs(Key keyCode, KeyState keyState, SDLScancode scancode)
         {
             KeyCode = keyCode;
             KeyState = keyState;
@@ -20,6 +20,6 @@
 
         public KeyState KeyState { get; internal set; }
 
-        public Scancode Scancode { get; internal set; }
+        public SDLScancode Scancode { get; internal set; }
     }
 }

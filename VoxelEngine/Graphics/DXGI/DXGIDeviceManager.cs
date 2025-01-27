@@ -1,9 +1,7 @@
 ﻿namespace VoxelEngine.Rendering.DXGI
 {
     using System.Diagnostics;
-    using Silk.NET.SDL;
     using Vortice.DXGI;
-    using VoxelEngine.Core;
     using VoxelEngine.Core.Windows;
     using VoxelEngine.Rendering.D3D;
 
@@ -26,7 +24,7 @@
             D3D11DeviceManager.InitializeDevice(adapter);
         }
 
-        public static SwapChain CreateSwapChain(SdlWindow window)
+        public static SwapChain CreateSwapChain(CoreWindow window)
         {
             var (Hwnd, HDC, HInstance) = window.Win32 ?? throw new NotSupportedException();
 
@@ -55,40 +53,6 @@
             IDXGISwapChain1 swapChain = factory.CreateSwapChainForHwnd(D3D11DeviceManager.ID3D11Device, Hwnd, swapChainDescription, fullscreenDescription);
 
             return new(D3D11DeviceManager.ID3D11Device, swapChain, swapChainDescription);
-        }
-
-        public static unsafe SwapChain CreateSwapChain(Window* window)
-        {
-            int width, height;
-            Application.sdl.GetWindowSize(window, &width, &height);
-
-            SysWMInfo wmInfo;
-            Application.sdl.GetVersion(&wmInfo.Version);
-            Application.sdl.GetWindowWMInfo(window, &wmInfo);
-
-            SwapChainDescription1 swapChainDescription = new()
-            {
-                Width = width,
-                Height = height,
-                Format = Format.B8G8R8A8_UNorm,
-                BufferCount = 3,
-                BufferUsage = Usage.RenderTargetOutput,
-                SampleDescription = new SampleDescription(1, 0),
-                Scaling = Scaling.Stretch,
-                SwapEffect = SwapEffect.FlipSequential,
-                Flags = SwapChainFlags.AllowModeSwitch | SwapChainFlags.AllowTearing,
-            };
-
-            SwapChainFullscreenDescription fullscreenDescription = new()
-            {
-                Windowed = true,
-                RefreshRate = new Rational(0, 1),
-                Scaling = ModeScaling.Unspecified,
-                ScanlineOrdering = ModeScanlineOrder.Unspecified
-            };
-
-            // Create SwapChain.
-            return new(D3D11DeviceManager.ID3D11Device, factory.CreateSwapChainForHwnd(D3D11DeviceManager.ID3D11Device, wmInfo.Info.Win.Hwnd, swapChainDescription, fullscreenDescription), swapChainDescription);
         }
 
         public static void Dispose()

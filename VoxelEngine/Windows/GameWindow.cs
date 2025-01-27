@@ -14,7 +14,7 @@
     using VoxelEngine.Rendering.Shaders;
     using VoxelEngine.Scenes;
 
-    public class GameWindow : SdlWindow
+    public class GameWindow : CoreWindow
     {
         private bool firstFrame;
         private SwapChain swapChain;
@@ -81,9 +81,7 @@
             debugDraw.EndDraw(swapChain.RenderTarget.RTV, swapChain.DepthStencil?.DSV);
             renderer.EndFrame();
 
-            swapChain.Present(0);
-
-            LimitFrameRate();
+            swapChain.Present(Nucleus.Settings.VSync ? 1 : 0);
         }
 
         public override void RendererDestroy()

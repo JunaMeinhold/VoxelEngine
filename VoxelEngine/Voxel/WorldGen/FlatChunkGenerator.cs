@@ -13,10 +13,9 @@
 
         public int Height { get; set; } = 4;
 
-        public Chunk[] GenerateBatch(World world, Vector3 position)
+        public void GenerateBatch(ref ChunkSegment.ChunkArray chunks, World world, Vector3 position)
         {
-            Chunk[] chunks = new Chunk[WorldMap.CHUNK_AMOUNT_Y];
-            for (int i = 0; i < chunks.Length; i++)
+            for (int i = 0; i < ChunkSegment.CHUNK_SEGMENT_SIZE; i++)
             {
                 Chunk chunk = new(world, (int)position.X, i, (int)position.Z, true);
                 world.Set(chunk, new(position.X, i, position.Z));
@@ -35,12 +34,10 @@
 
                     for (int h = 0; h < (int)he & h < Chunk.CHUNK_SIZE_SQUARED; h++)
                     {
-                        MapToChunks(chunks, new Vector3(x, h, z), GetBlock(h, (int)he));
+                        MapToChunks(ref chunks, new Vector3(x, h, z), GetBlock(h, (int)he));
                     }
                 }
             }
-
-            return chunks;
         }
 
         private static float Saturate(float value)
@@ -48,7 +45,7 @@
             return (float)((value + 1.0) / 2.0);
         }
 
-        public static unsafe void MapToChunks(Chunk[] chunks, Vector3 pos, Block block)
+        public static unsafe void MapToChunks(ref ChunkSegment.ChunkArray chunks, Vector3 pos, Block block)
         {
             int cheight = 0;
             int height = (int)pos.Y;

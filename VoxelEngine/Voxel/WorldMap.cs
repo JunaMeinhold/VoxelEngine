@@ -1,6 +1,7 @@
 ﻿namespace VoxelEngine.Voxel
 {
     using System.Numerics;
+    using Hexa.NET.Mathematics;
     using VoxelEngine.Mathematics;
     using VoxelEngine.Scenes;
 
@@ -24,7 +25,7 @@
 
         public bool IsNoBlock(Vector3 pos)
         {
-            return IsNoBlock(pos.X.Round(), pos.Y.Round(), pos.Z.Round());
+            return IsNoBlock(MathUtil.Round(pos.X), MathUtil.Round(pos.Y), MathUtil.Round(pos.Z));
         }
 
         public unsafe bool IsNoBlock(int x, int y, int z)
@@ -118,7 +119,7 @@
                 return;
             }
 
-            for (int i = 0; i < region.Chunks.Length; i++)
+            for (int i = 0; i < ChunkSegment.CHUNK_SEGMENT_SIZE; i++)
             {
                 Set(region.Chunks[i], region.Position.X, i, region.Position.Y);
             }

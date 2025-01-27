@@ -1,6 +1,7 @@
 ﻿namespace VoxelEngine.Scenes
 {
     using System.Numerics;
+    using Hexa.NET.Mathematics;
     using Vortice.Direct3D11;
     using VoxelEngine.Core;
     using VoxelEngine.Mathematics;

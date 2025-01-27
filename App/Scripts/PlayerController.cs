@@ -5,6 +5,7 @@
     using App.Objects;
     using BepuPhysics.Collidables;
     using Hexa.NET.ImGui;
+    using Hexa.NET.Mathematics;
     using VoxelEngine.Core;
     using VoxelEngine.Core.Input;
     using VoxelEngine.Mathematics;

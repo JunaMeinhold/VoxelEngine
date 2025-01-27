@@ -14,7 +14,7 @@
         private static float delta;
         private static float cumulativeFrameTime;
         private static int fixedUpdateRate = 10;
-        private static float gameTime;
+        private static float gameTime = 12;
         private static float gameTimeNormalized;
 
         // Properties
@@ -32,7 +32,7 @@
 
         public static float GameTimeNormalized => gameTimeNormalized;
 
-        public static float TimeScale = 60 * 100;
+        public static float TimeScale = 60;
 
         public static event EventHandler FixedUpdate;
 

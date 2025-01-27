@@ -4,11 +4,12 @@
     using System.Runtime.CompilerServices;
     using System.Runtime.InteropServices;
     using Hexa.NET.DirectXTex;
-    using Silk.NET.Core.Native;
+    using HexaGen.Runtime;
     using Vortice.Direct3D11;
     using Vortice.DXGI;
     using VoxelEngine.IO;
     using Format = Vortice.DXGI.Format;
+    using ID3D11Device = Vortice.Direct3D11.ID3D11Device;
 
     public static class TextureHelper
     {
@@ -28,9 +29,9 @@
                 ProcessTexture(ref scratchImage);
             }
 
-            Silk.NET.Direct3D11.ID3D11Resource* res;
+            Hexa.NET.DirectXTex.ID3D11Resource* res;
             DirectXTex.CreateTextureEx2(
-                (Silk.NET.Direct3D11.ID3D11Device*)device.NativePointer,
+                (Hexa.NET.DirectXTex.ID3D11Device*)device.NativePointer,
                 scratchImage,
                 (uint)ResourceUsage.Immutable,
                 (uint)BindFlags.ShaderResource,
@@ -51,9 +52,9 @@
                 ProcessTexture(ref scratchImage);
             }
 
-            Silk.NET.Direct3D11.ID3D11Resource* res;
+            Hexa.NET.DirectXTex.ID3D11Resource* res;
             DirectXTex.CreateTextureEx2(
-                (Silk.NET.Direct3D11.ID3D11Device*)device.NativePointer,
+                (Hexa.NET.DirectXTex.ID3D11Device*)device.NativePointer,
                 scratchImage,
                 (uint)ResourceUsage.Immutable,
                 (uint)BindFlags.ShaderResource,
@@ -74,9 +75,9 @@
                 ProcessTexture(ref scratchImage);
             }
 
-            Silk.NET.Direct3D11.ID3D11Resource* res;
+            Hexa.NET.DirectXTex.ID3D11Resource* res;
             DirectXTex.CreateTextureEx2(
-                (Silk.NET.Direct3D11.ID3D11Device*)device.NativePointer,
+                (Hexa.NET.DirectXTex.ID3D11Device*)device.NativePointer,
                 scratchImage,
                 (uint)ResourceUsage.Immutable,
                 (uint)BindFlags.ShaderResource,
@@ -103,7 +104,7 @@
             if (GenerateMipMaps && metadata.MipLevels == 1)
             {
                 ScratchImage image1 = DirectXTex.CreateScratchImage();
-                result = DirectXTex.GenerateMipMaps2(image.GetImages(), image.GetImageCount(), image.GetMetadata(), TexFilterFlags.Default, (nuint)ComputeMipLevels((int)metadata.Width, (int)metadata.Height), image1);
+                result = DirectXTex.GenerateMipMaps2(image.GetImages(), image.GetImageCount(), &metadata, TexFilterFlags.Default, (nuint)ComputeMipLevels((int)metadata.Width, (int)metadata.Height), &image1);
 
                 if (!result.IsSuccess)
                 {
@@ -150,8 +151,8 @@
             {
                 for (int j = 0; j < (int)meta.MipLevels; j++)
                 {
-                    Image img = textures[i].GetImage((nuint)j, 0, 0);
-                    subresources[a++] = new(img.Pixels, (int)img.RowPitch, (int)img.SlicePitch);
+                    Image* img = textures[i].GetImage((nuint)j, 0, 0);
+                    subresources[a++] = new(img->Pixels, (int)img->RowPitch, (int)img->SlicePitch);
                 }
             }
 
@@ -182,7 +183,7 @@
             VirtualStream fs = FileSystem.Open(path);
             IntPtr ptr = fs.GetIntPtr(out _);
             ScratchImage image = DirectXTex.CreateScratchImage();
-            DirectXTex.LoadFromWICMemory((void*)ptr, (nuint)fs.Length, WICFlags.None, null, image, default);
+            DirectXTex.LoadFromWICMemory((void*)ptr, (nuint)fs.Length, WICFlags.None, null, &image, default);
             Marshal.FreeHGlobal(ptr);
             return image;
         }
@@ -192,7 +193,7 @@
             VirtualStream fs = FileSystem.Open(path);
             IntPtr ptr = fs.GetIntPtr(out _);
             ScratchImage image = DirectXTex.CreateScratchImage();
-            DirectXTex.LoadFromDDSMemory((void*)ptr, (nuint)fs.Length, DDSFlags.None, null, image);
+            DirectXTex.LoadFromDDSMemory((void*)ptr, (nuint)fs.Length, DDSFlags.None, null, &image);
             Marshal.FreeHGlobal(ptr);
             return image;
         }
@@ -202,7 +203,7 @@
             VirtualStream fs = FileSystem.Open(path);
             IntPtr ptr = fs.GetIntPtr(out _);
             ScratchImage image = DirectXTex.CreateScratchImage();
-            DirectXTex.LoadFromTGAMemory((void*)ptr, (nuint)fs.Length, TGAFlags.None, null, image);
+            DirectXTex.LoadFromTGAMemory((void*)ptr, (nuint)fs.Length, TGAFlags.None, null, &image);
             Marshal.FreeHGlobal(ptr);
             return image;
         }
@@ -212,7 +213,7 @@
             VirtualStream fs = FileSystem.Open(path);
             IntPtr ptr = fs.GetIntPtr(out _);
             ScratchImage image = DirectXTex.CreateScratchImage();
-            DirectXTex.LoadFromHDRMemory((void*)ptr, (nuint)fs.Length, null, image);
+            DirectXTex.LoadFromHDRMemory((void*)ptr, (nuint)fs.Length, null, &image);
             Marshal.FreeHGlobal(ptr);
             return image;
         }

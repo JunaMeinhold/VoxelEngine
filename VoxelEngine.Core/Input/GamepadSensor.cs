@@ -1,13 +1,12 @@
 ﻿namespace VoxelEngine.Core.Input
 {
-    using Silk.NET.SDL;
     using System.Numerics;
+    using Hexa.NET.SDL2;
     using VoxelEngine.Core.Input.Events;
 
     public unsafe class GamepadSensor : IDisposable
     {
-        private readonly Sdl sdl = Application.sdl;
-        private readonly GameController* controller;
+        private readonly SDLGameController* controller;
         private readonly GamepadSensorType type;
         private readonly float* buffer;
         private readonly int length = 3;
@@ -16,18 +15,18 @@
 
         private bool disposedValue;
 
-        public GamepadSensor(GameController* controller, GamepadSensorType sensorType)
+        public GamepadSensor(SDLGameController* controller, GamepadSensorType sensorType)
         {
             this.controller = controller;
             type = sensorType;
             buffer = AllocT<float>(3);
-            sdl.GameControllerGetSensorData(controller, Helper.ConvertBack(sensorType), buffer, length).SdlThrowIfNeg();
+            SDL.GameControllerGetSensorData(controller, Helper.ConvertBack(sensorType), buffer, length).SdlThrowIfNeg();
         }
 
         public bool Enabled
         {
-            get => sdl.GameControllerIsSensorEnabled(controller, Helper.ConvertBack(type)) == SdlBool.True;
-            set => sdl.GameControllerSetSensorEnabled(controller, Helper.ConvertBack(type), value ? SdlBool.True : SdlBool.False).SdlThrowIfNeg();
+            get => SDL.GameControllerIsSensorEnabled(controller, Helper.ConvertBack(type)) == SDLBool.True;
+            set => SDL.GameControllerSetSensorEnabled(controller, Helper.ConvertBack(type), value ? SDLBool.True : SDLBool.False).SdlThrowIfNeg();
         }
 
         public GamepadSensorType Type => type;
@@ -38,9 +37,9 @@
 
         public event EventHandler<GamepadSensorUpdateEventArgs>? SensorUpdate;
 
-        internal void OnSensorUpdate(ControllerSensorEvent even)
+        internal void OnSensorUpdate(SDLControllerSensorEvent even)
         {
-            MemcpyT(even.Data, buffer, length);
+            MemcpyT(&even.Data_0, buffer, length);
             sensorUpdateEventArgs.Data = buffer;
             sensorUpdateEventArgs.Length = length;
             sensorUpdateEventArgs.Type = type;
@@ -49,7 +48,7 @@
 
         public void Flush()
         {
-            sdl.GameControllerGetSensorData(controller, Helper.ConvertBack(type), buffer, length).SdlThrowIfNeg();
+            SDL.GameControllerGetSensorData(controller, Helper.ConvertBack(type), buffer, length).SdlThrowIfNeg();
             sensorUpdateEventArgs.Data = buffer;
             sensorUpdateEventArgs.Length = length;
             sensorUpdateEventArgs.Type = type;

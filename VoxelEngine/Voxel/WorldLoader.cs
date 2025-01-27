@@ -1,45 +1,146 @@
 ﻿namespace VoxelEngine.Voxel
 {
-    using System.Collections.Concurrent;
     using System.Collections.Generic;
+    using System.Diagnostics.CodeAnalysis;
     using System.Linq;
     using System.Numerics;
     using System.Runtime.CompilerServices;
     using System.Threading;
     using BepuUtilities.Memory;
+    using Hexa.NET.Utilities;
     using Vortice.Direct3D11;
     using VoxelEngine.Core;
     using VoxelEngine.Threading;
 
+    public readonly struct SpatialSorter : IComparer<Vector2>
+    {
+        public static readonly SpatialSorter Default;
+
+        public int Compare(Vector2 x, Vector2 y)
+        {
+            float da = Vector2.Distance(Vector2.Zero, x);
+            float db = Vector2.Distance(Vector2.Zero, y);
+
+            if (da < db)
+            {
+                return -1;
+            }
+            else if (db < da)
+            {
+                return 1;
+            }
+
+            return 0;
+        }
+    }
+
+    public class LockedQueue<T>
+    {
+        private readonly Queue<T> queue = [];
+        private readonly Lock _lock = new();
+        private volatile int count;
+
+        public int Count => count;
+
+        public bool IsEmpty => count == 0;
+
+        public void Lock()
+        {
+            _lock.Enter();
+        }
+
+        public void ReleaseLock()
+        {
+            _lock.Exit();
+        }
+
+        public bool Contains(T item)
+        {
+            Lock();
+            var result = queue.Contains(item);
+            ReleaseLock();
+            return result;
+        }
+
+        public void EnqueueUnsafe(T item)
+        {
+            queue.Enqueue(item);
+            count++;
+        }
+
+        public void EnqueueRange(IList<T> values)
+        {
+            Lock();
+            int count = values.Count;
+            queue.EnsureCapacity(queue.Count + count);
+            foreach (T item in values)
+            {
+                queue.Enqueue(item);
+            }
+            this.count += count;
+            ReleaseLock();
+        }
+
+        public void Enqueue(T item)
+        {
+            Lock();
+            queue.Enqueue(item);
+            count++;
+            ReleaseLock();
+        }
+
+        public T Dequeue()
+        {
+            Lock();
+            T item = queue.Dequeue();
+            count--;
+            ReleaseLock();
+            return item;
+        }
+
+        public bool TryDequeue([MaybeNullWhen(false)] out T result)
+        {
+            Lock();
+            bool item = queue.TryDequeue(out result);
+            if (item)
+            {
+                count--;
+            }
+
+            ReleaseLock();
+            return item;
+        }
+    }
+
     public class WorldLoader : IDisposable
     {
         private Vector2[] indicesRenderCache;
-        private Vector2[] indicesPreloadCache;
+        private HashSet<Vector2> indicesSimulationCache;
 
         private readonly HashSet<Vector2> loadedRegionIds = new();
 
-        private readonly ConcurrentQueue<ChunkSegment> loadIOQueue = new();
+        private readonly LockedQueue<Vector3> loadIOQueue = new();
 
-        private readonly ConcurrentQueue<ChunkSegment> generationQueue = new();
+        private readonly LockedQueue<ChunkSegment> generationQueue = new();
 
-        private readonly ConcurrentQueue<ChunkSegment> loadQueue = new();
+        private readonly LockedQueue<ChunkSegment> loadQueue = new();
 
         // Contains chunks that are marked as dirty from an block update.
-        private readonly ConcurrentQueue<ChunkSegment> updateQueue = new();
+        private readonly LockedQueue<ChunkSegment> updateQueue = new();
 
         // Contains chunks that needed to upload data to the gpu.
-        private readonly ConcurrentQueue<RenderRegion> uploadQueue = new();
+        private readonly LockedQueue<RenderRegion> uploadQueue = new();
 
         // Contains chunks that will be added to LoadedChunks list.
-        private readonly ConcurrentQueue<ChunkSegment> integrationQueue = new();
+        private readonly LockedQueue<ChunkSegment> integrationQueue = new();
 
         // Contains chunks that will be unloaded form the simulation and LoadedChunks list.
-        private readonly ConcurrentQueue<ChunkSegment> unloadQueue = new();
+        private readonly LockedQueue<ChunkSegment> unloadQueue = new();
 
         // Contains chunks that will be unloaded from the gpu and will be send to unloadQueue.
-        private readonly ConcurrentQueue<ChunkSegment> unloadIOQueue = new();
+        private readonly LockedQueue<ChunkSegment> unloadIOQueue = new();
 
-        private readonly ConcurrentQueue<ChunkSegment> saveIOQueue = new();
+        private readonly LockedQueue<ChunkSegment> saveIOQueue = new();
 
         // Contains chunks that are marked as loaded internal to prevent loading chunks multiple times.
         private readonly ConcurrentList<ChunkSegment> loadedInternal = new();
@@ -65,7 +166,7 @@
             public BufferPool Pool;
         }
 
-        public WorldLoader(World world, int threads = 8, int ioThreads = 1)
+        public WorldLoader(World world, int threads = 4, int ioThreads = 2)
         {
             World = world;
             workers = new Worker[threads];
@@ -141,13 +242,15 @@
 
         public int ChunkCount => loadedChunks.Count;
 
-        public bool DoNotSave { get; set; }
+        public bool DoNotSave { get; set; } = true;
+
+        public int RenderDistance { get; private set; } = 16;
 
         private static IEnumerable<Vector2> GetIndices(Vector3 center, int radius)
         {
-            for (int x = -radius; x < radius; x++)
+            for (int x = -radius; x <= radius; x++)
             {
-                for (int z = -radius; z < radius; z++)
+                for (int z = -radius; z <= radius; z++)
                 {
                     yield return new Vector2(x, z) + new Vector2(center.X, center.Z);
                 }
@@ -174,7 +277,7 @@
         public void RegenerateCache()
         {
             indicesRenderCache = GetIndices(Vector3.Zero, Nucleus.Settings.ChunkRenderDistance).ToArray();
-            indicesPreloadCache = GetIndices(Vector3.Zero, Nucleus.Settings.ChunkRenderDistance).ToArray();
+
             static int compare(Vector2 a, Vector2 b)
             {
                 float da = Vector2.Distance(Vector2.Zero, a);
@@ -191,9 +294,8 @@
 
                 return 0;
             }
-
+            indicesSimulationCache = [.. GetIndices(Vector3.Zero, Nucleus.Settings.ChunkSimulationDistance).Order(SpatialSorter.Default)];
             Array.Sort(indicesRenderCache, compare);
-            Array.Sort(indicesPreloadCache, compare);
         }
 
         private RenderRegion FindRenderRegion(Vector2 pos)
@@ -232,12 +334,17 @@
             return region;
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Dispatch(Vector3 pos)
+        private Vector3 lastPos;
+
+        public unsafe void DispatchInitial(Vector3 pos)
         {
+            lastPos = pos;
+
+            MiniProfiler.Instance.Clear();
+            MiniProfiler.Instance.Begin("Dispatch.Total");
+            MiniProfiler.Instance.Begin("Dispatch.Load");
             loadedChunksIndices.Clear();
 
-            // Load chunks
             for (int i = 0; i < indicesRenderCache.Length; i++)
             {
                 Vector2 vector = indicesRenderCache[i];
@@ -245,34 +352,163 @@
                 loadedChunksIndices.Add(vec);
                 Vector3 chunkVGlobal = new(vec.X, 0, vec.Y);
 
-                if (loadedRegionIds.Contains(vec))
+                if (!loadedRegionIds.Add(vec))
                 {
                     continue;
                 }
-
-                loadedRegionIds.Add(vec);
 
                 if (!World.InWorldLimits((int)chunkVGlobal.X, 0, (int)chunkVGlobal.Z))
                 {
                     continue;
                 }
 
-                ChunkSegment segment = World.GetSegment(chunkVGlobal);
-                loadIOQueue.Enqueue(segment);
+                loadIOQueue.Enqueue(chunkVGlobal);
             }
 
+            MiniProfiler.Instance.EndDebug("Dispatch.Load");
+
+            MiniProfiler.Instance.Begin("Dispatch.Unload");
+
+            MiniProfiler.Instance.Begin("Dispatch.Unload.Lock");
             // Unload chunks
-            for (int i = 0; i < loadedInternal.Count; i++)
+            lock (loadedInternal.SyncRoot)
             {
-                ChunkSegment segment = loadedInternal[i];
-                if (!loadedChunksIndices.Contains(segment.Position))
+                MiniProfiler.Instance.EndDebug("Dispatch.Unload.Lock");
+                unloadIOQueue.Lock();
+                for (int i = 0; i < loadedInternal.Count; i++)
                 {
-                    unloadIOQueue.Enqueue(segment);
+                    ChunkSegment segment = loadedInternal[i];
+                    if (!loadedChunksIndices.Contains(segment.Position))
+                    {
+                        unloadIOQueue.EnqueueUnsafe(segment);
+                    }
+                    loadedRegionIds.Remove(segment.Position);
                 }
-                loadedRegionIds.Remove(segment.Position);
+                unloadIOQueue.ReleaseLock();
             }
+
+            MiniProfiler.Instance.EndDebug("Dispatch.Unload");
 
             SignalIOWorkers();
+
+            MiniProfiler.Instance.EndDebug("Dispatch.Total");
+        }
+
+        public enum Direction
+        {
+            None, Left, Right
+        }
+
+        private bool first = true;
+
+        public void Dispatch(Vector3 pos)
+        {
+            if (first)
+            {
+                first = false;
+                DispatchInitial(pos);
+                return;
+            }
+            MiniProfiler.Instance.Clear();
+            MiniProfiler.Instance.Begin("Dispatch.Total");
+            MiniProfiler.Instance.Begin("Dispatch.Load");
+            loadedChunksIndices.Clear();
+            unloadChunksIndices.Clear();
+
+            Vector3 delta = lastPos - pos;
+
+            // ignore y axis since we use a 2D plane for chunk loading.
+            int dX = (int)delta.X;
+            int dY = (int)delta.Z;
+            int xAbs = Math.Abs(dX);
+            int yAbs = Math.Abs(dY);
+            loadIOQueue.Lock();
+            if (dX != 0 || dY != 0)
+            {
+                int dirX = dX > 0 ? -1 : 1;
+                int dirY = dY > 0 ? -1 : 1;
+
+                for (int x = 0; x < xAbs; x++) // Process columns along X movement
+                {
+                    int unloadX = (int)lastPos.X - dirX * (RenderDistance + x); // Move further out based on distance
+                    for (int z = (int)lastPos.Z - RenderDistance; z <= (int)lastPos.Z + RenderDistance; z++)
+                    {
+                        Vector2 chunkToUnload = new(unloadX, z);
+                        unloadChunksIndices.Add(chunkToUnload);
+                    }
+                }
+
+                for (int y = 0; y < yAbs; y++) // Process rows along Y (Z-axis) movement
+                {
+                    int unloadZ = (int)lastPos.Z - dirY * (RenderDistance + y);
+                    for (int x = (int)lastPos.X - RenderDistance; x <= (int)lastPos.X + RenderDistance; x++)
+                    {
+                        Vector2 chunkToUnload = new(x, unloadZ);
+                        unloadChunksIndices.Add(chunkToUnload);
+                    }
+                }
+
+                for (int x = 0; x < xAbs; x++) // Process columns along X movement
+                {
+                    int loadX = (int)pos.X + dirX * (RenderDistance - x); // Move closer based on distance
+                    for (int z = (int)pos.Z - RenderDistance; z <= (int)pos.Z + RenderDistance; z++)
+                    {
+                        Vector2 chunkToLoad = new(loadX, z);
+                        if (World.InWorldLimits((int)chunkToLoad.X, 0, (int)chunkToLoad.Y) && loadedChunksIndices.Add(chunkToLoad))
+                        {
+                            Vector3 chunkVGlobal = new(chunkToLoad.X, 0, chunkToLoad.Y);
+                            loadIOQueue.EnqueueUnsafe(chunkVGlobal);
+                            loadedRegionIds.Add(chunkToLoad);
+                        }
+                    }
+                }
+
+                for (int y = 0; y < yAbs; y++) // Process rows along Y (Z-axis) movement
+                {
+                    int loadZ = (int)pos.Z + dirY * (RenderDistance - y);
+                    for (int x = (int)pos.X - RenderDistance; x <= (int)pos.X + RenderDistance; x++)
+                    {
+                        Vector2 chunkToLoad = new(x, loadZ);
+                        if (World.InWorldLimits((int)chunkToLoad.X, 0, (int)chunkToLoad.Y) && loadedChunksIndices.Add(chunkToLoad))
+                        {
+                            Vector3 chunkVGlobal = new(chunkToLoad.X, 0, chunkToLoad.Y);
+                            loadIOQueue.EnqueueUnsafe(chunkVGlobal);
+                            loadedRegionIds.Add(chunkToLoad);
+                        }
+                    }
+                }
+            }
+            loadIOQueue.ReleaseLock();
+
+            MiniProfiler.Instance.EndDebug("Dispatch.Load");
+
+            MiniProfiler.Instance.Begin("Dispatch.Unload");
+
+            MiniProfiler.Instance.Begin("Dispatch.Unload.Lock");
+            // Unload chunks
+            lock (loadedInternal.SyncRoot)
+            {
+                unloadIOQueue.Lock();
+                MiniProfiler.Instance.EndDebug("Dispatch.Unload.Lock");
+                for (int i = 0; i < loadedInternal.Count; i++)
+                {
+                    ChunkSegment segment = loadedInternal[i];
+                    if (unloadChunksIndices.Contains(segment.Position))
+                    {
+                        unloadIOQueue.EnqueueUnsafe(segment);
+                    }
+                    loadedRegionIds.Remove(segment.Position);
+                }
+                unloadIOQueue.ReleaseLock();
+            }
+
+            MiniProfiler.Instance.EndDebug("Dispatch.Unload");
+
+            SignalIOWorkers();
+
+            MiniProfiler.Instance.EndDebug("Dispatch.Total");
+
+            lastPos = pos;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -297,7 +533,7 @@
                 return;
             }
 
-            while (uploadQueue.TryDequeue(out RenderRegion region))
+            while (uploadQueue.TryDequeue(out var region))
             {
                 region.Update(device, context);
             }
@@ -309,7 +545,7 @@
 
             while (unloadQueue.TryDequeue(out ChunkSegment segment))
             {
-                for (int i = 0; i < segment.Chunks.Length; i++)
+                for (int i = 0; i < ChunkSegment.CHUNK_SEGMENT_SIZE; i++)
                 {
                     Chunk chunk = segment.Chunks[i];
                     chunk.UnloadFromGPU();
@@ -357,7 +593,7 @@
                 return;
             }
 
-            segment.Load(pool);
+            segment.Load(pool, true);
 
             loadedInternal.Add(segment);
             integrationQueue.Enqueue(segment);
@@ -378,7 +614,7 @@
                 return;
             }
 
-            segment.Load(pool);
+            segment.Load(pool, true);
 
             RenderRegion renderRegion = FindRenderRegion(segment.Position);
             if (!uploadQueue.Contains(renderRegion))
@@ -413,7 +649,8 @@
             unloadQueue.Enqueue(segment);
         }
 
-        private readonly HashSet<Vector2> loadedChunksIndices = new(Nucleus.Settings.ChunkRenderDistance * 2 * Nucleus.Settings.ChunkRenderDistance * 2);
+        private UnsafeHashSet<Vector2> loadedChunksIndices = new(Nucleus.Settings.ChunkRenderDistance * 2 * Nucleus.Settings.ChunkRenderDistance * 2);
+        private UnsafeHashSet<Vector2> unloadChunksIndices = new(Nucleus.Settings.ChunkRenderDistance * 2 * Nucleus.Settings.ChunkRenderDistance * 2);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void LoadVoid(object param)
@@ -430,12 +667,14 @@
                 }
 
                 bool gen = !generationQueue.IsEmpty;
+
                 {
                     if (generationQueue.TryDequeue(out ChunkSegment segment) && running)
                     {
                         GenerateRegion(segment);
                     }
                 }
+
                 if (gen)
                 {
                     SignalIOWorkers();
@@ -464,27 +703,41 @@
             Worker worker = ioWorkers[id];
             while (running)
             {
-                while (unloadIOQueue.TryDequeue(out ChunkSegment segment) && running)
-                {
-                    UnloadIORegion(segment);
-                }
+                bool signal = false;
 
-                while (saveIOQueue.TryDequeue(out ChunkSegment segment) && running)
                 {
-                    if (!DoNotSave)
+                    signal |= !unloadIOQueue.IsEmpty;
+                    if (unloadIOQueue.TryDequeue(out ChunkSegment segment) && running)
                     {
-                        segment.SaveToDisk();
+                        UnloadIORegion(segment);
                     }
                 }
 
-                while (loadIOQueue.TryDequeue(out ChunkSegment segment) && running)
                 {
-                    LoadIORegion(segment);
+                    if (saveIOQueue.TryDequeue(out ChunkSegment segment) && running)
+                    {
+                        if (!DoNotSave)
+                        {
+                            segment.SaveToDisk();
+                        }
+                    }
                 }
 
-                SignalWorkers();
+                {
+                    signal |= !loadIOQueue.IsEmpty;
+                    if (loadIOQueue.TryDequeue(out Vector3 chunkVGlobal) && running)
+                    {
+                        ChunkSegment segment = World.GetSegment(chunkVGlobal);
+                        LoadIORegion(segment);
+                    }
+                }
 
-                if (running)
+                if (signal)
+                {
+                    SignalWorkers();
+                }
+
+                if (running && unloadIOQueue.IsEmpty && saveIOQueue.IsEmpty && loadIOQueue.IsEmpty)
                 {
                     Interlocked.Decrement(ref ioIdle);
                     worker.Handle.WaitOne();

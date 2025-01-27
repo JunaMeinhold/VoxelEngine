@@ -1,63 +1,88 @@
 ﻿namespace VoxelEngine.Voxel
 {
-    using System.Collections.Concurrent;
     using System.Numerics;
 
     public class ChunkArray
     {
-        private readonly ConcurrentDictionary<Vector3, Chunk> chunks = new();
+        private readonly Dictionary<Vector3, Chunk> chunks = new();
+        private readonly object _lock = new();
 
         public ChunkArray()
         {
         }
 
-        public Chunk this[int x, int y, int z]
+        public Chunk? this[int x, int y, int z]
         {
             get => Get(new(x, y, z));
             set => Set(new(x, y, z), value);
         }
 
-        public Chunk this[Vector3 pos]
+        public Chunk? this[Vector3 pos]
         {
             get => Get(new((int)pos.X, (int)pos.Y, (int)pos.Z));
             set => Set(new((int)pos.X, (int)pos.Y, (int)pos.Z), value);
         }
 
-        public Chunk Get(Vector3 pos)
+        public Chunk? Get(Vector3 pos)
         {
-            if (chunks.TryGetValue(pos, out Chunk chunk))
+            lock (_lock)
             {
-                return chunk;
-            }
-            else
-            {
-                return null;
+                if (chunks.TryGetValue(pos, out Chunk? chunk))
+                {
+                    return chunk;
+                }
+                else
+                {
+                    return null;
+                }
             }
         }
 
-        public void Set(Vector3 pos, Chunk value)
+        public void Set(Vector3 pos, Chunk? value)
         {
-            chunks[pos] = value;
+            lock (_lock)
+            {
+                if (value == null)
+                {
+                    chunks.Remove(pos);
+                }
+                else
+                {
+                    chunks[pos] = value;
+                }
+            }
         }
 
         public void Remove(Vector3 pos)
         {
-            chunks.TryRemove(pos, out _);
+            lock (_lock)
+            {
+                chunks.Remove(pos, out _);
+            }
         }
 
         public void Remove(Chunk value)
         {
-            chunks.TryRemove(new(value.Position, value));
+            lock (_lock)
+            {
+                chunks.Remove(value.Position);
+            }
         }
 
         public int Count()
         {
-            return chunks.Count;
+            lock (_lock)
+            {
+                return chunks.Count;
+            }
         }
 
         public void Clear()
         {
-            chunks.Clear();
+            lock (_lock)
+            {
+                chunks.Clear();
+            }
         }
     }
 }

@@ -5,6 +5,6 @@
 
     public interface IChunkGenerator : IDisposable
     {
-        public Chunk[] GenerateBatch(World world, Vector3 position);
+        public void GenerateBatch(ref ChunkSegment.ChunkArray chunks, World world, Vector3 position);
     }
 }

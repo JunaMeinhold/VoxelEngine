@@ -1,9 +1,10 @@
 ﻿namespace VoxelEngine.Debugging
 {
+    using Hexa.NET.Utilities;
+    using HexaEngine.Core.UI;
     using System.Collections.Generic;
     using System.Diagnostics;
-    using HexaEngine.Core.UI;
-    using HexaEngine.Core.Unsafes;
+    using VoxelEngine.Core.Unsafes;
 
     public struct Scope
     {
@@ -13,7 +14,7 @@
         public ulong End;
         public bool Finalized = false;
         public bool Used;
-        public UnsafeString Name;
+        public StdString Name;
         public UnsafeRingBuffer<float> StartSamples;
         public UnsafeRingBuffer<float> EndSamples;
 
@@ -36,14 +37,14 @@
         {
         }
 
-        public uint IdToIndex(uint id)
+        public int IdToIndex(uint id)
         {
-            for (uint i = 0; i < Stages.Size; i++)
+            for (int i = 0; i < Stages.Size; i++)
             {
                 if (Stages[i].Id == id)
                     return i;
             }
-            return unchecked((uint)-1);
+            return -1;
         }
     }
 
@@ -63,7 +64,7 @@
     public unsafe class CPUFlameProfiler : ICPUProfiler
     {
         private readonly ImGuiWidgetFlameGraph.ValuesGetter getter;
-        private readonly UnsafeArray<Entry> entries = new(bufferSize);
+        private readonly UnsafeList<Entry> entries = new(bufferSize);
 
         private readonly Dictionary<string, uint> nameToId = new();
         private readonly Dictionary<uint, string> idToName = new();
@@ -146,7 +147,7 @@
         {
             nameToId.Add(name, id);
             idToName.Add(id, name);
-            for (uint i = 0; i < bufferSize; i++)
+            for (int i = 0; i < bufferSize; i++)
             {
                 entries.GetPointer(i)->Stages.PushBack(new(id, name));
             }
@@ -156,7 +157,7 @@
         public void DestroyStage(string name)
         {
             var id = nameToId[name];
-            for (uint i = 0; i < bufferSize; i++)
+            for (int i = 0; i < bufferSize; i++)
             {
                 var entry = entries.GetPointer(i);
                 var index = entry->IdToIndex(id);
@@ -175,7 +176,7 @@
         public void DestroyStage(uint id)
         {
             var name = idToName[id];
-            for (uint i = 0; i < bufferSize; i++)
+            for (int i = 0; i < bufferSize; i++)
             {
                 var entry = entries.GetPointer(i);
                 var index = entry->IdToIndex(id);
@@ -275,7 +276,7 @@
             }
             if (caption != null)
             {
-                *caption = stage.Name;
+                *caption = stage.Name.CStr();
             }
         }
     }

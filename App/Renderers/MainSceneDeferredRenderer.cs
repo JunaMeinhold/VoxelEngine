@@ -33,6 +33,7 @@ namespace App.Renderers
     using VoxelEngine.Scenes;
     using VoxelEngine.Voxel;
     using VoxelEngine.Windows;
+    using Hexa.NET.Mathematics;
 
     public class MainSceneDeferredRenderer : ISceneRenderer
     {
@@ -214,7 +215,7 @@ namespace App.Renderers
             DebugDraw.SetCamera(view.Transform.ViewProjection);
             Vector3 rot = directionalLight.Transform.Rotation;
             rot.Y = 360 * Time.GameTimeNormalized - 90;
-            float ro = (rot.Y - 180F).NormalizeEulerAngleDegrees();
+            float ro = rot.Y - 180F;
             directionalLight.Transform.Rotation = rot.NormalizeEulerAngleDegrees();
             if (rot.Y > 45 && rot.Y < 135)
             {

@@ -96,7 +96,7 @@
                 {
                     buffer = new byte[(int)(size * 1.5f)];
                 }
-                stream.Read(buffer, 0, size);
+                stream.ReadExactly(buffer, 0, size);
                 metadata.Add(BlockMetadata.ReadFrom(buffer));
             }
         }

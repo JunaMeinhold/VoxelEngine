@@ -4,16 +4,14 @@ namespace App.Renderers.Forward
 {
     using System.Numerics;
     using System.Runtime.CompilerServices;
-    using System.Runtime.InteropServices;
     using App.Pipelines.Forward;
     using Hexa.NET.ImGui;
+    using Hexa.NET.Mathematics;
+    using Hexa.NET.Mathematics.Sky;
+    using Hexa.NET.Mathematics.Sky.HosekWilkie;
     using Vortice.Direct3D11;
-    using VoxelEngine.Core;
     using VoxelEngine.Graphics.Buffers;
     using VoxelEngine.Graphics.Primitives;
-    using VoxelEngine.Mathematics;
-    using VoxelEngine.Mathematics.Sky;
-    using VoxelEngine.Mathematics.Sky.HosekWilkie;
     using VoxelEngine.Rendering.D3D;
     using VoxelEngine.Rendering.D3D.Interfaces;
     using VoxelEngine.Scenes;
@@ -90,7 +88,7 @@ namespace App.Renderers.Forward
         public void DrawForward(ID3D11DeviceContext context, IView view)
         {
             Vector3 sunDir = Vector3.Normalize(-SunDir);
-            SkyParameters skyParams = SkyModel.CalculateSkyParameters(turbidity, groundAlbedo, sunDir);
+            SkyParameters skyParams = SkyModel.CalculateSkyParameters(turbidity, groundAlbedo, sunDir, 0);
             colors.A = skyParams[(int)EnumSkyParams.A];
             colors.B = skyParams[(int)EnumSkyParams.B];
             colors.C = skyParams[(int)EnumSkyParams.C];

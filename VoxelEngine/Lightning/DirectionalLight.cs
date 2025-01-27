@@ -1,5 +1,6 @@
 ﻿namespace VoxelEngine.Lightning
 {
+    using Hexa.NET.Mathematics;
     using VoxelEngine.Mathematics;
 
     public class DirectionalLight : Light

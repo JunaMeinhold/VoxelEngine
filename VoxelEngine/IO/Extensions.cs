@@ -307,5 +307,13 @@
             BinaryPrimitives.WriteSingleLittleEndian(buffer[12..], value.W);
             stream.Write(buffer);
         }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static bool ReadCompare(this Stream stream, byte[] bytes)
+        {
+            Span<byte> buffer = stackalloc byte[bytes.Length];
+            stream.ReadExactly(buffer);
+            return buffer.SequenceEqual(bytes);
+        }
     }
 }

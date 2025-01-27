@@ -32,7 +32,7 @@
         {
             BiomeMetadataHeader.Read(stream, out int dataLength);
             Data = new byte[dataLength];
-            stream.Read(Data);
+            stream.ReadExactly(Data);
         }
 
         public int Deserialize(ReadOnlySpan<byte> data)

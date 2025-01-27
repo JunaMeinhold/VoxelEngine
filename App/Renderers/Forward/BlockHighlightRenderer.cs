@@ -11,7 +11,7 @@
     using VoxelEngine.Rendering.D3D.Interfaces;
     using VoxelEngine.Scenes;
     using VoxelEngine.Voxel;
-    using BoundingBox = VoxelEngine.Mathematics.BoundingBox;
+    using BoundingBox = Hexa.NET.Mathematics.BoundingBox;
 
     public class BlockHighlightRenderer : IForwardRenderComponent
     {

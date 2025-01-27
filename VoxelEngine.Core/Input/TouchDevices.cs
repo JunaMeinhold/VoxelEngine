@@ -1,17 +1,15 @@
 ﻿namespace VoxelEngine.Core.Input
 {
-    using Silk.NET.SDL;
+    using Hexa.NET.SDL2;
 
     public static class TouchDevices
     {
-        private static readonly Sdl sdl = Sdl.GetApi();
-
         internal static void Init()
         {
-            var touchdevCount = sdl.GetNumTouchDevices();
+            var touchdevCount = SDL.GetNumTouchDevices();
             for (int i = 0; i < touchdevCount; i++)
             {
-                var id = sdl.GetTouchDevice(i);
+                var id = SDL.GetTouchDevice(i);
             }
         }
     }

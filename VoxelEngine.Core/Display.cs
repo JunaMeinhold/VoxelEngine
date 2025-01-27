@@ -1,7 +1,6 @@
 ﻿namespace VoxelEngine.Core
 {
-    using Silk.NET.Maths;
-    using Silk.NET.SDL;
+    using Hexa.NET.SDL2;
     using VoxelEngine.Core.Windows;
 
     /// <summary>
@@ -9,12 +8,10 @@
     /// </summary>
     public static unsafe class Display
     {
-        private static readonly Sdl Sdl = Application.sdl;
-
         /// <summary>
         /// Gets the number of video displays available.
         /// </summary>
-        public static int NumVideoDisplays => Sdl.GetNumVideoDisplays();
+        public static int NumVideoDisplays => SDL.GetNumVideoDisplays();
 
         /// <summary>
         /// Gets the closest display mode to the specified mode for a given display.
@@ -25,7 +22,7 @@
         public static DisplayMode GetClosestDisplayMode(int displayIndex, DisplayMode mode)
         {
             DisplayMode closest;
-            Sdl.GetClosestDisplayMode(displayIndex, (Silk.NET.SDL.DisplayMode*)&mode, (Silk.NET.SDL.DisplayMode*)&closest);
+            SDL.GetClosestDisplayMode(displayIndex, (SDLDisplayMode*)&mode, (SDLDisplayMode*)&closest);
             return closest;
         }
 
@@ -37,7 +34,7 @@
         public static DisplayMode GetCurrentDisplayMode(int displayIndex)
         {
             DisplayMode mode;
-            Sdl.GetCurrentDisplayMode(displayIndex, (Silk.NET.SDL.DisplayMode*)&mode);
+            SDL.GetCurrentDisplayMode(displayIndex, (SDLDisplayMode*)&mode);
             return mode;
         }
 
@@ -49,7 +46,7 @@
         public static DisplayMode GetDesktopDisplayMode(int displayIndex)
         {
             DisplayMode mode;
-            Sdl.GetDesktopDisplayMode(displayIndex, (Silk.NET.SDL.DisplayMode*)&mode);
+            SDL.GetDesktopDisplayMode(displayIndex, (SDLDisplayMode*)&mode);
             return mode;
         }
 
@@ -60,7 +57,7 @@
         /// <returns>The name of the display.</returns>
         public static string GetDisplayName(int displayIndex)
         {
-            return Sdl.GetDisplayNameS(displayIndex);
+            return SDL.GetDisplayNameS(displayIndex);
         }
 
         /// <summary>
@@ -70,7 +67,7 @@
         /// <returns>The orientation of the display.</returns>
         public static DisplayOrientation GetDisplayOrientation(int displayIndex)
         {
-            return (DisplayOrientation)Sdl.GetDisplayOrientation(displayIndex);
+            return (DisplayOrientation)SDL.GetDisplayOrientation(displayIndex);
         }
 
         /// <summary>
@@ -82,7 +79,7 @@
         /// <param name="vdpi">The vertical DPI.</param>
         public static void GetDisplayDPI(int displayIndex, ref float ddpi, ref float hdpi, ref float vdpi)
         {
-            Sdl.GetDisplayDPI(displayIndex, ref ddpi, ref hdpi, ref vdpi);
+            SDL.GetDisplayDPI(displayIndex, ref ddpi, ref hdpi, ref vdpi);
         }
 
         /// <summary>
@@ -95,12 +92,12 @@
         /// <param name="height">The height of the display.</param>
         public static void GetDisplayBounds(int displayIndex, ref int x, ref int y, ref int width, ref int height)
         {
-            Rectangle<int> rectangle;
-            Sdl.GetDisplayBounds(displayIndex, &rectangle);
-            x = rectangle.Origin.X;
-            y = rectangle.Origin.Y;
-            width = rectangle.Size.X;
-            height = rectangle.Size.Y;
+            SDLRect rectangle;
+            SDL.GetDisplayBounds(displayIndex, &rectangle);
+            x = rectangle.X;
+            y = rectangle.Y;
+            width = rectangle.W;
+            height = rectangle.H;
         }
 
         /// <summary>
@@ -113,12 +110,12 @@
         /// <param name="height">The height of the display.</param>
         public static void GetDisplayUsableBounds(int displayIndex, ref int x, ref int y, ref int width, ref int height)
         {
-            Rectangle<int> rectangle;
-            Sdl.GetDisplayUsableBounds(displayIndex, &rectangle);
-            x = rectangle.Origin.X;
-            y = rectangle.Origin.Y;
-            width = rectangle.Size.X;
-            height = rectangle.Size.Y;
+            SDLRect rectangle;
+            SDL.GetDisplayUsableBounds(displayIndex, &rectangle);
+            x = rectangle.X;
+            y = rectangle.Y;
+            width = rectangle.W;
+            height = rectangle.H;
         }
 
         /// <summary>
@@ -130,7 +127,7 @@
         public static DisplayMode GetDisplayMode(int displayIndex, int modeIndex)
         {
             DisplayMode mode;
-            Sdl.GetDisplayMode(displayIndex, modeIndex, (Silk.NET.SDL.DisplayMode*)&mode);
+            SDL.GetDisplayMode(displayIndex, modeIndex, (SDLDisplayMode*)&mode);
             return mode;
         }
 
@@ -141,7 +138,7 @@
         /// <returns>The number of display modes.</returns>
         public static int GetNumDisplayModes(int displayIndex)
         {
-            return Sdl.GetNumDisplayModes(displayIndex);
+            return SDL.GetNumDisplayModes(displayIndex);
         }
 
         /// <summary>
@@ -152,7 +149,8 @@
         /// <returns>The index of the display containing the point.</returns>
         public static int GetPointDisplayIndex(int x, int y)
         {
-            return Sdl.GetPointDisplayIndex(new Point(x, y));
+            SDLPoint point = new(x, y);
+            return SDL.GetPointDisplayIndex(&point);
         }
 
         /// <summary>
@@ -165,7 +163,8 @@
         /// <returns>The index of the display containing the rectangle.</returns>
         public static int GetRectDisplayIndex(int x, int y, int width, int height)
         {
-            return Sdl.GetRectDisplayIndex(new Rectangle<int>(x, y, width, height));
+            SDLRect rect = new(x, y, width, height);
+            return SDL.GetRectDisplayIndex(&rect);
         }
 
         /// <summary>
@@ -173,9 +172,9 @@
         /// </summary>
         /// <param name="window">The window.</param>
         /// <returns>The index of the display containing the window.</returns>
-        public static int GetWindowDisplayIndex(SdlWindow window)
+        public static int GetWindowDisplayIndex(CoreWindow window)
         {
-            return Sdl.GetWindowDisplayIndex(window.GetWindow());
+            return SDL.GetWindowDisplayIndex(window.GetWindow());
         }
 
         /// <summary>
@@ -183,10 +182,10 @@
         /// </summary>
         /// <param name="window">The window.</param>
         /// <returns>The current display mode of the window.</returns>
-        public static DisplayMode GetWindowDisplayMode(SdlWindow window)
+        public static DisplayMode GetWindowDisplayMode(CoreWindow window)
         {
             DisplayMode mode;
-            Sdl.GetWindowDisplayMode(window.GetWindow(), (Silk.NET.SDL.DisplayMode*)&mode);
+            SDL.GetWindowDisplayMode(window.GetWindow(), (SDLDisplayMode*)&mode);
             return mode;
         }
     }

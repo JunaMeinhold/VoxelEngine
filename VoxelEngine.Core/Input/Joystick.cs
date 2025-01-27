@@ -1,15 +1,14 @@
 ﻿namespace VoxelEngine.Core.Input
 {
-    using Silk.NET.SDL;
     using System.Numerics;
     using System.Text;
+    using Hexa.NET.SDL2;
     using VoxelEngine.Core.Input.Events;
 
     public unsafe class Joystick : IDisposable
     {
-        private static readonly Sdl sdl = Application.sdl;
         private readonly int id;
-        internal readonly Silk.NET.SDL.Joystick* joystick;
+        internal readonly SDLJoystick* joystick;
         private readonly Dictionary<int, short> axes = new();
         private readonly Dictionary<int, (int, int)> balls = new();
         private readonly Dictionary<int, JoystickButtonState> buttons = new();
@@ -28,46 +27,46 @@
         public Joystick(int id)
         {
             this.id = id;
-            joystick = sdl.JoystickOpen(id);
+            joystick = SDL.JoystickOpen(id);
             if (joystick == null)
                 SdlCheckError();
 
-            var axisCount = sdl.JoystickNumAxes(joystick);
+            var axisCount = SDL.JoystickNumAxes(joystick);
             for (int i = 0; i < axisCount; i++)
             {
                 short state;
-                sdl.JoystickGetAxisInitialState(joystick, i, &state);
+                SDL.JoystickGetAxisInitialState(joystick, i, &state);
                 axes.Add(i, state);
             }
 
-            var ballCount = sdl.JoystickNumBalls(joystick);
+            var ballCount = SDL.JoystickNumBalls(joystick);
             for (int i = 0; i < ballCount; i++)
             {
                 int x;
                 int y;
-                sdl.JoystickGetBall(joystick, i, &x, &y);
+                SDL.JoystickGetBall(joystick, i, &x, &y);
                 balls.Add(i, new(x, y));
             }
 
-            var buttonCount = sdl.JoystickNumButtons(joystick);
+            var buttonCount = SDL.JoystickNumButtons(joystick);
             for (int i = 0; i < buttonCount; i++)
             {
-                var state = (JoystickButtonState)sdl.JoystickGetButton(joystick, i);
+                var state = (JoystickButtonState)SDL.JoystickGetButton(joystick, i);
                 buttons.Add(i, state);
             }
 
-            var hatCount = sdl.JoystickNumHats(joystick);
+            var hatCount = SDL.JoystickNumHats(joystick);
             for (int i = 0; i < hatCount; i++)
             {
-                var state = (JoystickHatState)sdl.JoystickGetHat(joystick, i);
+                var state = (JoystickHatState)SDL.JoystickGetHat(joystick, i);
                 hats.Add(i, state);
             }
 
-            var guid = sdl.JoystickGetGUID(joystick);
+            var guid = SDL.JoystickGetGUID(joystick);
             SdlCheckError();
             var buffer = AllocT<byte>(33);
-            sdl.JoystickGetGUIDString(guid, buffer, 33);
-            var size = StringSizeNullTerminated(buffer);
+            SDL.JoystickGetGUIDString(guid, buffer, 33);
+            var size = StrLen(buffer);
             var value = Encoding.ASCII.GetString(buffer, size - 1);
             Free(buffer);
             this.guid = value;
@@ -79,36 +78,36 @@
         {
             get
             {
-                var name = sdl.JoystickNameS(joystick);
+                var name = SDL.JoystickNameS(joystick);
                 if (name == null)
                     SdlCheckError();
                 return name;
             }
         }
 
-        public ushort Vendor => sdl.JoystickGetVendor(joystick);
+        public ushort Vendor => SDL.JoystickGetVendor(joystick);
 
-        public ushort Product => sdl.JoystickGetProduct(joystick);
+        public ushort Product => SDL.JoystickGetProduct(joystick);
 
-        public ushort ProductVersion => sdl.JoystickGetProductVersion(joystick);
+        public ushort ProductVersion => SDL.JoystickGetProductVersion(joystick);
 
-        public string Serial => sdl.JoystickGetSerialS(joystick);
+        public string Serial => SDL.JoystickGetSerialS(joystick);
 
         public string Guid => guid;
 
-        public bool IsAttached => sdl.JoystickGetAttached(joystick) == SdlBool.True;
+        public bool IsAttached => SDL.JoystickGetAttached(joystick) == SDLBool.True;
 
-        public bool IsVirtual => sdl.JoystickIsVirtual(id) == SdlBool.True;
+        public bool IsVirtual => SDL.JoystickIsVirtual(id) == SDLBool.True;
 
-        public bool HasLED => sdl.JoystickHasLED(joystick) == SdlBool.True;
+        public bool HasLED => SDL.JoystickHasLED(joystick) == SDLBool.True;
 
-        public JoystickType Type => Helper.Convert(sdl.JoystickGetType(joystick));
+        public JoystickType Type => Helper.Convert(SDL.JoystickGetType(joystick));
 
         public short Deadzone { get => deadzone; set => deadzone = value; }
 
-        public int PlayerIndex { get => sdl.JoystickGetPlayerIndex(joystick); set => sdl.JoystickSetPlayerIndex(joystick, value); }
+        public int PlayerIndex { get => SDL.JoystickGetPlayerIndex(joystick); set => SDL.JoystickSetPlayerIndex(joystick, value); }
 
-        public JoystickPowerLevel PowerLevel => Helper.Convert(sdl.JoystickCurrentPowerLevel(joystick));
+        public JoystickPowerLevel PowerLevel => Helper.Convert(SDL.JoystickCurrentPowerLevel(joystick));
 
         public IReadOnlyDictionary<int, short> Axes => axes;
 
@@ -130,25 +129,25 @@
 
         public void Rumble(ushort lowFreq, ushort highFreq, uint durationMs)
         {
-            sdl.JoystickRumble(joystick, lowFreq, highFreq, durationMs);
+            SDL.JoystickRumble(joystick, lowFreq, highFreq, durationMs);
         }
 
         public void RumbleTriggers(ushort left, ushort right, uint durationMs)
         {
-            sdl.JoystickRumbleTriggers(joystick, left, right, durationMs);
+            SDL.JoystickRumbleTriggers(joystick, left, right, durationMs);
         }
 
         public void SetLED(Vector4 color)
         {
-            sdl.JoystickSetLED(joystick, (byte)(color.X * 255), (byte)(color.Y * 255), (byte)(color.Z * 255));
+            SDL.JoystickSetLED(joystick, (byte)(color.X * 255), (byte)(color.Y * 255), (byte)(color.Z * 255));
         }
 
         public void SetLED(byte red, byte green, byte blue)
         {
-            sdl.JoystickSetLED(joystick, red, green, blue);
+            SDL.JoystickSetLED(joystick, red, green, blue);
         }
 
-        internal void OnAxisMotion(JoyAxisEvent even)
+        internal void OnAxisMotion(SDLJoyAxisEvent even)
         {
             if (Math.Abs((int)even.Value) < deadzone)
             {
@@ -166,7 +165,7 @@
             AxisMotion?.Invoke(this, axisMotionEventArgs);
         }
 
-        internal void OnBallMotion(JoyBallEvent even)
+        internal void OnBallMotion(SDLJoyBallEvent even)
         {
             balls[even.Ball] = (even.Xrel, even.Yrel);
             ballMotionEventArgs.Ball = even.Ball;
@@ -175,7 +174,7 @@
             BallMotion?.Invoke(this, ballMotionEventArgs);
         }
 
-        internal void OnButtonDown(JoyButtonEvent even)
+        internal void OnButtonDown(SDLJoyButtonEvent even)
         {
             buttons[even.Button] = JoystickButtonState.Down;
             buttonEventArgs.Button = even.Button;
@@ -183,7 +182,7 @@
             ButtonDown?.Invoke(this, buttonEventArgs);
         }
 
-        internal void OnButtonUp(JoyButtonEvent even)
+        internal void OnButtonUp(SDLJoyButtonEvent even)
         {
             buttons[even.Button] = JoystickButtonState.Up;
             buttonEventArgs.Button = even.Button;
@@ -191,7 +190,7 @@
             ButtonUp?.Invoke(this, buttonEventArgs);
         }
 
-        internal void OnHatMotion(JoyHatEvent even)
+        internal void OnHatMotion(SDLJoyHatEvent even)
         {
             hats[even.Hat] = (JoystickHatState)even.Value;
             hatMotionEventArgs.Hat = even.Hat;
@@ -203,7 +202,7 @@
         {
             if (!disposedValue)
             {
-                sdl.JoystickClose(joystick);
+                SDL.JoystickClose(joystick);
                 disposedValue = true;
             }
         }

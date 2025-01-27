@@ -2,8 +2,8 @@
 {
     using System.Collections.Generic;
     using System.Numerics;
+    using Hexa.NET.Mathematics;
     using Vortice.Direct3D11;
-    using VoxelEngine.Mathematics;
 
     public class RenderRegion
     {
@@ -78,7 +78,7 @@
             for (int i = 0; i < ChunkSegments.Count; i++)
             {
                 ChunkSegment region = ChunkSegments[i];
-                for (int j = 0; j < region.Chunks.Length; j++)
+                for (int j = 0; j < ChunkSegment.CHUNK_SEGMENT_SIZE; j++)
                 {
                     Chunk chunk = region.Chunks[j];
 

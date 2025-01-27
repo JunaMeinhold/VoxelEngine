@@ -3,8 +3,7 @@
     using System.Collections.Generic;
     using System.Numerics;
     using System.Runtime.CompilerServices;
-    using Silk.NET.SDL;
-    using VoxelEngine.Core;
+    using Hexa.NET.SDL2;
     using VoxelEngine.Core.Input.Events;
 
     public static unsafe class Mouse
@@ -12,26 +11,21 @@
         private static MouseButton[] buttons = Enum.GetValues<MouseButton>();
         private static string[] buttonNames = Enum.GetNames<MouseButton>();
 
-#nullable disable
-        private static Sdl sdl;
-#nullable enable
-
         private static readonly Dictionary<MouseButton, MouseButtonState> states = new();
         private static readonly MouseMotionEventArgs motionEventArgs = new();
         private static readonly MouseButtonEventArgs buttonEventArgs = new();
         private static readonly MouseWheelEventArgs wheelEventArgs = new();
 
-        private static Point pos;
+        private static SDLPoint pos;
         private static Vector2 delta;
         private static Vector2 deltaWheel;
 
         internal static void Init()
         {
-            sdl = Application.sdl;
             pos = default;
-            sdl.GetMouseState(ref pos.X, ref pos.Y);
+            SDL.GetMouseState(ref pos.X, ref pos.Y);
 
-            uint state = sdl.GetMouseState(null, null);
+            uint state = SDL.GetMouseState(null, null);
             uint maskLeft = unchecked(1 << (int)MouseButton.Left - 1);
             uint maskMiddle = unchecked(1 << (int)MouseButton.Middle - 1);
             uint maskRight = unchecked(1 << (int)MouseButton.Right - 1);
@@ -49,7 +43,7 @@
             get
             {
                 int x, y;
-                sdl.GetGlobalMouseState(&x, &y);
+                SDL.GetGlobalMouseState(&x, &y);
                 return new Vector2(x, y);
             }
         }
@@ -87,7 +81,7 @@
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static void OnButtonDown(MouseButtonEvent mouseButtonEvent)
+        internal static void OnButtonDown(SDLMouseButtonEvent mouseButtonEvent)
         {
             MouseButton button = (MouseButton)mouseButtonEvent.Button;
             states[button] = MouseButtonState.Down;
@@ -98,7 +92,7 @@
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static void OnButtonUp(MouseButtonEvent mouseButtonEvent)
+        internal static void OnButtonUp(SDLMouseButtonEvent mouseButtonEvent)
         {
             MouseButton button = (MouseButton)mouseButtonEvent.Button;
             states[button] = MouseButtonState.Up;
@@ -109,7 +103,7 @@
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static void OnMotion(MouseMotionEvent mouseButtonEvent)
+        internal static void OnMotion(SDLMouseMotionEvent mouseButtonEvent)
         {
             if (mouseButtonEvent.Xrel == 0 && mouseButtonEvent.Yrel == 0)
             {
@@ -125,7 +119,7 @@
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        internal static void OnWheel(MouseWheelEvent mouseWheelEvent)
+        internal static void OnWheel(SDLMouseWheelEvent mouseWheelEvent)
         {
             deltaWheel += new Vector2(mouseWheelEvent.X, mouseWheelEvent.Y);
             wheelEventArgs.Wheel = new Vector2(mouseWheelEvent.X, mouseWheelEvent.Y);
@@ -136,7 +130,7 @@
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal static void Flush()
         {
-            sdl.GetMouseState(ref pos.X, ref pos.Y);
+            SDL.GetMouseState(ref pos.X, ref pos.Y);
             delta = Vector2.Zero;
             deltaWheel = Vector2.Zero;
         }

@@ -1,15 +1,13 @@
 ﻿namespace VoxelEngine.Core.Windows
 {
-    using Silk.NET.Core.Contexts;
-    using Silk.NET.Core.Native;
-    using Silk.NET.SDL;
+    using Hexa.NET.SDL2;
     using VoxelEngine.Core.Input.Events;
     using VoxelEngine.Core.Windows.Events;
 
     /// <summary>
     /// Represents a window.
     /// </summary>
-    public interface IWindow : INativeWindow, INativeWindowSource
+    public interface IWindow
     {
         /// <summary>
         /// Gets or sets a value indicating whether the window has a border.
@@ -201,6 +199,7 @@
         /// </summary>
         void ReleaseCapture();
 
+        /*
         /// <summary>
         /// Creates a Vulkan surface for the window.
         /// </summary>
@@ -214,12 +213,13 @@
         /// </summary>
         /// <returns>The created OpenGL context.</returns>
         IGLContext OpenGLCreateContext();
+        */
 
         /// <summary>
         /// Gets the underlying native window pointer.
         /// </summary>
         /// <returns>A pointer to the native window.</returns>
-        unsafe Window* GetWindow();
+        unsafe SDLWindow* GetWindow();
 
         /// <summary>
         /// Clears the input state for the window.

@@ -120,7 +120,7 @@
             if (shaderBlob != null)
             {
                 Shader* pShader = AllocT<Shader>();
-                pShader->Bytecode = AllocCopy((byte*)shaderBlob.BufferPointer, shaderBlob.BufferSize);
+                pShader->Bytecode = AllocCopyT((byte*)shaderBlob.BufferPointer, shaderBlob.BufferSize);
                 pShader->Length = (nuint)(int)shaderBlob.BufferSize;
                 *shader = pShader;
             }

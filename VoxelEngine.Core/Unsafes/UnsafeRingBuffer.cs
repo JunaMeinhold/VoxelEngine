@@ -1,4 +1,4 @@
-﻿namespace HexaEngine.Core.Unsafes
+﻿namespace VoxelEngine.Core.Unsafes
 {
     using System.Numerics;
 

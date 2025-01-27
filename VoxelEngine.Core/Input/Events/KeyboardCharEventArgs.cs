@@ -1,11 +1,11 @@
 ﻿namespace VoxelEngine.Core.Input.Events
 {
-    public class KeyboardCharEventArgs : EventArgs
+    public unsafe class KeyboardCharEventArgs : EventArgs
     {
         public KeyboardCharEventArgs()
         {
         }
 
-        public char Char { get; internal set; }
+        public byte* Text { get; internal set; }
     }
 }

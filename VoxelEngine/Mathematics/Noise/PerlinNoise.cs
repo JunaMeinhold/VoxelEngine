@@ -1,5 +1,7 @@
 namespace VoxelEngine.Mathematics.Noise
 {
+    using System.Runtime.CompilerServices;
+
     public class PerlinNoise
     {
         public int repeat;
@@ -44,32 +46,38 @@ namespace VoxelEngine.Mathematics.Noise
             }
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static float Fade(float t)
         {
             return t * t * t * (t * (t * 6 - 15) + 10);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static float Lerp(float a, float b, float v)
         {
             return (b - a) * v + a;
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static float Saturate(float value)
         {
             return (float)((value + 1.0) / 2.0);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static float Clamp01(float value)
         {
             return Math.Clamp(value, 0.0f, 1.0f);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static float SaturateClamp01(float value)
         {
             value = Clamp01(value);
             return Saturate(value);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static float Grad(int hash, float x)
         {
             var h = hash & 15;
@@ -82,6 +90,7 @@ namespace VoxelEngine.Mathematics.Noise
             return grad * x;           // Multiply the gradient with the distance
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static float Grad(int hash, float x, float y)
         {
             var h = hash & 7;      // Convert low 3 bits of hash code
@@ -90,6 +99,7 @@ namespace VoxelEngine.Mathematics.Noise
             return ((h & 1) != 0 ? -u : u) + ((h & 2) != 0 ? -2.0f * v : 2.0f * v);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static float Grad(int hash, float x, float y, float z)
         {
             var h = hash & 15;     // Convert low 4 bits of hash code into 12 simple
@@ -98,6 +108,7 @@ namespace VoxelEngine.Mathematics.Noise
             return ((h & 1) != 0 ? -u : u) + ((h & 2) != 0 ? -v : v);
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public int Inc(int num)
         {
             num++;
@@ -223,6 +234,22 @@ namespace VoxelEngine.Mathematics.Noise
             }
 
             return total;
+        }
+
+        public float OctavePerlin2DSat(float x, float y, int octaves, float persistence, float amplitude)
+        {
+            float result = 0;
+            float total = 0;
+            float frequency = 1;
+            for (int i = 0; i < octaves; i++)
+            {
+                total += SaturateClamp01(Perlin2D(x * frequency, y * frequency)) * amplitude;
+                result += amplitude;
+                amplitude *= persistence;
+                frequency *= 2;
+            }
+
+            return total / result;
         }
 
         public float OctavePerlin3D(float x, float y, float z, int octaves, float persistence, float amplitude)

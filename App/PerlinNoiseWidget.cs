@@ -78,8 +78,13 @@
                     int y = i / size;
 
                     float v = noise.OctavePerlin2D(x * scale.X, y * scale.Y, octaves, persistence, amplitude);
-                    v = SaturateOctave(v, octaves, persistence, amplitude);
-                    v = MathF.Pow(v, redistribution);
+
+                    v *= v;
+
+                    if (v < 0.2)
+                    {
+                        v = 0;
+                    }
 
                     if (heatmap)
                     {
@@ -98,7 +103,7 @@
 
             ImGui.Separator();
 
-            ImGui.Image(shaderResourceView.NativePointer, new(size));
+            ImGui.Image((ulong)shaderResourceView.NativePointer, new(size));
 
             ImGui.End();
         }

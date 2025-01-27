@@ -5,40 +5,32 @@
     public struct ChunkRecord
     {
         public ushort Type;
-        public byte X;
-        public byte Y;
-        public byte Z;
+        public ushort Index;
         public byte Count;
 
-        public ChunkRecord(ushort type, byte x, byte y, byte z, byte count)
+        public ChunkRecord(ushort type, ushort index, byte count)
         {
             Type = type;
-            X = x;
-            Y = y;
-            Z = z;
+            Index = index;
             Count = count;
         }
 
         public readonly void Write(Stream stream)
         {
-            Span<byte> buffer = stackalloc byte[7]; // Smaller buffer size
+            Span<byte> buffer = stackalloc byte[5];
             BinaryPrimitives.WriteUInt16LittleEndian(buffer, Type);
-            buffer[2] = X;
-            buffer[3] = Y;
-            buffer[4] = Z;
-            buffer[5] = Count;
+            BinaryPrimitives.WriteUInt16LittleEndian(buffer[2..], Index);
+            buffer[4] = Count;
             stream.Write(buffer);
         }
 
         public void Read(Stream stream)
         {
-            Span<byte> buffer = stackalloc byte[7]; // Match the new struct size
-            stream.Read(buffer);
+            Span<byte> buffer = stackalloc byte[5];
+            stream.ReadExactly(buffer);
             Type = BinaryPrimitives.ReadUInt16LittleEndian(buffer);
-            X = buffer[2];
-            Y = buffer[3];
-            Z = buffer[4];
-            Count = buffer[5];
+            Index = BinaryPrimitives.ReadUInt16LittleEndian(buffer[2..]);
+            Count = buffer[4];
         }
     }
 }

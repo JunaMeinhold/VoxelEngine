@@ -27,7 +27,7 @@
             description = new(sizeof(T) * count, BindFlags.ConstantBuffer, usage, accessFlags);
             if (accessFlags != CpuAccessFlags.None)
             {
-                data = AllocCopy(value, count);
+                data = AllocCopyT(value, count);
             }
 
             Buffer = device.CreateBuffer(description, new SubresourceData(value));
@@ -47,7 +47,7 @@
             description = new(sizeof(T), BindFlags.ConstantBuffer, usage, accessFlags);
             if (accessFlags != CpuAccessFlags.None)
             {
-                data = AllocTAndZero<T>();
+                data = AllocT<T>(); ZeroMemoryT(data);
             }
 
             Buffer = device.CreateBuffer(description, new SubresourceData(&value));
@@ -65,7 +65,7 @@
             };
 
             description = new(sizeof(T) * count, BindFlags.ConstantBuffer, usage, accessFlags);
-            data = AllocTAndZero<T>(count);
+            data = AllocT<T>(count); ZeroMemoryT(data, count);
             Buffer = device.CreateBuffer(description);
             Buffer.DebugName = nameof(ConstantBuffer<T>);
         }
@@ -81,7 +81,7 @@
             };
 
             description = new(sizeof(T), BindFlags.ConstantBuffer, usage, accessFlags);
-            data = AllocTAndZero<T>();
+            data = AllocT<T>(); ZeroMemoryT(data);
             Buffer = device.CreateBuffer(description);
             Buffer.DebugName = nameof(ConstantBuffer<T>);
         }

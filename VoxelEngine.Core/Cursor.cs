@@ -1,19 +1,17 @@
 ﻿namespace VoxelEngine.Core
 {
-    using Silk.NET.SDL;
+    using Hexa.NET.SDL2;
 
     public static unsafe class CursorHelper
     {
-        private static readonly Sdl Sdl = Sdl.GetApi();
-
-        public static void SetCursor(SystemCursor cursor)
+        public static void SetCursor(SDLSystemCursor cursor)
         {
-            Sdl.SetCursor(Sdl.CreateSystemCursor(cursor));
+            SDL.SetCursor(SDL.CreateSystemCursor(cursor));
         }
 
         public static void SetCursor(IntPtr ptr)
         {
-            Sdl.SetCursor((Cursor*)ptr.ToPointer());
+            SDL.SetCursor((SDLCursor*)ptr.ToPointer());
         }
     }
 }

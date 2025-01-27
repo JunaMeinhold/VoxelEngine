@@ -16,7 +16,7 @@
             chunk.BlockMetadata.Serialize(stream);
             chunk.BiomeMetadata.Serialize(stream);
 
-            int blocksWritten = 0;
+            int runsWritten = 0;
             if (chunk.Data != null)
             {
                 for (int k = 0; k < Chunk.CHUNK_SIZE; k++)
@@ -45,20 +45,20 @@
                         // X and Z runs search upwards to create runs, so start at the bottom.
                         for (; j < topJ; j++, access++)
                         {
-                            ref Block b = ref chunk.Data[access];
+                            Block b = chunk.Data[access];
                             if (newRun || run.Type != b.Type)
                             {
                                 if (!newRun)
                                 {
-                                    blocksWritten++;
+                                    runsWritten++;
                                     run.Write(stream);
                                 }
                                 if (b.Type != Chunk.EMPTY)
                                 {
+                                    // we could quantize + palette here, but that would add more loading complexity rather than being useful, disk space is more cheap compared to RAM.
                                     run.Type = b.Type;
-                                    run.X = (byte)i;
-                                    run.Y = (byte)j;
-                                    run.Z = (byte)k;
+                                    // max index is 4096 and max value of ushort is 65536 which means we can simply cast it and save one byte instead of storing the position and loading times will be faster.
+                                    run.Index = (ushort)access;
                                     run.Count = 1;
                                     newRun = false;
                                 }
@@ -71,7 +71,7 @@
 
                         if (!newRun)
                         {
-                            blocksWritten++;
+                            runsWritten++;
                             run.Write(stream);
                         }
                     }
@@ -80,7 +80,7 @@
 
             long end = stream.Position;
             stream.Position = begin;
-            ChunkHeader.Write(stream, blocksWritten);
+            ChunkHeader.Write(stream, runsWritten);
             stream.Position = end;
         }
 
@@ -88,16 +88,18 @@
         {
             if (chunk.Data is null)
             {
-                chunk.Data = AllocTAndZero<Block>(Chunk.CHUNK_SIZE_CUBED);
-                chunk.MinY = AllocTAndZero<byte>(Chunk.CHUNK_SIZE_SQUARED);
-                chunk.MaxY = AllocTAndZero<byte>(Chunk.CHUNK_SIZE_SQUARED);
+                chunk.Data = new(0, Chunk.CHUNK_SIZE_CUBED);
+                chunk.MinY = AllocT<byte>(Chunk.CHUNK_SIZE_SQUARED);
+                ZeroMemoryT(chunk.MinY, Chunk.CHUNK_SIZE_SQUARED);
+                chunk.MaxY = AllocT<byte>(Chunk.CHUNK_SIZE_SQUARED);
+                ZeroMemoryT(chunk.MaxY, Chunk.CHUNK_SIZE_SQUARED);
                 Memset(chunk.MinY, Chunk.CHUNK_SIZE, Chunk.CHUNK_SIZE_SQUARED);
             }
 
             ChunkHeader.Read(stream, out int recordCount);
 
-            stream.Read(new Span<byte>(chunk.MinY, Chunk.CHUNK_SIZE_SQUARED));
-            stream.Read(new Span<byte>(chunk.MaxY, Chunk.CHUNK_SIZE_SQUARED));
+            stream.ReadExactly(new Span<byte>(chunk.MinY, Chunk.CHUNK_SIZE_SQUARED));
+            stream.ReadExactly(new Span<byte>(chunk.MaxY, Chunk.CHUNK_SIZE_SQUARED));
 
             chunk.BlockMetadata.Deserialize(stream);
             chunk.BiomeMetadata.Deserialize(stream);
@@ -105,15 +107,12 @@
             ChunkRecord record = default;
             for (int i = 0; i < recordCount; i++)
             {
-                int left = recordCount - i;
-
                 record.Read(stream);
 
                 for (int y = 0; y < record.Count; y++)
                 {
-                    Vector3 pos = new(record.X, record.Y + y, record.Z);
-
-                    chunk.Data[pos.MapToIndex(Chunk.CHUNK_SIZE, Chunk.CHUNK_SIZE)] = new Block(record.Type);
+                    int index = record.Index + y;
+                    chunk.Data[index] = new Block(record.Type);
                 }
             }
         }

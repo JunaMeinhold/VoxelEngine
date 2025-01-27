@@ -1,51 +1,50 @@
 ﻿namespace VoxelEngine.Core.Input
 {
-    using Silk.NET.SDL;
+    using Hexa.NET.SDL2;
 
     public unsafe class Haptic
     {
-        private static readonly Sdl sdl = Application.sdl;
         private readonly int id;
-        private readonly Silk.NET.SDL.Haptic* haptic;
+        private readonly SDLHaptic* haptic;
 
-        private Haptic(Silk.NET.SDL.Haptic* haptic)
+        private Haptic(SDLHaptic* haptic)
         {
             this.haptic = haptic;
-            id = sdl.HapticIndex(haptic).SdlThrowIfNeg();
+            id = SDL.HapticIndex(haptic).SdlThrowIfNeg();
         }
 
         public int Id => id;
 
-        public string Name => sdl.HapticNameS(id);
+        public string Name => SDL.HapticNameS(id);
 
-        public int AxesCount => sdl.HapticNumAxes(haptic);
+        public int AxesCount => SDL.HapticNumAxes(haptic);
 
-        public int EffectsCount => sdl.HapticNumEffects(haptic);
+        public int EffectsCount => SDL.HapticNumEffects(haptic);
 
-        public int EffectsPlayingCount => sdl.HapticNumEffectsPlaying(haptic);
+        public int EffectsPlayingCount => SDL.HapticNumEffectsPlaying(haptic);
 
-        public bool RumbleSupported => sdl.HapticRumbleSupported(haptic) == 1;
+        public bool RumbleSupported => SDL.HapticRumbleSupported(haptic) == 1;
 
-        public HapticEffectFlags EffectsSupported => (HapticEffectFlags)sdl.HapticQuery(haptic);
+        public HapticEffectFlags EffectsSupported => (HapticEffectFlags)SDL.HapticQuery(haptic);
 
         public static Haptic OpenFromGamepad(Gamepad gamepad)
         {
-            return new(sdl.HapticOpenFromJoystick(gamepad.joystick));
+            return new(SDL.HapticOpenFromJoystick(gamepad.joystick));
         }
 
         public static Haptic OpenFromJoystick(Joystick joystick)
         {
-            return new(sdl.HapticOpenFromJoystick(joystick.joystick));
+            return new(SDL.HapticOpenFromJoystick(joystick.joystick));
         }
 
         public static Haptic OpenFromMouse()
         {
-            return new(sdl.HapticOpenFromMouse());
+            return new(SDL.HapticOpenFromMouse());
         }
 
         public static Haptic OpenFromIndex(int index)
         {
-            return new(sdl.HapticOpen(index));
+            return new(SDL.HapticOpen(index));
         }
     }
 }

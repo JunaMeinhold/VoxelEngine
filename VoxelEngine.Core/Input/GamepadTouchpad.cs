@@ -1,24 +1,22 @@
 ﻿namespace VoxelEngine.Core.Input
 {
-    using Silk.NET.SDL;
+    using Hexa.NET.SDL2;
     using VoxelEngine.Core.Input.Events;
 
     public unsafe class GamepadTouchpad
     {
-        private readonly Sdl sdl;
         private readonly int id;
-        private readonly GameController* controller;
+        private readonly SDLGameController* controller;
         private readonly Finger[] fingerStates;
 
         private readonly GamepadTouchpadEventArgs touchpadEventArgs = new();
         private readonly GamepadTouchpadMotionEventArgs motionEventArgs = new();
 
-        public GamepadTouchpad(int id, GameController* controller)
+        public GamepadTouchpad(int id, SDLGameController* controller)
         {
-            sdl = Application.sdl;
             this.id = id;
             this.controller = controller;
-            var fingerCount = sdl.GameControllerGetNumTouchpadFingers(controller, id);
+            var fingerCount = SDL.GameControllerGetNumTouchpadFingers(controller, id);
             fingerStates = new Finger[fingerCount];
             for (int i = 0; i < fingerCount; i++)
             {
@@ -26,8 +24,8 @@
                 float x;
                 float y;
                 float pressure;
-                sdl.GameControllerGetTouchpadFinger(controller, id, i, &state, &x, &y, &pressure);
-                fingerStates[i] = new(state == Sdl.Pressed ? FingerState.Down : FingerState.Up, x, y, pressure);
+                SDL.GameControllerGetTouchpadFinger(controller, id, i, &state, &x, &y, &pressure);
+                fingerStates[i] = new(state == SDL.SDL_PRESSED ? FingerState.Down : FingerState.Up, x, y, pressure);
             }
         }
 
@@ -41,7 +39,7 @@
 
         public event EventHandler<GamepadTouchpadEventArgs>? TouchPadUp;
 
-        internal void OnTouchPadDown(ControllerTouchpadEvent even)
+        internal void OnTouchPadDown(SDLControllerTouchpadEvent even)
         {
             var state = fingerStates[even.Finger];
             state.State = FingerState.Down;
@@ -57,7 +55,7 @@
             TouchPadDown?.Invoke(this, touchpadEventArgs);
         }
 
-        internal void OnTouchPadMotion(ControllerTouchpadEvent even)
+        internal void OnTouchPadMotion(SDLControllerTouchpadEvent even)
         {
             var state = fingerStates[even.Finger];
             state.X = even.X;
@@ -71,7 +69,7 @@
             TouchPadMotion?.Invoke(this, motionEventArgs);
         }
 
-        internal void OnTouchPadUp(ControllerTouchpadEvent even)
+        internal void OnTouchPadUp(SDLControllerTouchpadEvent even)
         {
             var state = fingerStates[even.Finger];
             state.State = FingerState.Up;
@@ -111,8 +109,8 @@
                 float x;
                 float y;
                 float pressure;
-                sdl.GameControllerGetTouchpadFinger(controller, id, i, &state, &x, &y, &pressure);
-                fingerStates[i] = new(state == Sdl.Pressed ? FingerState.Down : FingerState.Up, x, y, pressure);
+                SDL.GameControllerGetTouchpadFinger(controller, id, i, &state, &x, &y, &pressure);
+                fingerStates[i] = new(state == SDL.SDL_PRESSED ? FingerState.Down : FingerState.Up, x, y, pressure);
             }
         }
     }

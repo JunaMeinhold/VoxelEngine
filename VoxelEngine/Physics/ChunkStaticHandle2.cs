@@ -20,6 +20,7 @@
         [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         public ChunkStaticHandle2(Simulation simulation, BufferPool pool, Chunk chunk)
         {
+            return;
             Pool = pool;
             QuickList<Vector3> list;
 
@@ -78,14 +79,18 @@
                 Shape = simulation.Shapes.Add(Voxels);
                 Handle = simulation.Statics.Add(new StaticDescription(Vector3.Zero, Shape));
             }
+
+            list.Dispose(pool);
         }
 
         public void Free(Simulation simulation)
         {
+            return;
             if (IsEmpty | simulation == null)
             {
                 return;
             }
+
             lock (simulation)
             {
                 simulation.Statics.Remove(Handle);

@@ -10,8 +10,8 @@
     {
         private readonly ConstantBuffer<ComposeParams> cbOptions;
         private bool isDirty = true;
-        private float fogStart = 250;
-        private float fogEnd = 300;
+        private float fogStart = 900;
+        private float fogEnd = 1000;
         private Vector3 fogColor = Vector3.One;
 
         public ComposeEffect(ID3D11Device device) : base(device, new()

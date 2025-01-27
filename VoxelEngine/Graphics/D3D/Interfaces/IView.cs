@@ -1,6 +1,6 @@
 ﻿namespace VoxelEngine.Rendering.D3D.Interfaces
 {
-    using VoxelEngine.Mathematics;
+    using Hexa.NET.Mathematics;
 
     public interface IView
     {

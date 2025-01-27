@@ -1,22 +1,19 @@
 ﻿namespace VoxelEngine.Core
 {
-    using Hexa.NET.ImGui;
-    using Silk.NET.SDL;
+    using Hexa.NET.SDL2;
 
     /// <summary>
     /// A static class for interacting with the system clipboard.
     /// </summary>
     public static unsafe class Clipboard
     {
-        private static readonly Sdl Sdl = Application.sdl;
-
         /// <summary>
         /// Retrieves the clipboard text as an unsafe pointer to a character array.
         /// </summary>
         /// <returns>An unsafe pointer to the clipboard text.</returns>
-        public static char* GetClipboardTextUnsafe()
+        public static byte* GetClipboardTextUnsafe()
         {
-            return (char*)Sdl.GetClipboardText();
+            return SDL.GetClipboardText();
         }
 
         /// <summary>
@@ -25,16 +22,16 @@
         /// <returns>The clipboard text as a string.</returns>
         public static string GetClipboardText()
         {
-            return Sdl.GetClipboardTextS();
+            return SDL.GetClipboardTextS();
         }
 
         /// <summary>
         /// Sets the clipboard text using an unsafe pointer to a character array.
         /// </summary>
         /// <param name="text">An unsafe pointer to the text to be set in the clipboard.</param>
-        public static void SetClipboardTextUnsafe(char* text)
+        public static void SetClipboardTextUnsafe(byte* text)
         {
-            Sdl.SetClipboardText((byte*)text);
+            SDL.SetClipboardText((byte*)text);
         }
 
         /// <summary>
@@ -43,16 +40,16 @@
         /// <param name="text">The text to be set in the clipboard.</param>
         public static void SetClipboardText(string text)
         {
-            Sdl.SetClipboardText(text);
+            SDL.SetClipboardText(text);
         }
 
         /// <summary>
         /// Frees the memory associated with an unsafe pointer to a character array obtained from the clipboard.
         /// </summary>
         /// <param name="text">An unsafe pointer to the text to be freed.</param>
-        public static void Free(char* text)
+        public static void Free(byte* text)
         {
-            Sdl.Free(text);
+            SDL.Free(text);
         }
     }
 }

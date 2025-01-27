@@ -2,57 +2,57 @@
 {
     public static class Helper
     {
-        public static Silk.NET.SDL.KeyCode ConvertBack(Key code)
+        public static Hexa.NET.SDL2.SDLKeyCode ConvertBack(Key code)
         {
-            return (Silk.NET.SDL.KeyCode)code;
+            return (Hexa.NET.SDL2.SDLKeyCode)code;
         }
 
-        public static Silk.NET.SDL.GameControllerAxis ConvertBack(GamepadAxis gamepadAxis)
+        public static Hexa.NET.SDL2.SDLGameControllerAxis ConvertBack(GamepadAxis gamepadAxis)
         {
-            return (Silk.NET.SDL.GameControllerAxis)gamepadAxis;
+            return (Hexa.NET.SDL2.SDLGameControllerAxis)gamepadAxis;
         }
 
-        public static Silk.NET.SDL.GameControllerButton ConvertBack(GamepadButton gamepadButton)
+        public static Hexa.NET.SDL2.SDLGameControllerButton ConvertBack(GamepadButton gamepadButton)
         {
-            return (Silk.NET.SDL.GameControllerButton)gamepadButton;
+            return (Hexa.NET.SDL2.SDLGameControllerButton)gamepadButton;
         }
 
-        public static Key Convert(Silk.NET.SDL.KeyCode code)
+        public static Key Convert(Hexa.NET.SDL2.SDLKeyCode code)
         {
             return (Key)code;
         }
 
-        public static GamepadAxis Convert(Silk.NET.SDL.GameControllerAxis axis)
+        public static GamepadAxis Convert(Hexa.NET.SDL2.SDLGameControllerAxis axis)
         {
             return (GamepadAxis)axis;
         }
 
-        public static GamepadButton Convert(Silk.NET.SDL.GameControllerButton button)
+        public static GamepadButton Convert(Hexa.NET.SDL2.SDLGameControllerButton button)
         {
             return (GamepadButton)button;
         }
 
-        public static GamepadType Convert(Silk.NET.SDL.GameControllerType gameControllerType)
+        public static GamepadType Convert(Hexa.NET.SDL2.SDLGameControllerType gameControllerType)
         {
             return (GamepadType)gameControllerType;
         }
 
-        internal static GamepadSensorType Convert(Silk.NET.SDL.SensorType sensorType)
+        internal static GamepadSensorType Convert(Hexa.NET.SDL2.SDLSensorType sensorType)
         {
             return (GamepadSensorType)sensorType;
         }
 
-        internal static Silk.NET.SDL.SensorType ConvertBack(GamepadSensorType gamepadSensorType)
+        internal static Hexa.NET.SDL2.SDLSensorType ConvertBack(GamepadSensorType gamepadSensorType)
         {
-            return (Silk.NET.SDL.SensorType)gamepadSensorType;
+            return (Hexa.NET.SDL2.SDLSensorType)gamepadSensorType;
         }
 
-        internal static JoystickType Convert(Silk.NET.SDL.JoystickType joystickType)
+        internal static JoystickType Convert(Hexa.NET.SDL2.SDLJoystickType joystickType)
         {
             return (JoystickType)joystickType;
         }
 
-        internal static JoystickPowerLevel Convert(Silk.NET.SDL.JoystickPowerLevel joystickPowerLevel)
+        internal static JoystickPowerLevel Convert(Hexa.NET.SDL2.SDLJoystickPowerLevel joystickPowerLevel)
         {
             return (JoystickPowerLevel)joystickPowerLevel;
         }

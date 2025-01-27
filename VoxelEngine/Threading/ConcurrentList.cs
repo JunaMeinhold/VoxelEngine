@@ -4,7 +4,7 @@
     using System.Collections;
     using System.Collections.Generic;
 
-    public class ConcurrentList<T> : IList<T>, IList, IReadOnlyList<T>
+    public class ConcurrentList<T> : IList<T>, IReadOnlyList<T>
     {
         private readonly List<T> _list = new();
 
@@ -26,24 +26,6 @@
             }
         }
 
-        object IList.this[int index]
-        {
-            get
-            {
-                lock (SyncRoot)
-                {
-                    return ((IList)_list)[index];
-                }
-            }
-            set
-            {
-                lock (SyncRoot)
-                {
-                    ((IList)_list)[index] = value;
-                }
-            }
-        }
-
         public int Count
         {
             get
@@ -61,7 +43,7 @@
 
         public bool IsSynchronized => ((ICollection)_list).IsSynchronized;
 
-        public object SyncRoot => ((ICollection)_list).SyncRoot;
+        public readonly Lock SyncRoot = new();
 
         public void Add(T item)
         {

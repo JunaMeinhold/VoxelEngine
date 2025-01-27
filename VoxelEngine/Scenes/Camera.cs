@@ -1,12 +1,13 @@
 ﻿namespace VoxelEngine.Scenes
 {
     using System.Numerics;
+    using Hexa.NET.Mathematics;
     using Vortice.Direct3D11;
     using Vortice.Mathematics;
     using VoxelEngine.Core;
     using VoxelEngine.Core.Windows.Events;
-    using VoxelEngine.Mathematics;
     using VoxelEngine.Rendering.D3D.Interfaces;
+    using Viewport = Vortice.Mathematics.Viewport;
 
     public class Camera : GameObject, IView
     {

@@ -22,6 +22,9 @@
         [JsonProperty]
         public int ChunkRenderDistance { get; set; } = 32;
 
+        [JsonProperty]
+        public int ChunkSimulationDistance { get; set; } = 8;
+
         [JsonIgnore]
         public int BufferCount = 2;
 
