@@ -86,6 +86,8 @@
         {
             renderer.Dispose();
             SceneManager.Unload();
+            debugDraw.Dispose();
+            swapChain.Dispose();
             DXGIDeviceManager.Dispose();
         }
 

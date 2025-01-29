@@ -74,21 +74,6 @@
 
         public static void Dispose()
         {
-#if D3D_DEBUG
-            Debug.WriteLine("BEGIN REPORT");
-            debugDevice.ReportLiveDeviceObjects(RldoFlags.Detail);
-            Debug.WriteLine("END REPORT" + Environment.NewLine);
-#endif
-
-            iD3D11DeviceContext.ClearState();
-            iD3D11DeviceContext.Flush();
-
-#if D3D_DEBUG
-            Debug.WriteLine("BEGIN REPORT AFTER FLUSH");
-            debugDevice.ReportLiveDeviceObjects(RldoFlags.Detail);
-            Debug.WriteLine("END REPORT AFTER FLUSH" + Environment.NewLine);
-#endif
-
             iD3D11DeviceContext.Dispose();
             iD3D11DeviceContext = null;
 
@@ -96,9 +81,7 @@
             iD3D11Device = null;
 
 #if D3D_DEBUG
-            Debug.WriteLine("BEGIN REPORT BEFORE TERMINATE");
-            debugDevice.ReportLiveDeviceObjects(RldoFlags.Detail);
-            Debug.WriteLine("END REPORT BEFORE TERMINATE" + Environment.NewLine);
+            debugDevice.ReportLiveDeviceObjects(RldoFlags.Detail | RldoFlags.IgnoreInternal);
             debugDevice.Dispose();
             debugDevice = null;
 #endif

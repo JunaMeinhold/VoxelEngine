@@ -31,10 +31,11 @@
 
         private PrimitiveTopology primitiveTopology;
 
-        public static GraphicsPipelineState Create(GraphicsPipelineDesc desc, GraphicsPipelineStateDesc stateDesc)
+        public static GraphicsPipelineState Create(GraphicsPipelineDesc desc, GraphicsPipelineStateDesc stateDesc, [CallerFilePath] string file = "", [CallerLineNumber] int line = 0)
         {
-            GraphicsPipeline pipeline = new(desc);
-            GraphicsPipelineState pipelineState = new(pipeline, stateDesc);
+            string dbgName = $"{file}, {line}";
+            GraphicsPipeline pipeline = new(desc, dbgName);
+            GraphicsPipelineState pipelineState = new(pipeline, stateDesc, dbgName);
             pipeline.Dispose();
             return pipelineState;
         }
@@ -70,6 +71,7 @@
             var rsDesc = desc.Rasterizer;
             device.CreateRasterizerState2(&rsDesc, &rasterizerState.Handle).ThrowIf();
             RasterizerState = rasterizerState;
+            Utils.SetDebugName(rasterizerState, $"{dbgName}.{nameof(RasterizerState)}");
 
             /*  if (!result.IsSuccess)
               {
@@ -82,6 +84,7 @@
             var dsDesc = desc.DepthStencil;
             device.CreateDepthStencilState(&dsDesc, &depthStencilState.Handle).ThrowIf();
             DepthStencilState = depthStencilState;
+            Utils.SetDebugName(depthStencilState, $"{dbgName}.{nameof(DepthStencilState)}");
 
             /*if (!result.IsSuccess)
             {
@@ -93,6 +96,7 @@
             var bsDesc = desc.Blend;
             device.CreateBlendState1(&bsDesc, &blendState.Handle).ThrowIf();
             BlendState = blendState;
+            Utils.SetDebugName(blendState, $"{dbgName}.{nameof(BlendState)}");
 
             /*  if (!result.IsSuccess)
               {
@@ -156,7 +160,7 @@
 
                 layout = il;
 
-                //Utils.SetDebugName(layout.Handle, $"{dbgName}.{nameof(layout)}");
+                Utils.SetDebugName(layout.Handle, $"{dbgName}.{nameof(layout)}");
             }
             else
             {

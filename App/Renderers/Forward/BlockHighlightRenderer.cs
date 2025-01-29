@@ -13,11 +13,11 @@
 
     public class BlockHighlightRenderer : BaseRenderComponent
     {
+        private LinePipeline linePipeline;
         private ConstantBuffer<Matrix4x4> mvpBuffer;
         private ConstantBuffer<Vector4> colorBuffer;
-        private World _world;
-        private LinePipeline linePipeline;
         private LineBox lineBox;
+        private World world;
 
         public Vector4 Color;
 
@@ -27,7 +27,7 @@
         {
             if (GameObject is World world)
             {
-                _world = world;
+                this.world = world;
             }
             mvpBuffer = new(CpuAccessFlag.Write);
             colorBuffer = new(CpuAccessFlag.Write);
@@ -48,9 +48,9 @@
 
         public void DrawForward(ComPtr<ID3D11DeviceContext> context)
         {
-            if (_world.Player.IsLookingAtBlock)
+            if (world.Player.IsLookingAtBlock)
             {
-                mvpBuffer.Update(context, Matrix4x4.Transpose(Matrix4x4.CreateScale(0.5f) * Matrix4x4.CreateTranslation(_world.Player.LookAtBlock + new Vector3(0.5f))));
+                mvpBuffer.Update(context, Matrix4x4.Transpose(Matrix4x4.CreateScale(0.5f) * Matrix4x4.CreateTranslation(world.Player.LookAtBlock + new Vector3(0.5f))));
                 colorBuffer.Update(context, Color);
 
                 lineBox.Bind(context);
@@ -63,14 +63,9 @@
         public override void Destroy()
         {
             linePipeline.Dispose();
-            linePipeline = null;
             mvpBuffer.Dispose();
-            mvpBuffer = null;
             colorBuffer.Dispose();
-            colorBuffer = null;
             lineBox.Dispose();
-            lineBox = null;
-            _world = null;
         }
     }
 }

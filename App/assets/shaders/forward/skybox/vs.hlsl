@@ -10,7 +10,7 @@ PixelInputType main(VertexInputType input)
 {
 	PixelInputType output;
 
-	output.position = mul(input.position, model);
+	output.position = mul(float4(input.position, 1), model);
 	output.position = mul(output.position, viewProj);
 
 	output.tex = normalize(input.position.xyz);

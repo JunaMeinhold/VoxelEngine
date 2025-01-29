@@ -7,7 +7,7 @@
     [StructLayout(LayoutKind.Sequential)]
     public struct Vertex
     {
-        public Vector4 Position;
+        public Vector3 Position;
         public Vector3 Texture;
         public Vector3 Normal;
         public Vector3 Tangent;
@@ -18,7 +18,7 @@
             Texture.Y = MathF.Abs(Texture.Y - 1);
         }
 
-        public Vertex(Vector4 position, Vector2 texture, Vector3 normal)
+        public Vertex(Vector3 position, Vector2 texture, Vector3 normal)
         {
             Position = position;
             Texture = new Vector3(texture, 0);
@@ -26,7 +26,7 @@
             Tangent = Vector3.Zero;
         }
 
-        public Vertex(Vector4 position, Vector2 texture, Vector3 normal, Vector3 tangent)
+        public Vertex(Vector3 position, Vector2 texture, Vector3 normal, Vector3 tangent)
         {
             Position = position;
             Texture = new Vector3(texture, 0);
@@ -34,7 +34,7 @@
             Tangent = tangent;
         }
 
-        public Vertex(Vector4 position, Vector3 texture, Vector3 normal, Vector3 tangent)
+        public Vertex(Vector3 position, Vector3 texture, Vector3 normal, Vector3 tangent)
         {
             Position = position;
             Texture = texture;

@@ -25,30 +25,34 @@
         private ComPtr<ID3D11ShaderResourceView> srv;
         private ComPtr<ID3D11RenderTargetView> rtv;
 
-        public Texture2D(string[] paths, CpuAccessFlag cpuAccessFlag = 0, GpuAccessFlags gpuAccessFlags = GpuAccessFlags.Read)
+        public Texture2D(string[] paths, CpuAccessFlag cpuAccessFlag = 0, GpuAccessFlags gpuAccessFlags = GpuAccessFlags.Read, [CallerFilePath] string file = "", [CallerLineNumber] int line = 0)
         {
+            dbgName = $"{file}, {line}";
             this.gpuAccessFlags = gpuAccessFlags;
             ComPtr<ID3D11Device> device = D3D11DeviceManager.Device.As<ID3D11Device>();
             texture = TextureHelper.LoadFromFiles(device, paths);
             texture.GetDesc(ref description);
+            Utils.SetDebugName(texture, $"{dbgName}.{nameof(Texture2D)}");
             CreateViews(device, description);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Texture2D(string path, CpuAccessFlag cpuAccessFlag = 0, GpuAccessFlags gpuAccessFlags = GpuAccessFlags.Read)
+        public Texture2D(string path, CpuAccessFlag cpuAccessFlag = 0, GpuAccessFlags gpuAccessFlags = GpuAccessFlags.Read, [CallerFilePath] string file = "", [CallerLineNumber] int line = 0)
         {
+            dbgName = $"{file}, {line}";
             this.gpuAccessFlags = gpuAccessFlags;
             ComPtr<ID3D11Device> device = D3D11DeviceManager.Device.As<ID3D11Device>();
             (description.Usage, description.BindFlags) = TextureHelper.ConvertToUB(cpuAccessFlag, gpuAccessFlags);
             texture = TextureHelper.LoadTexture2DFile(device, Paths.CurrentTexturePath + path, description);
             texture.GetDesc(ref description);
-            //texture.DebugName = nameof(Texture2D);
+            Utils.SetDebugName(texture, $"{dbgName}.{nameof(Texture2D)}");
             CreateViews(device, description);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Texture2D(Format format, int width, int height, int arraySize = 1, int mipLevels = 1, CpuAccessFlag cpuAccessFlag = 0, GpuAccessFlags gpuAccessFlags = GpuAccessFlags.None, ResourceMiscFlag miscFlags = 0)
+        public Texture2D(Format format, int width, int height, int arraySize = 1, int mipLevels = 1, CpuAccessFlag cpuAccessFlag = 0, GpuAccessFlags gpuAccessFlags = GpuAccessFlags.None, ResourceMiscFlag miscFlags = 0, [CallerFilePath] string file = "", [CallerLineNumber] int line = 0)
         {
+            dbgName = $"{file}, {line}";
             this.gpuAccessFlags = gpuAccessFlags;
             ComPtr<ID3D11Device> device = D3D11DeviceManager.Device.As<ID3D11Device>();
             description = new((uint)width, (uint)height, (uint)arraySize, (uint)mipLevels, format, new SampleDesc(1, 0), 0, 0, (uint)cpuAccessFlag, (uint)miscFlags);
@@ -56,13 +60,14 @@
 
             device.CreateTexture2D(ref description, null, out texture).ThrowIf();
             texture.GetDesc(ref description);
-            //texture.DebugName = nameof(Texture2D);
+            Utils.SetDebugName(texture, $"{dbgName}.{nameof(Texture2D)}");
             CreateViews(device, description);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Texture2D(SubresourceData subresourceData, Format format, int width, int height, int arraySize = 1, int mipLevels = 1, CpuAccessFlag cpuAccessFlag = 0, GpuAccessFlags gpuAccessFlags = GpuAccessFlags.None, ResourceMiscFlag miscFlags = 0)
+        public Texture2D(SubresourceData subresourceData, Format format, int width, int height, int arraySize = 1, int mipLevels = 1, CpuAccessFlag cpuAccessFlag = 0, GpuAccessFlags gpuAccessFlags = GpuAccessFlags.None, ResourceMiscFlag miscFlags = 0, [CallerFilePath] string file = "", [CallerLineNumber] int line = 0)
         {
+            dbgName = $"{file}, {line}";
             this.gpuAccessFlags = gpuAccessFlags;
             ComPtr<ID3D11Device> device = D3D11DeviceManager.Device.As<ID3D11Device>();
             description = new((uint)width, (uint)height, (uint)arraySize, (uint)mipLevels, format, new SampleDesc(1, 0), 0, 0, (uint)cpuAccessFlag, (uint)miscFlags);
@@ -70,20 +75,21 @@
 
             device.CreateTexture2D(ref description, &subresourceData, out texture).ThrowIf();
             texture.GetDesc(ref description);
-            //texture.DebugName = nameof(Texture2D);
+            Utils.SetDebugName(texture, $"{dbgName}.{nameof(Texture2D)}");
             CreateViews(device, description);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Texture2D(SubresourceData[] subresourceData, Format format, int width, int height, int arraySize = 1, int mipLevels = 1, CpuAccessFlag cpuAccessFlag = 0, GpuAccessFlags gpuAccessFlags = GpuAccessFlags.None, ResourceMiscFlag miscFlags = 0)
+        public Texture2D(SubresourceData[] subresourceData, Format format, int width, int height, int arraySize = 1, int mipLevels = 1, CpuAccessFlag cpuAccessFlag = 0, GpuAccessFlags gpuAccessFlags = GpuAccessFlags.None, ResourceMiscFlag miscFlags = 0, [CallerFilePath] string file = "", [CallerLineNumber] int line = 0)
         {
+            dbgName = $"{file}, {line}";
             this.gpuAccessFlags = gpuAccessFlags;
             ComPtr<ID3D11Device> device = D3D11DeviceManager.Device.As<ID3D11Device>();
             Texture2DDesc description = new((uint)width, (uint)height, (uint)arraySize, (uint)mipLevels, format, new SampleDesc(1, 0), 0, 0, (uint)cpuAccessFlag, (uint)miscFlags);
             (description.Usage, description.BindFlags) = TextureHelper.ConvertToUB(cpuAccessFlag, gpuAccessFlags);
 
             device.CreateTexture2D(ref description, ref subresourceData[0], out texture).ThrowIf();
-            //texture.DebugName = nameof(Texture2D);
+            Utils.SetDebugName(texture, $"{dbgName}.{nameof(Texture2D)}");
             CreateViews(device, description);
         }
 

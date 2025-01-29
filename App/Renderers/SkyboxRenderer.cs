@@ -21,9 +21,6 @@
 
         private ConstantBuffer<Matrix4x4> mvpBuffer;
         private ConstantBuffer<Colors> constantBuffer;
-
-        private SamplerState samplerState;
-
         public Texture2D Texture;
         public UVSphere sphere;
         public string TexturePath;
@@ -125,17 +122,10 @@
         public override void Destroy()
         {
             pipeline.Dispose();
-            pipeline = null;
+            mvpBuffer.Dispose();
             constantBuffer.Dispose();
             sphere.Dispose();
             Texture.Dispose();
-            Texture = null;
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public BoundingBox GetBoundingBox()
-        {
-            return new BoundingBox(new Vector3(float.NaN), new Vector3(float.NaN));
         }
     }
 }

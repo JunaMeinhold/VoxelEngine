@@ -8,7 +8,6 @@
     using System.Numerics;
     using VoxelEngine.Debugging;
     using VoxelEngine.Graphics;
-    using VoxelEngine.Graphics.D3D11.Interfaces;
     using VoxelEngine.Lightning;
     using VoxelEngine.Scenes;
     using VoxelEngine.Voxel;
@@ -16,7 +15,7 @@
     public unsafe class WorldRenderer : BaseRenderComponent
     {
         private ChunkGeometryPass geometryPass;
-        private CSMChunkPipeline chunkDepthPrepassCSM;
+        private CSMChunkPipeline csmPass;
         private World? world;
         private bool debugChunksRegion;
 
@@ -32,13 +31,15 @@
             }
 
             geometryPass = new();
-            chunkDepthPrepassCSM = new();
+            csmPass = new();
 
             this.world = world;
         }
 
         public override void Destroy()
         {
+            geometryPass.Dispose();
+            csmPass.Dispose();
         }
 
         public override void Draw(ComPtr<ID3D11DeviceContext> context, PassIdentifer pass, Camera camera, object? parameter)
@@ -89,19 +90,19 @@
         {
             if (world == null) return;
 
-            chunkDepthPrepassCSM.Begin(context);
+            csmPass.Begin(context);
             var frustum = camera.Transform.Frustum;
             for (int j = 0; j < world.LoadedRenderRegions.Count; j++)
             {
                 RenderRegion region = world.LoadedRenderRegions[j];
                 if (region.VertexBuffer is not null && region.VertexBuffer.VertexCount != 0 && frustum.Intersects(region.BoundingBox))
                 {
-                    chunkDepthPrepassCSM.Update(context);
+                    csmPass.Update(context);
                     region.Bind(context);
                     context.Draw((uint)region.VertexBuffer.VertexCount, 0);
                 }
             }
-            chunkDepthPrepassCSM.End(context);
+            csmPass.End(context);
         }
     }
 }

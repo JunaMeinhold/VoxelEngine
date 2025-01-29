@@ -6,9 +6,25 @@
 
     public abstract class BaseRenderComponent : IRenderComponent
     {
+        private bool initialized;
+
         public GameObject GameObject { get; set; }
 
         public abstract int QueueIndex { get; }
+
+        void IComponent.Awake()
+        {
+            if (initialized) return;
+            Awake();
+            initialized = true;
+        }
+
+        void IComponent.Destroy()
+        {
+            if (!initialized) return;
+            Destroy();
+            initialized = false;
+        }
 
         public abstract void Awake();
 

@@ -1,14 +1,12 @@
 ﻿namespace VoxelEngine.Scenes
 {
-    using Hexa.NET.D3D11;
     using Hexa.NET.Mathematics;
     using System.Numerics;
     using VoxelEngine.Core;
     using VoxelEngine.Core.Windows.Events;
-    using VoxelEngine.Graphics.D3D11.Interfaces;
     using Viewport = Hexa.NET.Mathematics.Viewport;
 
-    public class Camera : GameObject, IView
+    public class Camera : GameObject
     {
         public new CameraTransform Transform;
         private bool autoSize = true;
@@ -34,8 +32,6 @@
         public float Width { get => Transform.Width; set => Transform.Width = value; }
 
         public float Height { get => Transform.Height; set => Transform.Height = value; }
-
-        CameraTransform IView.Transform => Transform;
 
         public static Camera Current => SceneManager.Current.Camera;
 

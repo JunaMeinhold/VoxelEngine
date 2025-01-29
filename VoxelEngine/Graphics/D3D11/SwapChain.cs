@@ -27,6 +27,7 @@
             Texture2DDesc desc;
             backbuffer.GetDesc(&desc);
             depthStencil = new((int)desc.Width, (int)desc.Height);
+            Viewport = new(desc.Width, desc.Height);
         }
 
         public ComPtr<ID3D11RenderTargetView> RTV => rtv;
@@ -34,6 +35,8 @@
         public ComPtr<ID3D11DepthStencilView> DSV => depthStencil.DSV;
 
         public DepthStencil DepthStencil => depthStencil;
+
+        public Hexa.NET.Mathematics.Viewport Viewport { get; private set; }
 
         private void InitializeRenderTargets()
         {
@@ -48,6 +51,7 @@
 
         public void ResizeBuffers(int bufferCount, int width, int height, Format format, SwapChainFlag flags)
         {
+            Viewport = new(width, height);
             rtv.Dispose();
             backbuffer.Dispose();
             swapChain.ResizeBuffers((uint)bufferCount, (uint)width, (uint)height, format, (uint)flags);
@@ -57,6 +61,7 @@
 
         public void Resize(int width, int height)
         {
+            Viewport = new(width, height);
             rtv.Dispose();
             backbuffer.Dispose();
             swapChain.ResizeBuffers(description.BufferCount, (uint)width, (uint)height, description.Format, description.Flags);

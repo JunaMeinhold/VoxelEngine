@@ -15,9 +15,9 @@ namespace VoxelEngine.IO.ObjLoader.Data.VertexData
         public float Y { get; private set; }
         public float Z { get; private set; }
 
-        public static implicit operator Vector4(Vertex vertex)
+        public static implicit operator Vector3(Vertex vertex)
         {
-            return new Vector4(vertex.X, vertex.Y, vertex.Z, 1);
+            return new Vector3(vertex.X, vertex.Y, vertex.Z);
         }
     }
 }

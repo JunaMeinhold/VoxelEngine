@@ -11,15 +11,12 @@
 
     public class DeferredLightPass : RenderPass
     {
-        private readonly ConstantBuffer<CBCamera> cameraBuffer;
         private readonly ConstantBuffer<CBDirectionalLightSD> directionalLightBuffer;
 
         public DeferredLightPass()
         {
-            cameraBuffer = new(CpuAccessFlag.Write);
             directionalLightBuffer = new(CpuAccessFlag.Write);
             state.Bindings.SetCBV("directionalLightBuffer", directionalLightBuffer);
-            state.Bindings.SetCBV("CameraBuffer", cameraBuffer);
         }
 
         protected override GraphicsPipelineState CreatePipelineState()
@@ -37,9 +34,8 @@
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Update(ComPtr<ID3D11DeviceContext> context, CBCamera camera, CBDirectionalLightSD light)
+        public void Update(ComPtr<ID3D11DeviceContext> context, CBDirectionalLightSD light)
         {
-            cameraBuffer.Update(context, camera);
             directionalLightBuffer.Update(context, light);
         }
 
@@ -48,6 +44,12 @@
             Begin(context);
             context.DrawInstanced(4, 1, 0, 0);
             End(context);
+        }
+
+        protected override void DisposeCore()
+        {
+            base.DisposeCore();
+            directionalLightBuffer.Dispose();
         }
     }
 }

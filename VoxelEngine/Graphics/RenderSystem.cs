@@ -22,6 +22,7 @@
             {
                 component.Awake();
             }
+            initialized = true;
         }
 
         private void OnAdded(GameObject gameObject, IRenderComponent component)
@@ -44,13 +45,10 @@
 
         public void Destroy()
         {
-            foreach (var component in components)
-            {
-                component.Destroy();
-            }
             components.OnAdded -= OnAdded;
             components.OnRemoved -= OnRemoved;
             components.Dispose();
+            initialized = false;
         }
 
         public void Draw(ComPtr<ID3D11DeviceContext> context, RenderQueueIndex index, PassIdentifer pass, Camera camera, object? parameter = null)

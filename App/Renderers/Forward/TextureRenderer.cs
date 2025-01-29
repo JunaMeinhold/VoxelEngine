@@ -48,10 +48,9 @@
         public override void Destroy()
         {
             pipeline.Dispose();
+            mvpBuffer.Dispose();
             VertexBuffer.Dispose();
-            VertexBuffer = null;
             Texture.Dispose();
-            TexturePath = null;
         }
     }
 }

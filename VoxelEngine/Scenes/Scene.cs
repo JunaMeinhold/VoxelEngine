@@ -55,9 +55,9 @@
         {
             root = new(this);
             systems.Add(QueryManager = new QuerySystem(this));
+            systems.Add(new TransformSystem());
             systems.Add(RenderSystem = new RenderSystem());
             systems.Add(new ScriptSystem());
-            systems.Add(new TransformSystem());
         }
 
         public IReadOnlyList<GameObject> GameObjects => gameObjects;
@@ -281,7 +281,6 @@
             {
                 Time.FixedUpdate -= FixedUpdate;
                 root.Destroy();
-
                 foreach (var system in systems[SystemFlags.Destroy])
                 {
                     system.Destroy();

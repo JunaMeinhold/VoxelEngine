@@ -8,7 +8,6 @@
     using System.Runtime.InteropServices;
     using VoxelEngine.Graphics.Buffers;
     using VoxelEngine.Graphics.D3D11;
-    using VoxelEngine.Graphics.D3D11.Interfaces;
     using VoxelEngine.Voxel.Blocks;
 
     public class ChunkGeometryPass : RenderPass

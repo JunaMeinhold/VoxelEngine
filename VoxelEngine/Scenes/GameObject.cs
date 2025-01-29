@@ -197,11 +197,15 @@
             Transform.Changed -= OnTransformChanged;
             Transform.Updated -= OnTransformUpdated;
             initialized = false;
-            Scene.Unregister(this);
+            for (int i = 0; i < components.Count; i++)
+            {
+                components[i].Destroy();
+            }
             foreach (var child in Children)
             {
                 child.Destroy();
             }
+            Scene.Unregister(this);
             Scene = null!;
         }
 

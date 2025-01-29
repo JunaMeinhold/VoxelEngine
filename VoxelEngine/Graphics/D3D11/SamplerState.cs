@@ -2,16 +2,24 @@
 {
     using Hexa.NET.D3D11;
     using HexaGen.Runtime.COM;
-    using VoxelEngine.Resources;
+    using System.Runtime.CompilerServices;
 
     public unsafe class SamplerState : DisposableRefBase, ISamplerState
     {
         private ComPtr<ID3D11SamplerState> sampler;
 
-        public SamplerState(SamplerDesc desc)
+        public SamplerState(SamplerDesc desc, [CallerFilePath] string file = "", [CallerLineNumber] int line = 0)
         {
             var device = D3D11DeviceManager.Device;
             device.CreateSamplerState(&desc, out sampler);
+            Utils.SetDebugName(sampler, $"{file}, {line}");
+        }
+
+        public SamplerState(SamplerDesc desc, string dbgName)
+        {
+            var device = D3D11DeviceManager.Device;
+            device.CreateSamplerState(&desc, out sampler);
+            Utils.SetDebugName(sampler, dbgName);
         }
 
         public ComPtr<ID3D11SamplerState> Sampler => sampler;
