@@ -2,46 +2,42 @@
 
 namespace App.Renderers.Forward
 {
+    using App.Pipelines.Forward;
+    using Hexa.NET.D3D11;
+    using Hexa.NET.Mathematics;
+    using HexaGen.Runtime.COM;
     using System.Numerics;
     using System.Runtime.CompilerServices;
-    using App.Pipelines.Forward;
-    using Hexa.NET.Mathematics;
-    using Vortice.Direct3D11;
     using VoxelEngine.Graphics.Buffers;
     using VoxelEngine.Graphics.D3D11;
     using VoxelEngine.Graphics.D3D11.Interfaces;
     using VoxelEngine.Mathematics;
     using VoxelEngine.Scenes;
-    using ShaderStage = ShaderStage;
 
     public class TextureRenderer : IForwardRenderComponent
     {
         private TexturePipeline pipeline;
-        private ConstantBuffer<ModelViewProjBuffer> mvpBuffer;
-        private ID3D11SamplerState samplerState;
+        private ConstantBuffer<Matrix4x4> mvpBuffer;
         public VertexBuffer<OrthoVertex> VertexBuffer;
         public Texture2D Texture;
         public string TexturePath;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Initialize(ID3D11Device device, GameObject element)
+        public void Initialize(GameObject element)
         {
-            Texture = new();
-            Texture.Load(device, TexturePath);
+            Texture = new(TexturePath);
 
-            mvpBuffer = new(device, CpuAccessFlags.Write);
-            samplerState = device.CreateSamplerState(SamplerDescription.LinearClamp);
-            pipeline = new(device);
-            pipeline.ConstantBuffers.Add(mvpBuffer, ShaderStage.Vertex, 0);
-            pipeline.ShaderResourceViews.Add(Texture.SRV, ShaderStage.Pixel, 0);
-            pipeline.SamplerStates.Add(samplerState, ShaderStage.Pixel, 0);
+            mvpBuffer = new(CpuAccessFlag.Write);
+            pipeline = new();
+            pipeline.Bindings.SetCBV("ModelBuffer", mvpBuffer);
+            pipeline.Bindings.SetSRV("texture", Texture);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void DrawForward(ID3D11DeviceContext context, IView view)
+        public void DrawForward(ComPtr<ID3D11DeviceContext> context, IView view)
         {
             // VertexBuffer.Bind(context);
-            // mvpBuffer.Update(context, new ModelViewProjBuffer(view, Matrix4x4.Identity));
+            //mvpBuffer.Update(context, Matrix4x4.Transpose(Matrix4x4.Identity));
             // pipeline.Pass(context, ScreenCamera.Instance, Matrix4x4.Identity, VertexBuffer.Count, 0);
         }
 

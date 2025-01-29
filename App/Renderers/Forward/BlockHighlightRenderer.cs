@@ -1,12 +1,12 @@
 ﻿namespace App.Renderers.Forward
 {
+    using App.Pipelines.Forward;
+    using Hexa.NET.D3D11;
+    using Hexa.NET.Mathematics;
+    using HexaGen.Runtime.COM;
     using System.Numerics;
     using System.Runtime.CompilerServices;
-    using App.Pipelines.Forward;
-    using Vortice.Direct3D11;
-    using Vortice.Mathematics;
     using VoxelEngine.Graphics.Buffers;
-    using VoxelEngine.Graphics.D3D11;
     using VoxelEngine.Graphics.D3D11.Interfaces;
     using VoxelEngine.Graphics.Primitives;
     using VoxelEngine.Scenes;
@@ -15,41 +15,41 @@
 
     public class BlockHighlightRenderer : IForwardRenderComponent
     {
-        private ConstantBuffer<ModelViewProjBuffer> mvpBuffer;
-        private ConstantBuffer<Color4> colorBuffer;
+        private ConstantBuffer<Matrix4x4> mvpBuffer;
+        private ConstantBuffer<Vector4> colorBuffer;
         private World _world;
         private LinePipeline linePipeline;
         private LineBox lineBox;
 
-        public Color4 Color;
+        public Vector4 Color;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Initialize(ID3D11Device device, GameObject element)
+        public void Initialize(GameObject element)
         {
             if (element is World world)
             {
                 _world = world;
             }
-            mvpBuffer = new(device, CpuAccessFlags.Write);
-            colorBuffer = new(device, CpuAccessFlags.Write);
-            linePipeline = new(device);
-            linePipeline.ConstantBuffers.Append(mvpBuffer, ShaderStage.Vertex);
-            linePipeline.ConstantBuffers.Append(colorBuffer, ShaderStage.Pixel);
+            mvpBuffer = new(CpuAccessFlag.Write);
+            colorBuffer = new(CpuAccessFlag.Write);
+            linePipeline = new();
+            linePipeline.Bindings.SetCBV("ModelBuffer", mvpBuffer);
+            linePipeline.Bindings.SetCBV("ColorBuffer", colorBuffer);
             Color = Colors.Gray;
             lineBox = new();
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void DrawForward(ID3D11DeviceContext context, IView view)
+        public void DrawForward(ComPtr<ID3D11DeviceContext> context, IView view)
         {
             if (_world.Player.IsLookingAtBlock)
             {
-                mvpBuffer.Update(context, new ModelViewProjBuffer(view, Matrix4x4.CreateScale(0.5f) * Matrix4x4.CreateTranslation(_world.Player.LookAtBlock + new Vector3(0.5f))));
+                mvpBuffer.Update(context, Matrix4x4.Transpose(Matrix4x4.CreateScale(0.5f) * Matrix4x4.CreateTranslation(_world.Player.LookAtBlock + new Vector3(0.5f))));
                 colorBuffer.Update(context, Color);
 
                 lineBox.Bind(context);
                 linePipeline.Begin(context);
-                context.DrawIndexed(lineBox.IndexBuffer.Count, 0, 0);
+                context.DrawIndexed((uint)lineBox.IndexBuffer.Count, 0, 0);
                 linePipeline.End(context);
             }
         }

@@ -1,6 +1,6 @@
 TextureCube skyTexture : register(t0);
 
-SamplerState linearClamp : register(s0);
+SamplerState linearClampSampler : register(s0);
 
 cbuffer WeatherCBuf
 {
@@ -151,8 +151,8 @@ float4 main(VertexOut pin) : SV_TARGET
 		float a = clamp(1.0f + cosTheta * 2.0f, 0, 1);
 		lerpFactor *= max(a, 0.1);
 	}
-	
-	float3 skyColor = skyTexture.Sample(linearClamp, pin.tex).xyz * 0.4;
+
+	float3 skyColor = skyTexture.Sample(linearClampSampler, pin.tex).xyz * 0.4;
 
 	float3 finalColor = lerp(skyLuminance, skyColor * (1 - lerpFactor), saturate(pin.tex.y)) + skyLuminance * lerpFactor;
 

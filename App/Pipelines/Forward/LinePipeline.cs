@@ -9,8 +9,8 @@
         {
             return GraphicsPipelineState.Create(new()
             {
-                VertexShader = "forward/line/vertex.hlsl",
-                PixelShader = "forward/line/pixel.hlsl",
+                VertexShader = "forward/line/vs.hlsl",
+                PixelShader = "forward/line/ps.hlsl",
             }, new GraphicsPipelineStateDesc()
             {
                 Topology = PrimitiveTopology.Linelist

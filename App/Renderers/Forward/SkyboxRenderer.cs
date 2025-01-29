@@ -2,14 +2,15 @@
 
 namespace App.Renderers.Forward
 {
-    using System.Numerics;
-    using System.Runtime.CompilerServices;
     using App.Pipelines.Forward;
+    using Hexa.NET.D3D11;
     using Hexa.NET.ImGui;
     using Hexa.NET.Mathematics;
     using Hexa.NET.Mathematics.Sky;
     using Hexa.NET.Mathematics.Sky.HosekWilkie;
-    using Vortice.Direct3D11;
+    using HexaGen.Runtime.COM;
+    using System.Numerics;
+    using System.Runtime.CompilerServices;
     using VoxelEngine.Graphics.Buffers;
     using VoxelEngine.Graphics.D3D11;
     using VoxelEngine.Graphics.D3D11.Interfaces;
@@ -22,10 +23,10 @@ namespace App.Renderers.Forward
         private GameObject sceneElement;
         private SkyboxPipeline pipeline;
 
-        private ConstantBuffer<ModelViewProjBuffer> mvpBuffer;
+        private ConstantBuffer<Matrix4x4> mvpBuffer;
         private ConstantBuffer<Colors> constantBuffer;
 
-        private ID3D11SamplerState samplerState;
+        private SamplerState samplerState;
 
         public Texture2D Texture;
         public UVSphere sphere;
@@ -68,24 +69,22 @@ namespace App.Renderers.Forward
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Initialize(ID3D11Device device, GameObject element)
+        public void Initialize(GameObject element)
         {
             sceneElement = element;
-            pipeline = new(device);
+            pipeline = new();
             sphere = new();
-            Texture = new(device, TexturePath);
+            Texture = new(TexturePath);
 
-            mvpBuffer = new(device, CpuAccessFlags.Write);
-            constantBuffer = new(device, CpuAccessFlags.Write);
-            samplerState = device.CreateSamplerState(SamplerDescription.LinearClamp);
-            pipeline.SamplerStates.Add(samplerState, ShaderStage.Pixel, 0);
-            pipeline.ShaderResourceViews.Add(Texture.SRV, ShaderStage.Pixel, 0);
-            pipeline.ConstantBuffers.Add(mvpBuffer, ShaderStage.Vertex, 0);
-            pipeline.ConstantBuffers.Add(constantBuffer, ShaderStage.Pixel, 0);
+            mvpBuffer = new(CpuAccessFlag.Write);
+            constantBuffer = new(CpuAccessFlag.Write);
+            pipeline.Bindings.SetSRV("skyTexture", Texture);
+            pipeline.Bindings.SetCBV("ModelBuffer", mvpBuffer);
+            pipeline.Bindings.SetCBV("WeatherCBuf", constantBuffer);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void DrawForward(ID3D11DeviceContext context, IView view)
+        public void DrawForward(ComPtr<ID3D11DeviceContext> context, IView view)
         {
             Vector3 sunDir = Vector3.Normalize(-SunDir);
             SkyParameters skyParams = SkyModel.CalculateSkyParameters(turbidity, groundAlbedo, sunDir, 0);
@@ -109,10 +108,10 @@ namespace App.Renderers.Forward
             ImGui.End();
 
             constantBuffer.Update(context, colors);
-            mvpBuffer.Update(context, new ModelViewProjBuffer(view, Matrix4x4.CreateScale(view.Transform.Far) * Matrix4x4.CreateTranslation(view.Transform.Position)));
+            mvpBuffer.Update(context, Matrix4x4.Transpose(Matrix4x4.CreateScale(view.Transform.Far) * Matrix4x4.CreateTranslation(view.Transform.Position)));
             sphere.Bind(context);
             pipeline.Begin(context);
-            context.DrawIndexed(sphere.IndexBuffer.Count, 0, 0);
+            context.DrawIndexed((uint)sphere.IndexBuffer.Count, 0, 0);
             pipeline.End(context);
         }
 

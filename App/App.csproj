@@ -147,10 +147,10 @@
 		<None Update="assets\shaders\forward\line\defs.hlsl">
 			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
 		</None>
-		<None Update="assets\shaders\forward\line\pixel.hlsl">
+		<None Update="assets\shaders\forward\line\ps.hlsl">
 			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
 		</None>
-		<None Update="assets\shaders\forward\line\vertex.hlsl">
+		<None Update="assets\shaders\forward\line\vs.hlsl">
 			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
 		</None>
 		<None Update="assets\shaders\forward\skybox\defs.hlsl">
