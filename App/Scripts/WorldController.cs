@@ -1,7 +1,9 @@
 ﻿namespace App.Scripts
 {
     using System.Numerics;
+    using Hexa.NET.D3D11;
     using Hexa.NET.ImGui;
+    using VoxelEngine.Graphics.D3D11;
     using VoxelEngine.Scripting;
     using VoxelEngine.Voxel;
 
@@ -25,7 +27,8 @@
 
         public override void FixedUpdate()
         {
-            world.WorldLoader.Upload(Device, Device.ImmediateContext);
+            var context = D3D11DeviceManager.Context.As<ID3D11DeviceContext>();
+            world.WorldLoader.Upload(context);
             Vector3 pos = Scene.Camera.Transform.Position;
 
             float x = pos.X % Chunk.CHUNK_SIZE;

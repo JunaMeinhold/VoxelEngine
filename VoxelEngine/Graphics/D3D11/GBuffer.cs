@@ -10,8 +10,8 @@
     public unsafe class GBuffer : Resource
     {
         private ComPtr<ID3D11Texture2D>[] textures;
-        private ComPtr<ID3D11ShaderResourceView>[] srvs;
-        private ComPtr<ID3D11RenderTargetView>[] rtvs;
+        private ShaderResourceView[] srvs;
+        private RenderTargetView[] rtvs;
         private Format[] formats;
 
         public int Width { get; private set; }
@@ -29,8 +29,8 @@
             Width = width;
             Height = height;
             textures = new ComPtr<ID3D11Texture2D>[formats.Length];
-            srvs = new ComPtr<ID3D11ShaderResourceView>[formats.Length];
-            rtvs = new ComPtr<ID3D11RenderTargetView>[formats.Length];
+            srvs = new ShaderResourceView[formats.Length];
+            rtvs = new RenderTargetView[formats.Length];
             this.formats = formats;
             for (int i = 0; i < formats.Length; i++)
             {
@@ -59,9 +59,9 @@
             }
         }
 
-        public ComPtr<ID3D11ShaderResourceView>[] SRVs => srvs;
+        public ShaderResourceView[] SRVs => srvs;
 
-        public ComPtr<ID3D11RenderTargetView>[] RTVs => rtvs;
+        public RenderTargetView[] RTVs => rtvs;
 
         public void Resize(int width, int height, params Format[] formats)
         {
@@ -84,8 +84,8 @@
             }
 
             textures = new ComPtr<ID3D11Texture2D>[formats.Length];
-            srvs = new ComPtr<ID3D11ShaderResourceView>[formats.Length];
-            rtvs = new ComPtr<ID3D11RenderTargetView>[formats.Length];
+            srvs = new ShaderResourceView[formats.Length];
+            rtvs = new RenderTargetView[formats.Length];
 
             for (int i = 0; i < formats.Length; i++)
             {
@@ -115,19 +115,19 @@
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void SetTarget(ComPtr<ID3D11DeviceContext> context, DepthStencil? depthStencil)
+        public void SetTarget(ComPtr<ID3D11DeviceContext> context, IDepthStencilView? depthStencilView = null)
         {
             ID3D11RenderTargetView** ppRtv = stackalloc ID3D11RenderTargetView*[D3D11.D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT];
-
+            ID3D11DepthStencilView* pDsv = (ID3D11DepthStencilView*)(depthStencilView?.NativePointer ?? 0);
             for (int i = 0; i < rtvs.Length; i++)
             {
-                ppRtv[i] = rtvs[i].Handle;
+                ppRtv[i] = rtvs[i].RTV.Handle;
             }
 
-            context.OMSetRenderTargets((uint)rtvs.Length, ppRtv, depthStencil?.DSV ?? null);
+            context.OMSetRenderTargets((uint)rtvs.Length, ppRtv, pDsv);
         }
 
-        public void ClearTarget(ComPtr<ID3D11DeviceContext> context, Vector4 color)
+        public void Clear(ComPtr<ID3D11DeviceContext> context, Vector4 color)
         {
             float* pColor = (float*)&color;
             for (int i = 0; i < rtvs.Length; i++)
@@ -136,12 +136,12 @@
             }
         }
 
-        public static implicit operator ComPtr<ID3D11ShaderResourceView>[](GBuffer array)
+        public static implicit operator ShaderResourceView[](GBuffer array)
         {
             return array.srvs;
         }
 
-        public static implicit operator ComPtr<ID3D11RenderTargetView>[](GBuffer array)
+        public static implicit operator RenderTargetView[](GBuffer array)
         {
             return array.rtvs;
         }

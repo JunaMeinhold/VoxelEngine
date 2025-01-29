@@ -12,6 +12,8 @@
             state = CreatePipelineState();
         }
 
+        public D3D11ResourceBindingList Bindings => state.Bindings;
+
         protected abstract GraphicsPipelineState CreatePipelineState();
 
         public void Begin(ComPtr<ID3D11DeviceContext> context)

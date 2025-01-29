@@ -7,7 +7,7 @@ Texture2D<float> depthTexture : register(t3);
 Texture2D<float> lumaTexture : register(t4);
 Texture2D lutTexture : register(t5);
 
-SamplerState linearClamp;
+SamplerState linearClampSampler;
 
 struct VSOut
 {
@@ -92,10 +92,10 @@ inline float3 OECF_sRGBFast(float3 color)
 
 inline float3 Bloom(float2 texCoord, float3 hdr)
 {
-	float3 blm = bloomTexture.SampleLevel(linearClamp, texCoord, 0).rgb;
+	float3 blm = bloomTexture.SampleLevel(linearClampSampler, texCoord, 0).rgb;
 	float3 drt = 0;
 #if LensDirt
-	drt = lensDirt.SampleLevel(linearClamp, texCoord, 0).rgb;
+	drt = lensDirt.SampleLevel(linearClampSampler, texCoord, 0).rgb;
 #endif
 	return lerp(hdr, blm + blm * drt, float3(BloomStrength, BloomStrength, BloomStrength));
 }
@@ -110,7 +110,7 @@ inline float ComputeFogFactor(float d)
 
 inline float3 Fog(float2 texCoord, float3 color)
 {
-	float depth = depthTexture.SampleLevel(linearClamp, texCoord, 0);
+	float depth = depthTexture.SampleLevel(linearClampSampler, texCoord, 0);
 	if (depth == 1)
 		return color;
 	float3 position = GetPositionWS(texCoord, depth);
@@ -128,7 +128,7 @@ inline float3 LUT(float3 color)
 	float lerpfact = frac(lutcoord.z);
 	lutcoord.x += (lutcoord.z - lerpfact) * texelsize.y;
 
-	float3 lutcolor = lerp(lutTexture.SampleLevel(linearClamp, float2(lutcoord.x, lutcoord.y), 0).xyz, lutTexture.SampleLevel(linearClamp, float2(lutcoord.x + texelsize.y, lutcoord.y), 0).xyz, lerpfact);
+	float3 lutcolor = lerp(lutTexture.SampleLevel(linearClampSampler, float2(lutcoord.x, lutcoord.y), 0).xyz, lutTexture.SampleLevel(linearClampSampler, float2(lutcoord.x + texelsize.y, lutcoord.y), 0).xyz, lerpfact);
 
 	return lerp(normalize(color.xyz), normalize(lutcolor.xyz), LUTAmountChroma) * lerp(length(color.xyz), length(lutcolor.xyz), LUTAmountLuma);
 }
@@ -140,7 +140,7 @@ float4 main(VSOut vs) : SV_Target
 #else
 	float exposure = 1;
 #endif
-	float4 color = hdrTexture.Sample(linearClamp, vs.Tex);
+	float4 color = hdrTexture.Sample(linearClampSampler, vs.Tex);
 
 #if BLOOM
 	color.rgb = Bloom(vs.Tex, color.rgb);

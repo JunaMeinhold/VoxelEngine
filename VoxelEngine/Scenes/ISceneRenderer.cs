@@ -20,7 +20,7 @@
         /// </summary>
         /// <param name="view">The view.</param>
         /// <param name="elements">The elements.</param>
-        void Render(ComPtr<ID3D11DeviceContext4> context, Camera view, SceneElementCollection elements);
+        void Render(ComPtr<ID3D11DeviceContext> context, Camera view, SceneElementCollection elements);
 
         void Resize(GameWindow window);
 

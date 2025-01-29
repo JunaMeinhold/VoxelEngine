@@ -4,8 +4,11 @@
     using App.Pipelines.Effects;
     using App.Pipelines.Forward;
     using App.Renderers.Forward;
+    using Hexa.NET.D3D11;
+    using Hexa.NET.DXGI;
     using Hexa.NET.ImGui;
     using Hexa.NET.Mathematics;
+    using HexaGen.Runtime.COM;
     using System.Numerics;
     using System.Runtime.CompilerServices;
     using VoxelEngine.Core;
@@ -66,48 +69,52 @@
             width = window.Width;
             height = window.Height;
 
-            anisotropicClamp = device.CreateSamplerState(SamplerDescription.AnisotropicClamp);
-            pointClamp = device.CreateSamplerState(SamplerDescription.PointClamp);
-            linearClamp = device.CreateSamplerState(SamplerDescription.LinearClamp);
+            anisotropicClamp = new(SamplerDescription.AnisotropicClamp);
+            pointClamp = new(SamplerDescription.PointClamp);
+            linearClamp = new(SamplerDescription.LinearClamp);
 
-            camera = new(device, CpuAccessFlags.Write);
+            camera = new(CpuAccessFlag.Write);
 
-            depthStencil = new(device, window.Width, window.Height);
-            gbuffer = new(device, window.Width, window.Height, Vortice.DXGI.Format.R16G16B16A16_Float, Vortice.DXGI.Format.R8G8B8A8_UNorm, Vortice.DXGI.Format.R16G16B16A16_Float, Vortice.DXGI.Format.R16G16B16A16_Float);
-            gbuffer.RenderTargets.DepthStencil = depthStencil;
-            lightBuffer = new(device, Vortice.DXGI.Format.R16G16B16A16_Float, width, height, 1, 1, CpuAccessFlags.None, GpuAccessFlags.RW);
-            fxaaBuffer = new(device, Vortice.DXGI.Format.R16G16B16A16_Float, window.Width, window.Height, 1, 1, CpuAccessFlags.None, GpuAccessFlags.RW);
-            csmBuffer = new(device, Vortice.DXGI.Format.D32_Float, Nucleus.Settings.ShadowMapSize, Nucleus.Settings.ShadowMapSize, 5);
-            hbaoBuffer = new(device, Vortice.DXGI.Format.R32_Float, width, height, 1, 1, CpuAccessFlags.None, GpuAccessFlags.RW);
+            D3D11GlobalResourceList.SetCBV("CameraBuffer", camera);
+            D3D11GlobalResourceList.SetSampler("linearClampSampler", linearClamp);
 
-            lightPipeline = new(device);
-            lightPipeline.ShaderResourceViews.AppendRange(gbuffer, ShaderStage.Pixel);
-            lightPipeline.ShaderResourceViews.Append(depthStencil.SRV, ShaderStage.Pixel);
-            lightPipeline.ShaderResourceViews.Append(csmBuffer.SRV, ShaderStage.Pixel);
-            lightPipeline.ShaderResourceViews.Append(hbaoBuffer.SRV, ShaderStage.Pixel);
-            lightPipeline.SamplerStates.Add(linearClamp, ShaderStage.Pixel, 0);
-            lightPipeline.SamplerStates.Add(linearClamp, ShaderStage.Pixel, 4);
+            depthStencil = new(window.Width, window.Height);
+            gbuffer = new(window.Width, window.Height, Format.R16G16B16A16Float, Format.R8G8B8A8Unorm, Format.R16G16B16A16Float, Format.R16G16B16A16Float);
+            lightBuffer = new(Format.R16G16B16A16Float, width, height, 1, 1, 0, GpuAccessFlags.RW);
+            fxaaBuffer = new(Format.R16G16B16A16Float, window.Width, window.Height, 1, 1, 0, GpuAccessFlags.RW);
+            csmBuffer = new(Format.D32Float, Nucleus.Settings.ShadowMapSize, Nucleus.Settings.ShadowMapSize, 5);
+            hbaoBuffer = new(Format.R32Float, width, height, 1, 1, 0, GpuAccessFlags.RW);
 
-            bloom = new(device, width, height);
+            lightPipeline = new();
 
-            compose = new(device);
+            lightPipeline.Bindings.SetSRV("GBufferA", gbuffer.SRVs[0]);
+            lightPipeline.Bindings.SetSRV("GBufferB", gbuffer.SRVs[1]);
+            lightPipeline.Bindings.SetSRV("GBufferC", gbuffer.SRVs[2]);
+            lightPipeline.Bindings.SetSRV("GBufferD", gbuffer.SRVs[3]);
+
+            lightPipeline.Bindings.SetSRV("depthTexture", depthStencil);
+            lightPipeline.Bindings.SetSRV("lightDepthMap", csmBuffer);
+            lightPipeline.Bindings.SetSRV("aoTexture", hbaoBuffer);
+
+            bloom = new(width, height);
+
+            compose = new();
             compose.Input = lightBuffer;
             compose.Bloom = bloom.Output;
-            compose.Depth = depthStencil.SRV;
-            compose.SamplerStates.Append(linearClamp, ShaderStage.Pixel);
+            compose.Depth = depthStencil;
             compose.Camera = camera;
 
-            fxaa = new(device);
+            fxaa = new();
             fxaa.Input = fxaaBuffer;
 
-            hbao = new(device);
-            hbao.Depth = depthStencil.SRV;
+            hbao = new();
+            hbao.Depth = depthStencil;
             hbao.Normal = gbuffer.SRVs[1];
 
-            godRays = new(device, width, height);
+            godRays = new(width, height);
 
-            chunkPrepass = new(device);
-            chunkDepthPrepassCSM = new(device);
+            chunkPrepass = new();
+            chunkDepthPrepassCSM = new();
 
             directionalLight = new();
             directionalLight.Color = new Vector4(196 / 255f, 220 / 255f, 1, 1) * 1.4f;
@@ -116,7 +123,7 @@
             directionalLight.CastShadows = true;
             Keyboard.KeyUp += Keyboard_OnKeyUp;
 
-            perlinNoiseWidget = new(device);
+            perlinNoiseWidget = new();
         }
 
         private void Keyboard_OnKeyUp(object sender, VoxelEngine.Core.Input.Events.KeyboardEventArgs e)
@@ -145,33 +152,35 @@
 
             depthStencil.Resize(width, height);
             gbuffer.Resize(width, height);
-            gbuffer.RenderTargets.DepthStencil = depthStencil;
             lightBuffer.Resize(width, height);
             fxaaBuffer.Resize(width, height);
             hbaoBuffer.Resize(width, height);
 
-            hbao.Depth = depthStencil.SRV;
+            hbao.Depth = depthStencil;
             hbao.Normal = gbuffer.SRVs[1];
 
             godRays.Resize(width, height);
 
-            lightPipeline.ShaderResourceViews.Clear();
-            lightPipeline.ShaderResourceViews.AppendRange(gbuffer, ShaderStage.Pixel);
-            lightPipeline.ShaderResourceViews.Append(depthStencil.SRV, ShaderStage.Pixel);
-            lightPipeline.ShaderResourceViews.Append(csmBuffer.SRV, ShaderStage.Pixel);
-            lightPipeline.ShaderResourceViews.Append(hbaoBuffer.SRV, ShaderStage.Pixel);
+            lightPipeline.Bindings.SetSRV("GBufferA", gbuffer.SRVs[0]);
+            lightPipeline.Bindings.SetSRV("GBufferB", gbuffer.SRVs[1]);
+            lightPipeline.Bindings.SetSRV("GBufferC", gbuffer.SRVs[2]);
+            lightPipeline.Bindings.SetSRV("GBufferD", gbuffer.SRVs[3]);
+
+            lightPipeline.Bindings.SetSRV("depthTexture", depthStencil);
+            lightPipeline.Bindings.SetSRV("lightDepthMap", csmBuffer);
+            lightPipeline.Bindings.SetSRV("aoTexture", hbaoBuffer);
 
             bloom.Resize(width, height);
 
             compose.Input = lightBuffer;
             compose.Bloom = bloom.Output;
-            compose.Depth = depthStencil.SRV;
+            compose.Depth = depthStencil;
 
             fxaa.Input = fxaaBuffer;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe void Render(ID3D11DeviceContext context, Camera view, SceneElementCollection elements)
+        public unsafe void Render(ComPtr<ID3D11DeviceContext> context, Camera view, SceneElementCollection elements)
         {
             perlinNoiseWidget.Draw(context);
 
@@ -224,9 +233,9 @@
             camera.Update(context, new CBCamera(view, new Vector2(width, height)));
 
             // Depth light pass.
-            context.ClearDepthStencilView(csmBuffer, DepthStencilClearFlags.Depth, 1, 0);
-            gbuffer.RenderTargets.ClearTarget(context);
-            context.ClearDepthStencilView(gbuffer.RenderTargets.DepthStencil, DepthStencilClearFlags.Depth | DepthStencilClearFlags.Stencil, 1, 0);
+            csmBuffer.Clear(context, ClearFlag.Depth, 1, 0);
+            gbuffer.Clear(context, default);
+            depthStencil.Clear(context, ClearFlag.Depth | ClearFlag.Stencil, 1, 0);
 
             context.ClearState();
 
@@ -246,7 +255,7 @@
                     chunkDepthPrepassCSM.Update(context, views);
                     chunkDepthPrepassCSM.Begin(context);
                     context.RSSetViewport(csmBuffer.Viewport);
-                    context.OMSetRenderTargets((ID3D11RenderTargetView)null, csmBuffer.DSV);
+                    context.SetRenderTarget(null, csmBuffer);
 
                     for (int j = 0; j < world.LoadedRenderRegions.Count; j++)
                     {
@@ -255,7 +264,7 @@
                         {
                             chunkDepthPrepassCSM.Update(context);
                             region.Bind(context);
-                            context.Draw(region.VertexBuffer.VertexCount, 0);
+                            context.Draw((uint)region.VertexBuffer.VertexCount, 0);
                         }
                     }
                 }
@@ -270,7 +279,7 @@
                 if (element is World world)
                 {
                     chunkPrepass.Begin(context);
-                    gbuffer.RenderTargets.SetTarget(context);
+                    gbuffer.SetTarget(context, depthStencil);
 
                     for (int j = 0; j < world.LoadedRenderRegions.Count; j++)
                     {
@@ -279,7 +288,7 @@
                         {
                             chunkPrepass.Update(context, view);
                             region.Bind(context);
-                            context.Draw(region.VertexBuffer.VertexCount, 0);
+                            context.Draw((uint)region.VertexBuffer.VertexCount, 0);
                         }
                         if (debugChunksRegion)
                         {
@@ -300,7 +309,7 @@
             }
 
             hbao.Update(context, view, hbaoBuffer.Viewport);
-            context.OMSetRenderTargets(hbaoBuffer);
+            context.SetRenderTarget(hbaoBuffer);
             context.RSSetViewport(hbaoBuffer.Viewport);
             hbao.Pass(context);
 
@@ -313,7 +322,7 @@
             // Forward pass.
             for (int i = 0; i < elements.ForwardComponents.Count; i++)
             {
-                context.OMSetRenderTargets(lightBuffer.RTV, depthStencil.DSV);
+                context.SetRenderTarget(lightBuffer, depthStencil);
                 context.RSSetViewport(lightBuffer.Viewport);
                 IForwardRenderComponent element = elements.ForwardComponents[i];
 
@@ -322,26 +331,25 @@
 
             // light pass
             lightPipeline.Update(context, new(view, new Vector2(width, height)), directionalLightCB);
-            context.OMSetRenderTargets(lightBuffer);
+            context.SetRenderTarget(lightBuffer);
             context.RSSetViewport(lightBuffer.Viewport);
             lightPipeline.Pass(context);
 
             bloom.Update(context);
-            bloom.Pass(context, lightBuffer.SRV);
+            bloom.Pass(context, lightBuffer);
 
-            context.OMSetRenderTargets(lightBuffer);
+            context.SetRenderTarget(lightBuffer);
             context.RSSetViewport(lightBuffer.Viewport);
             godRays.Pass(context);
 
             context.ClearRenderTargetView(fxaaBuffer, default);
-            context.OMSetRenderTargets(fxaaBuffer);
+            context.SetRenderTarget(fxaaBuffer);
             context.RSSetViewport(fxaaBuffer.Viewport);
             compose.Pass(context);
 
-            swapChain.DepthStencil = null;
-            swapChain.ClearAndSetTarget(context);
+            swapChain.ClearTarget(context, default);
+            swapChain.SetTarget(context, false);
             fxaa.Pass(context);
-            swapChain.DepthStencil = depthStencil;
 
             context.ClearState();
         }

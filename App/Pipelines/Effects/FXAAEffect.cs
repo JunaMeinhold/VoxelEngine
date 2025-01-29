@@ -4,7 +4,7 @@
     using HexaGen.Runtime.COM;
     using VoxelEngine.Graphics.D3D11;
 
-    public class FXAAEffect
+    public class FXAAEffect : DisposableBase
     {
         private readonly GraphicsPipelineState pso;
         private readonly SamplerState samplerState;
@@ -29,7 +29,7 @@
             pso.End(context);
         }
 
-        public void Dispose()
+        protected override void DisposeCore()
         {
             pso.Dispose();
             samplerState.Dispose();

@@ -14,17 +14,16 @@ cbuffer directionalLightBuffer : register(b0)
 	DirectionalLightSD directionalLight;
 };
 
-Texture2D<float4> albedoTexture : register(t0);
-Texture2D<float4> positionTexture : register(t1);
-Texture2D<float4> normalTexture : register(t2);
-Texture2D<float4> specularTexture : register(t3);
+Texture2D<float4> GBufferA : register(t0);
+Texture2D<float4> GBufferB : register(t1);
+Texture2D<float4> GBufferC : register(t2);
+Texture2D<float4> GBufferD : register(t3);
 Texture2D<float> depthTexture : register(t4);
 
 Texture2DArray lightDepthMap : register(t5);
 Texture2D<float> aoTexture : register(t6);
 
-SamplerState samplerLinearClamp : register(s0);
-SamplerState samplerDepth : register(s4);
+SamplerState linearClampSampler : register(s0);
 
 float ShadowCalculation(DirectionalLightSD light, float3 fragPosWorldSpace, float3 normal, Texture2DArray depthTex, SamplerState state)
 {
@@ -157,7 +156,7 @@ float3 ComputeDirectionalLight(GeometryAttributes attrs, float3 position, float3
 	{
 		// Shadow
 		float bias = max(0.05f * (1.0 - dot(N, L)), 0.005f);
-		shadow = ShadowCalculation(light, position, N, lightDepthMap, samplerDepth);
+		shadow = ShadowCalculation(light, position, N, lightDepthMap, linearClampSampler);
 	}
 
 	return (1.0 - shadow) * BlinnPhong(radiance, L, V, N, attrs.albedo, 32);
@@ -200,12 +199,12 @@ float3 OECF_sRGBFast(float3 color)
 float4 main(PixelInput input) : SV_TARGET
 {
 	GeometryAttributes attrs;
-	ExtractGeometryData(input.tex, albedoTexture, positionTexture, normalTexture, specularTexture, samplerLinearClamp, attrs);
-	float depth = depthTexture.SampleLevel(samplerLinearClamp, input.tex, 0);
+	ExtractGeometryData(input.tex, GBufferA, GBufferB, GBufferC, GBufferD, linearClampSampler, attrs);
+	float depth = depthTexture.SampleLevel(linearClampSampler, input.tex, 0);
 	float3 position = GetPositionWS(input.tex, depth);
 	float3 V = normalize(GetCameraPos() - position);
 
-	float ao = aoTexture.SampleLevel(samplerLinearClamp, input.tex, 0);
+	float ao = aoTexture.SampleLevel(linearClampSampler, input.tex, 0);
 
 	float3 color = ComputeDirectionalLight(attrs, position, V, directionalLight) * attrs.albedo;
 

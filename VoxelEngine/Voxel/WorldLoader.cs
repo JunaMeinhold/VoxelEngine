@@ -527,7 +527,7 @@
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Upload(ComPtr<ID3D11Device> device, ComPtr<ID3D11DeviceContext> context)
+        public void Upload(ComPtr<ID3D11DeviceContext> context)
         {
             if (uploadQueue.IsEmpty & unloadQueue.IsEmpty)
             {
@@ -536,7 +536,7 @@
 
             while (uploadQueue.TryDequeue(out var region))
             {
-                region.Update(device, context);
+                region.Update(context);
             }
 
             while (integrationQueue.TryDequeue(out ChunkSegment segment))

@@ -4,10 +4,11 @@
     using Hexa.NET.D3DCommon;
     using Hexa.NET.DXGI;
     using HexaGen.Runtime.COM;
+    using System;
     using VoxelEngine.Resources;
     using Format = Hexa.NET.DXGI.Format;
 
-    public unsafe class DepthStencil : Resource
+    public unsafe class DepthStencil : Resource, IDepthStencilView, IShaderResourceView
     {
         private ComPtr<ID3D11Texture2D> texture;
 
@@ -66,6 +67,12 @@
         public ComPtr<ID3D11DepthStencilView> DSV => depthStencilView;
 
         public ComPtr<ID3D11ShaderResourceView> SRV => shaderResourceView;
+
+        nint IDepthStencilView.NativePointer => (nint)depthStencilView.Handle;
+
+        nint IShaderResourceView.NativePointer => (nint)shaderResourceView.Handle;
+
+        public nint NativePointer => (nint)texture.Handle;
 
         private static Format GetDepthResourceFormat(Format depthFormat)
         {
@@ -163,6 +170,11 @@
             ShaderResourceViewDesc srvdesc = new(GetDepthSRVFormat(format), arraySize > 1 ? SrvDimension.Texture2Darray : SrvDimension.Texture2D);
             device.CreateShaderResourceView(texture.As<ID3D11Resource>(), ref srvdesc, out shaderResourceView);
             //shaderResourceView.DebugName = nameof(DepthStencil) + "." + nameof(SRV);
+        }
+
+        public void Clear(ComPtr<ID3D11DeviceContext> context, ClearFlag clearFlags, float depth, byte stencil)
+        {
+            context.ClearDepthStencilView(depthStencilView, (uint)clearFlags, depth, stencil);
         }
 
         public static implicit operator ComPtr<ID3D11ShaderResourceView>(DepthStencil texture) => texture.shaderResourceView;

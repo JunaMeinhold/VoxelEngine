@@ -1,45 +1,53 @@
 ﻿namespace App.Pipelines.Forward
 {
+    using Hexa.NET.D3D11;
+    using HexaGen.Runtime.COM;
     using System.Numerics;
     using System.Runtime.CompilerServices;
     using System.Runtime.InteropServices;
-    using Vortice.Direct3D;
-    using Vortice.Direct3D11;
-    using Vortice.DXGI;
     using VoxelEngine.Graphics.Buffers;
     using VoxelEngine.Graphics.D3D11;
-    using VoxelEngine.Graphics.D3D11.Interfaces;
     using VoxelEngine.Voxel;
 
-    public class ChunkDepthPipeline : GraphicsPipeline
+    public class ChunkDepthPipeline : DisposableBase
     {
-        private readonly ConstantBuffer<ModelViewProjBuffer> mvpBuffer;
+        private readonly GraphicsPipelineState pipeline;
+        private readonly ConstantBuffer<Matrix4x4> mvpBuffer;
         private readonly ConstantBuffer<WorldData> worldDataBuffer;
 
         [StructLayout(LayoutKind.Sequential)]
         private struct WorldData
         {
-            public Vector3 chunkOffset;
-            public float padd;
+            public Vector3 ChunkOffset;
+            public float Padd;
         }
 
-        public ChunkDepthPipeline(ID3D11Device device) : base(device, new()
+        public ChunkDepthPipeline()
         {
-            VertexShader = "forward/depth/voxel/vs.hlsl",
-            PixelShader = "forward/depth/voxel/ps.hlsl",
-        }, GraphicsPipelineStateDesc.Default)
-        {
-            mvpBuffer = new(device, CpuAccessFlags.Write);
-            worldDataBuffer = new(device, CpuAccessFlags.Write);
-            ConstantBuffers.Add(mvpBuffer.Buffer, ShaderStage.Vertex, 0);
-            ConstantBuffers.Add(worldDataBuffer.Buffer, ShaderStage.Vertex, 1);
+            pipeline = GraphicsPipelineState.Create(new()
+            {
+                VertexShader = "forward/depth/voxel/vs.hlsl",
+                PixelShader = "forward/depth/voxel/ps.hlsl",
+            }, GraphicsPipelineStateDesc.Default);
+
+            mvpBuffer = new(CpuAccessFlag.Write);
+            worldDataBuffer = new(CpuAccessFlag.Write);
+            pipeline.Bindings.SetCBV("MatrixBuffer", mvpBuffer);
+            pipeline.Bindings.SetCBV("WorldData", worldDataBuffer);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Update(ID3D11DeviceContext context, IView view, Chunk chunk)
+        public void Update(ComPtr<ID3D11DeviceContext> context, Chunk chunk)
         {
-            mvpBuffer.Update(context, new ModelViewProjBuffer(view, Matrix4x4.CreateTranslation(chunk.Position * Chunk.CHUNK_SIZE)));
-            worldDataBuffer.Update(context, new WorldData() { chunkOffset = chunk.Position });
+            mvpBuffer.Update(context, Matrix4x4.Transpose(Matrix4x4.CreateTranslation(chunk.Position * Chunk.CHUNK_SIZE)));
+            worldDataBuffer.Update(context, new WorldData() { ChunkOffset = chunk.Position });
+        }
+
+        protected override void DisposeCore()
+        {
+            pipeline.Dispose();
+            mvpBuffer.Dispose();
+            worldDataBuffer.Dispose();
         }
     }
 }

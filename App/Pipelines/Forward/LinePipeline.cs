@@ -1,20 +1,20 @@
 ﻿namespace App.Pipelines.Forward
 {
-    using Vortice.Direct3D;
-    using Vortice.Direct3D11;
+    using Hexa.NET.D3DCommon;
     using VoxelEngine.Graphics.D3D11;
 
-    public class LinePipeline : GraphicsPipeline
+    public class LinePipeline : RenderPass
     {
-        public LinePipeline(ID3D11Device device) : base(device, new()
+        protected override GraphicsPipelineState CreatePipelineState()
         {
-            VertexShader = "forward/line/vertex.hlsl",
-            PixelShader = "forward/line/pixel.hlsl",
-        }, new GraphicsPipelineStateDesc()
-        {
-            Topology = PrimitiveTopology.LineList
-        })
-        {
+            return GraphicsPipelineState.Create(new()
+            {
+                VertexShader = "forward/line/vertex.hlsl",
+                PixelShader = "forward/line/pixel.hlsl",
+            }, new GraphicsPipelineStateDesc()
+            {
+                Topology = PrimitiveTopology.Linelist
+            });
         }
     }
 }

@@ -71,7 +71,7 @@
             return false;
         }
 
-        public void Update(ComPtr<ID3D11Device> device, ComPtr<ID3D11DeviceContext> context)
+        public void Update(ComPtr<ID3D11DeviceContext> context)
         {
             vertexBuffer.Reset();
             var max = Offset + Size;

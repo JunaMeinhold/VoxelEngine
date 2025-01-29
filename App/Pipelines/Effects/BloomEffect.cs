@@ -68,7 +68,7 @@
             dirty = true;
         }
 
-        public ComPtr<ID3D11ShaderResourceView> Output => textures[0].SRV;
+        public ShaderResourceView Output => textures[0].SRV;
 
         #region Structs
 

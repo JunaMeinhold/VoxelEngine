@@ -26,7 +26,7 @@
 
         private const int size = 256;
 
-        public PerlinNoiseWidget(ID3D11Device device)
+        public PerlinNoiseWidget()
         {
             texture = new(Format.R32G32B32A32Float, size, size, cpuAccessFlag: CpuAccessFlag.Write, gpuAccessFlags: GpuAccessFlags.Read);
         }

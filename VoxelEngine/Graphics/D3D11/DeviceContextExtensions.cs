@@ -10,7 +10,7 @@
             return new Span<T>(mappedSubresource.PData, length);
         }
 
-        public static void SetRenderTarget(this ComPtr<ID3D11DeviceContext> context, IRenderTargetView? rtv, IDepthStencilView? dsv)
+        public static void SetRenderTarget(this ComPtr<ID3D11DeviceContext> context, IRenderTargetView? rtv, IDepthStencilView? dsv = null)
         {
             ID3D11RenderTargetView* pRtv = (ID3D11RenderTargetView*)(rtv?.NativePointer ?? 0);
             ID3D11DepthStencilView* pDsv = (ID3D11DepthStencilView*)(dsv?.NativePointer ?? 0);

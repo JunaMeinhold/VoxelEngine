@@ -101,7 +101,7 @@
 
         public nint NativePointer => (nint)texture.Handle;
 
-        public Viewport Viewport => new(description.Width, description.Height);
+        public Hexa.NET.Mathematics.Viewport Viewport => new(description.Width, description.Height);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Bind(ComPtr<ID3D11DeviceContext> context, int slot, ShaderStage stage)

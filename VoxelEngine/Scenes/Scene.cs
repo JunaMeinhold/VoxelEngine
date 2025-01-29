@@ -7,6 +7,7 @@
     using BepuPhysics.Collidables;
     using BepuUtilities;
     using BepuUtilities.Memory;
+    using Hexa.NET.D3D11;
     using VoxelEngine.Core;
     using VoxelEngine.Core.Input;
     using VoxelEngine.Core.Windows;
@@ -171,7 +172,7 @@
 
             profiler.ProfileUpdate();
             Camera.Transform.Recalculate();
-            Renderer.Render(D3D11DeviceManager.Context, Camera, Elements);
+            Renderer.Render(D3D11DeviceManager.Context.As<ID3D11DeviceContext>(), Camera, Elements);
             profiler.ProfileRender();
 
             Dispatcher.ExecuteQueue();

@@ -83,9 +83,16 @@
             GC.SuppressFinalize(this);
         }
 
-        public void SetTarget(ComPtr<ID3D11DeviceContext> context)
+        public void SetTarget(ComPtr<ID3D11DeviceContext> context, bool depth)
         {
-            context.OMSetRenderTargets(1, rtv.GetAddressOf(), depthStencil.DSV);
+            if (depth)
+            {
+                context.OMSetRenderTargets(1, rtv.GetAddressOf(), depthStencil.DSV);
+            }
+            else
+            {
+                context.OMSetRenderTargets(1, rtv.GetAddressOf(), (ID3D11DepthStencilView*)null);
+            }
         }
 
         public void ClearTarget(ComPtr<ID3D11DeviceContext> context, Vector4 color, ClearFlag flag = ClearFlag.Depth | ClearFlag.Stencil, float depth = 1, byte stencil = 0)
