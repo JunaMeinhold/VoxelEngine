@@ -68,5 +68,13 @@
             using StreamReader reader = new(fs);
             return reader.ReadToEnd();
         }
+
+        public static byte[] ReadAllBytes(string path)
+        {
+            using VirtualStream fs = Open(path);
+            byte[] data = new byte[fs.Length];
+            fs.ReadExactly(data);
+            return data;
+        }
     }
 }

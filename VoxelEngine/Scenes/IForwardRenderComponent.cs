@@ -1,10 +1,11 @@
 ﻿namespace VoxelEngine.Scenes
 {
     using Hexa.NET.Mathematics;
-    using Vortice.Direct3D11;
+    using Hexa.NET.D3D11;
     using VoxelEngine.Mathematics;
-    using VoxelEngine.Rendering.D3D.Interfaces;
     using VoxelEngine.Windows;
+    using HexaGen.Runtime.COM;
+    using VoxelEngine.Graphics.D3D11.Interfaces;
 
     public interface IForwardRenderComponent : IComponent
     {
@@ -13,7 +14,7 @@
         /// Called by <seealso cref="ISceneRenderer.Render(IView, SceneElementCollection)"/> ... <seealso cref="Scene.Render"/> ... <seealso cref="GameWindow.RenderVoid"/><br/>
         /// </summary>
         /// <param name="view">The current camera.</param>
-        void DrawForward(ID3D11DeviceContext context, IView view);
+        void DrawForward(ComPtr<ID3D11DeviceContext> context, IView view);
 
         BoundingBox GetBoundingBox();
     }

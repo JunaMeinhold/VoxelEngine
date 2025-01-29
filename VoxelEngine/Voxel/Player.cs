@@ -1,7 +1,7 @@
 ﻿namespace VoxelEngine.Voxel
 {
     using System.Numerics;
-    using Vortice.Direct3D11;
+    using Hexa.NET.D3D11;
     using VoxelEngine.Scenes;
     using VoxelEngine.Voxel.Blocks;
 
@@ -20,10 +20,10 @@
             Respawn();
         }
 
-        public override void Initialize(ID3D11Device device)
+        public override void Initialize()
         {
             World = Scene.GetElementByType<World>();
-            base.Initialize(device);
+            base.Initialize();
         }
 
         public World World { get; private set; }

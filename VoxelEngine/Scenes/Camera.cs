@@ -1,13 +1,12 @@
 ﻿namespace VoxelEngine.Scenes
 {
-    using System.Numerics;
+    using Hexa.NET.D3D11;
     using Hexa.NET.Mathematics;
-    using Vortice.Direct3D11;
-    using Vortice.Mathematics;
+    using System.Numerics;
     using VoxelEngine.Core;
     using VoxelEngine.Core.Windows.Events;
-    using VoxelEngine.Rendering.D3D.Interfaces;
-    using Viewport = Vortice.Mathematics.Viewport;
+    using VoxelEngine.Graphics.D3D11.Interfaces;
+    using Viewport = Hexa.NET.Mathematics.Viewport;
 
     public class Camera : GameObject, IView
     {
@@ -38,12 +37,12 @@
 
         CameraTransform IView.Transform => Transform;
 
-        public override void Initialize(ID3D11Device device)
+        public override void Initialize()
         {
             Application.MainWindow.Resized += Resized;
             if (Application.MainWindow != null)
                 Application.MainWindow.Resized += Resized;
-            base.Initialize(device);
+            base.Initialize();
             if (!autoSize || Application.MainWindow == null) return;
             Transform.Width = Application.MainWindow.Width;
             Transform.Height = Application.MainWindow.Height;
@@ -117,6 +116,20 @@
         }
 
         public CBCamera(Camera camera, Viewport screenDim)
+        {
+            Proj = Matrix4x4.Transpose(camera.Transform.Projection);
+            View = Matrix4x4.Transpose(camera.Transform.View);
+            ProjInv = Matrix4x4.Transpose(camera.Transform.ProjectionInv);
+            ViewInv = Matrix4x4.Transpose(camera.Transform.ViewInv);
+            ViewProj = Matrix4x4.Transpose(camera.Transform.ViewProjection);
+            ViewProjInv = Matrix4x4.Transpose(camera.Transform.ViewProjectionInv);
+            PrevViewProj = Matrix4x4.Transpose(camera.Transform.PrevViewProjection);
+            Far = camera.Far;
+            Near = camera.Near;
+            ScreenDim = new(screenDim.Width, screenDim.Height);
+        }
+
+        public CBCamera(Camera camera, Hexa.NET.D3D11.Viewport screenDim)
         {
             Proj = Matrix4x4.Transpose(camera.Transform.Projection);
             View = Matrix4x4.Transpose(camera.Transform.View);

@@ -1,13 +1,13 @@
 ﻿namespace VoxelEngine.Objects
 {
+    using Hexa.NET.D3D11;
+    using HexaGen.Runtime.COM;
     using System;
     using System.Numerics;
     using System.Runtime.InteropServices;
-    using Vortice.Direct3D11;
-    using VoxelEngine.Graphics.Shaders;
-    using VoxelEngine.Rendering.D3D;
+    using VoxelEngine.Graphics.D3D11;
 
-    public class Material : IDisposable
+    public unsafe class Material : IDisposable
     {
         private bool disposedValue;
 
@@ -63,9 +63,9 @@
 
         public string RoughnessTextureMap { get; set; }
 
-        public ID3D11SamplerState SamplerState { get; set; }
+        public ComPtr<ID3D11SamplerState> SamplerState { get; set; }
 
-        public void Bind(ID3D11DeviceContext context)
+        public void Bind(ComPtr<ID3D11DeviceContext> context)
         {
             Ambient?.Bind(context, 0, ShaderStage.Pixel);
             Diffuse?.Bind(context, 1, ShaderStage.Pixel);
@@ -78,51 +78,52 @@
             MetallicTexture?.Bind(context, 8, ShaderStage.Pixel);
             RoughnessTexture?.Bind(context, 9, ShaderStage.Pixel);
             Displacement?.Bind(context, 0, ShaderStage.Domain);
-            context.PSSetSampler(0, SamplerState);
-            context.DSSetSampler(0, SamplerState);
+            var samp = SamplerState;
+            context.PSSetSamplers(0, 1, &samp.Handle);
+            context.DSSetSamplers(0, 1, &samp.Handle);
         }
 
-        public void Initialize(ID3D11Device device)
+        public void Initialize()
         {
             if (AmbientTextureMap != null)
             {
-                Ambient = new(device, AmbientTextureMap);
+                Ambient = new(AmbientTextureMap);
             }
             if (DiffuseTextureMap != null)
             {
-                Diffuse = new(device, DiffuseTextureMap);
+                Diffuse = new(DiffuseTextureMap);
             }
             if (SpecularTextureMap != null)
             {
-                Specular = new(device, SpecularTextureMap);
+                Specular = new(SpecularTextureMap);
             }
             if (SpecularHighlightTextureMap != null)
             {
-                SpecularHighlight = new(device, SpecularHighlightTextureMap);
+                SpecularHighlight = new(SpecularHighlightTextureMap);
             }
             if (BumpMap != null)
             {
-                Bump = new(device, BumpMap);
+                Bump = new(BumpMap);
             }
             if (DisplacementMap != null)
             {
-                Displacement = new(device, DisplacementMap);
+                Displacement = new(DisplacementMap);
             }
             if (StencilDecalMap != null)
             {
-                StencilDecal = new(device, StencilDecalMap);
+                StencilDecal = new(StencilDecalMap);
             }
             if (AlphaTextureMap != null)
             {
-                AlphaTexture = new(device, AlphaTextureMap);
+                AlphaTexture = new(AlphaTextureMap);
             }
             if (MetallicTextureMap != null)
             {
-                MetallicTexture = new(device, MetallicTextureMap);
+                MetallicTexture = new(MetallicTextureMap);
             }
             if (RoughnessTextureMap != null)
             {
-                RoughnessTexture = new(device, RoughnessTextureMap);
+                RoughnessTexture = new(RoughnessTextureMap);
             }
         }
 
@@ -166,15 +167,8 @@
             }
         }
 
-        ~Material()
-        {
-            // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
-            Dispose(disposing: false);
-        }
-
         public void Dispose()
         {
-            // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
             Dispose(disposing: true);
             GC.SuppressFinalize(this);
         }

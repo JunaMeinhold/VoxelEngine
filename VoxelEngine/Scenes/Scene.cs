@@ -10,10 +10,10 @@
     using VoxelEngine.Core;
     using VoxelEngine.Core.Input;
     using VoxelEngine.Core.Windows;
+    using VoxelEngine.Graphics.D3D11;
     using VoxelEngine.Physics;
     using VoxelEngine.Physics.Characters;
     using VoxelEngine.Physics.Collidables;
-    using VoxelEngine.Rendering.D3D;
     using VoxelEngine.Scripting;
     using VoxelEngine.Windows;
 
@@ -123,13 +123,6 @@
 
         public SceneProfiler Profiler => profiler;
 
-        /// <summary>
-        /// Initializes the scene.<br/>
-        /// Calls <see cref="ISceneRenderer.Initialize"/><br/>
-        /// Calls <see cref="Camera.UpdateProjection"/><br/>
-        /// Calls foreach in <see cref="Elements"/>, <see cref="GameObject.Initialize"/><br/>
-        /// Sets <see cref="initialized"/> to <see langword="true" />
-        /// </summary>
         public virtual void Initialize()
         {
             dispatcher = Dispatcher.CurrentDispatcher;
@@ -142,20 +135,11 @@
             Simulation = Simulation.Create(BufferPool, new NarrowphaseCallbacks(CharacterControllers, ContactEvents), new PoseIntegratorCallbacks(new Vector3(0, -10, 0)), new SolveDescription(8, 1));
             Voxels.Register(Simulation);
             Window = (GameWindow)Application.MainWindow;
-            Renderer.Initialize(D3D11DeviceManager.ID3D11Device, Window);
-            Elements.ForEach(e => e.Initialize(D3D11DeviceManager.ID3D11Device));
+            Renderer.Initialize(Window);
+            Elements.ForEach(e => e.Initialize());
             initialized = true;
         }
 
-        /// <summary>
-        /// Renders the scene and updates all states.<br/>
-        /// Calls foreach in <see cref="Elements"/>, that have <see cref="ScriptComponent.Update"/><br/>
-        /// Calls foreach in <see cref="Elements"/>, that have <see cref="ScriptFrameComponent.Update"/><br/>
-        /// Calls foreach in <see cref="Elements"/>, that have <see cref="DynamicBodyComponent.Update"/><br/>
-        /// Calls <see cref="ISceneRenderer.Render(Interfaces.IView, SceneElementCollection)"/> from instance <see cref="Renderer"/><br/>
-        /// Calls <see cref="Simulation.Step(float)"/> with param <see cref="Time.Delta"/> from instance <see cref="Simulation"/><br/>
-        /// Calls <see cref="SceneDispatcher.DoWork"/> from instance <see cref="dispatcher"/><br/>
-        /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Render()
         {
@@ -187,7 +171,7 @@
 
             profiler.ProfileUpdate();
             Camera.Transform.Recalculate();
-            Renderer.Render(D3D11DeviceManager.ID3D11DeviceContext, Camera, Elements);
+            Renderer.Render(D3D11DeviceManager.Context, Camera, Elements);
             profiler.ProfileRender();
 
             Dispatcher.ExecuteQueue();
@@ -320,7 +304,7 @@
                 dispatcher.Invoke(() =>
                 {
                     Elements.Add(sceneElement);
-                    sceneElement.Initialize(D3D11DeviceManager.ID3D11Device);
+                    sceneElement.Initialize();
                 });
             }
             else

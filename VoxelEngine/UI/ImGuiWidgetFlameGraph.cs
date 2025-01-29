@@ -21,7 +21,7 @@
 
 // Modified and ported by me.
 
-namespace HexaEngine.Core.UI
+namespace VoxelEngine.UI
 {
     using System.Numerics;
     using Hexa.NET.ImGui;
@@ -149,7 +149,9 @@ namespace HexaEngine.Core.UI
                                 selected = i;
                         }
                         // note it's not needed to move you out of the loop the if above only allows one item
+#pragma warning disable CA2014 // Do not use stackalloc in loops
                         var args = stackalloc byte[sizeof(float*) * sizeof(byte*)];
+#pragma warning restore CA2014 // Do not use stackalloc in loops
                         *(byte**)args = caption;
                         *(float*)((byte**)args + 1) = stageEnd - stageStart;
                         ImGui.SetTooltipV($"%s: {stageEnd - stageStart}ms", (nuint)args);

@@ -2,7 +2,7 @@ namespace VoxelEngine.IO.ObjLoader.Loaders
 {
     using System.Collections.Generic;
     using System.Numerics;
-    using Vortice.Direct3D11;
+    using Hexa.NET.D3D11;
     using VoxelEngine.Graphics.Buffers;
     using VoxelEngine.IO.ObjLoader.Data;
     using VoxelEngine.IO.ObjLoader.Data.Elements;
@@ -44,9 +44,7 @@ namespace VoxelEngine.IO.ObjLoader.Loaders
                 vertices.Add(vertex2);
                 vertices.Add(vertex3);
             }
-            VertexBuffer<Mathematics.Vertex> buffer = new();
-            buffer.Append(vertices.ToArray());
-            buffer.FreeMemory(context);
+            VertexBuffer<Mathematics.Vertex> buffer = new(0, [.. vertices]);
             return buffer;
         }
 

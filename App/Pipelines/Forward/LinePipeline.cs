@@ -2,7 +2,7 @@
 {
     using Vortice.Direct3D;
     using Vortice.Direct3D11;
-    using VoxelEngine.Rendering.Shaders;
+    using VoxelEngine.Graphics.D3D11;
 
     public class LinePipeline : GraphicsPipeline
     {
@@ -10,7 +10,7 @@
         {
             VertexShader = "forward/line/vertex.hlsl",
             PixelShader = "forward/line/pixel.hlsl",
-        }, new GraphicsPipelineState()
+        }, new GraphicsPipelineStateDesc()
         {
             Topology = PrimitiveTopology.LineList
         })

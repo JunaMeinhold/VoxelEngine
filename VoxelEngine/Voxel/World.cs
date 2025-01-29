@@ -3,7 +3,7 @@
     using System.Collections.Generic;
     using System.IO;
     using System.Numerics;
-    using Vortice.Direct3D11;
+    using Hexa.NET.D3D11;
     using VoxelEngine.Voxel.WorldGen;
 
     public class World : WorldMap
@@ -151,10 +151,10 @@
             }
         }
 
-        public override void Initialize(ID3D11Device device)
+        public override void Initialize()
         {
             Player = Scene.GetElementByType<Player>();
-            base.Initialize(device);
+            base.Initialize();
             WorldLoader = new(this);
             Generator.Dispose();
         }

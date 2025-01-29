@@ -1,18 +1,19 @@
 namespace VoxelEngine.Voxel
 {
+    using Hexa.NET.D3D11;
+    using Hexa.NET.D3DCommon;
+    using HexaGen.Runtime.COM;
     using System.Numerics;
     using System.Runtime.CompilerServices;
-    using System.Runtime.InteropServices;
-    using Vortice.Direct3D11;
-    using VoxelEngine.Rendering.D3D;
+    using VoxelEngine.Graphics.D3D11;
 
     public unsafe class BlockVertexBuffer : IDisposable, IVoxelVertexBuffer
     {
         private const int DefaultCapacity = 4096;
-        private ID3D11Buffer vertexBuffer;
+        private ComPtr<ID3D11Buffer> vertexBuffer;
         private int count;
         private int capacity;
-        private readonly int stride;
+        private readonly uint stride;
 
         private bool Dirty = true;
         private bool bufferResized = true;
@@ -22,30 +23,30 @@ namespace VoxelEngine.Voxel
 #else
         public VoxelVertex* Data;
 #endif
-        private string debugName;
+        private string? debugName;
         private int vertexCount;
 
-        public string DebugName
+        public string? DebugName
         {
             get => debugName;
             set
             {
                 debugName = value;
-                if (vertexBuffer != null)
+                if (vertexBuffer.Handle != null)
                 {
-                    vertexBuffer.DebugName = value;
+                    //vertexBuffer.DebugName = value;
                 }
             }
         }
 
         public BlockVertexBuffer()
         {
-            stride = sizeof(VoxelVertex);
+            stride = (uint)sizeof(VoxelVertex);
             capacity = DefaultCapacity;
 #if USE_LEGACY_LOADER
-            Data = (int*)Marshal.AllocHGlobal(capacity * stride);
+            Data = AllocT<int>((uint)capacity * stride);
 #else
-            Data = (VoxelVertex*)Marshal.AllocHGlobal(capacity * stride);
+            Data = AllocT<VoxelVertex>((uint)capacity * stride);
 #endif
         }
 
@@ -73,17 +74,17 @@ namespace VoxelEngine.Voxel
                 if (Data == null)
                 {
 #if USE_LEGACY_LOADER
-                    Data = (int*)Marshal.AllocHGlobal(value * stride);
+                    Data = AllocT<int>((uint)value * stride);
 #else
-                    Data = (VoxelVertex*)Marshal.AllocHGlobal(value * stride);
+                    Data = AllocT<VoxelVertex>((uint)value * stride);
 #endif
                     capacity = value;
                     return;
                 }
 #if USE_LEGACY_LOADER
-                Data = (int*)Marshal.ReAllocHGlobal((nint)Data, value * stride);
+                Data = ReAllocT(Data, (uint)value * stride);
 #else
-                Data = (VoxelVertex*)Marshal.ReAllocHGlobal((nint)Data, value * stride);
+                Data = ReAllocT(Data, (uint)value * stride);
 #endif
                 capacity = value;
                 bufferResized = true;
@@ -165,34 +166,41 @@ namespace VoxelEngine.Voxel
             this.count += count;
         }
 
-        public void BufferData(ID3D11Device device)
+        public void BufferData(ComPtr<ID3D11DeviceContext> context)
         {
             if (count > 0 && Dirty)
             {
                 if (bufferResized)
                 {
-                    vertexBuffer?.Dispose();
-                    vertexBuffer = null;
-
-                    vertexBuffer = device.CreateBuffer(new()
+                    var device = D3D11DeviceManager.Device;
+                    if (vertexBuffer.Handle != null)
                     {
-                        BindFlags = BindFlags.VertexBuffer,
-                        CPUAccessFlags = CpuAccessFlags.Write,
-                        MiscFlags = ResourceOptionFlags.None,
-#if USE_LEGACY_LOADER
-                    ByteWidth = Marshal.SizeOf<int>() * capacity,
-#else
-                        ByteWidth = Marshal.SizeOf<VoxelVertex>() * capacity,
-#endif
-                        Usage = ResourceUsage.Dynamic
-                    }, new SubresourceData(Data));
+                        vertexBuffer.Release();
+                        vertexBuffer = default;
+                    }
 
-                    vertexBuffer.DebugName = debugName;
+                    BufferDesc desc = new()
+                    {
+                        BindFlags = (uint)BindFlag.VertexBuffer,
+                        CPUAccessFlags = (uint)CpuAccessFlag.Write,
+                        MiscFlags = 0,
+#if USE_LEGACY_LOADER
+                        ByteWidth = (uint)(sizeof(int) * capacity),
+#else
+                        ByteWidth = (uint)(sizeof(VoxelVertex) * capacity),
+#endif
+                        Usage = Usage.Dynamic
+                    };
+
+                    SubresourceData subresourceData = new(Data);
+                    device.CreateBuffer(&desc, &subresourceData, out vertexBuffer);
+
+                    //vertexBuffer.DebugName = debugName;
                     bufferResized = false;
                 }
                 else
                 {
-                    DeviceHelper.Write(device.ImmediateContext, vertexBuffer, Data, count);
+                    DeviceHelper.Write(context, vertexBuffer, Data, count);
                 }
 
                 vertexCount = count;
@@ -217,23 +225,30 @@ namespace VoxelEngine.Voxel
 
 #endif
 
-        public bool Bind(ID3D11DeviceContext context)
+        public bool Bind(ComPtr<ID3D11DeviceContext> context)
         {
-            if (vertexBuffer is null)
+            if (vertexBuffer.Handle == null)
             {
                 return false;
             }
 
-            context.IASetVertexBuffer(0, vertexBuffer, stride);
-            context.IASetPrimitiveTopology(Vortice.Direct3D.PrimitiveTopology.TriangleList);
+            var vtxBuffer = vertexBuffer.Handle;
+            uint stride = this.stride;
+            uint offset = 0;
+            context.IASetVertexBuffers(0, 1, &vtxBuffer, &stride, &offset);
+            context.IASetPrimitiveTopology(PrimitiveTopology.Trianglelist);
             return true;
         }
 
         public void Dispose()
         {
-            vertexBuffer?.Dispose();
-            vertexBuffer = null;
-            Marshal.FreeHGlobal((nint)Data);
+            if (vertexBuffer.Handle != null)
+            {
+                vertexBuffer.Release();
+                vertexBuffer = default;
+            }
+
+            Free(Data);
             Data = null;
             capacity = 0;
             count = 0;

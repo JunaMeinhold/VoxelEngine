@@ -1,7 +1,7 @@
 ﻿namespace App.Pipelines.Forward
 {
     using Vortice.Direct3D11;
-    using VoxelEngine.Rendering.Shaders;
+    using VoxelEngine.Graphics.D3D11;
 
     public class SkyboxPipeline : GraphicsPipeline
     {
@@ -9,7 +9,7 @@
         {
             VertexShader = "forward/skybox/vs.hlsl",
             PixelShader = "forward/skybox/preethamSky.hlsl",
-        }, new GraphicsPipelineState()
+        }, new GraphicsPipelineStateDesc()
         {
             Rasterizer = RasterizerDescription.CullNone,
             DepthStencil = DepthStencilDescription.DepthRead

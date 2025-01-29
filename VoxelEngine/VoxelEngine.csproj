@@ -31,14 +31,15 @@
 	</ItemGroup>
 
 	<ItemGroup>
+		<PackageReference Include="Hexa.NET.D3D11" Version="1.0.6" />
+		<PackageReference Include="Hexa.NET.D3D11On12" Version="1.0.6" />
+		<PackageReference Include="Hexa.NET.D3D12" Version="1.0.6" />
+		<PackageReference Include="Hexa.NET.D3DCommon" Version="1.0.6" />
+		<PackageReference Include="Hexa.NET.D3DCompiler" Version="1.0.6" />
 		<PackageReference Include="Hexa.NET.DirectXTex" Version="2.0.4" />
-		<PackageReference Include="Vortice.D3DCompiler" Version="3.5.0" />
-		<PackageReference Include="Vortice.Direct3D11" Version="3.5.0" />
-		<PackageReference Include="Vortice.Direct3D12" Version="3.5.0" />
-		<PackageReference Include="Vortice.DirectX" Version="3.5.0" />
-		<PackageReference Include="Vortice.DXGI" Version="3.5.0" />
-		<PackageReference Include="Vortice.Textures" Version="1.0.2" />
-		<PackageReference Include="Vortice.XAudio2" Version="3.5.0" />
+		<PackageReference Include="Hexa.NET.DXGI" Version="1.0.6" />
+		<PackageReference Include="Hexa.NET.X3DAudio" Version="1.0.6" />
+		<PackageReference Include="Hexa.NET.XAudio2" Version="1.0.6" />
 	</ItemGroup>
 
 	<ItemGroup>

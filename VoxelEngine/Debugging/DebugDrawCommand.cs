@@ -1,8 +1,8 @@
 ﻿#nullable disable
 
-namespace HexaEngine.Editor
+namespace VoxelEngine.Debugging
 {
-    using Vortice.Direct3D;
+    using Hexa.NET.D3DCommon;
 
     public unsafe class DebugDrawCommand
     {

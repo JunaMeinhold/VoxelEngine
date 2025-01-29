@@ -1,6 +1,6 @@
 ﻿namespace VoxelEngine.Scripting
 {
-    using Vortice.Direct3D11;
+    using Hexa.NET.D3D11;
     using VoxelEngine.Core;
     using VoxelEngine.Scenes;
 
@@ -16,9 +16,8 @@
         /// Called by <see cref="GameObject.Initialize" /> ... <see cref="Scene.Add(GameObject)" /><see cref="Scene.initialized" /> == <see langword="true" /><br />
         /// </summary>
         /// <param name="element">The element.</param>
-        public void Initialize(ID3D11Device device, GameObject element)
+        public void Initialize(GameObject element)
         {
-            Device = device;
             Parent = element;
             Time.FixedUpdate += Time_FixedUpdate;
             Awake();
@@ -74,8 +73,6 @@
         /// The parent.
         /// </value>
         public GameObject Parent { get; private set; }
-
-        public ID3D11Device Device { get; private set; }
 
         /// <summary>
         /// Gets the scene.

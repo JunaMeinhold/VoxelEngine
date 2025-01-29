@@ -2,7 +2,7 @@
 {
     using System.Numerics;
     using System.Runtime.InteropServices;
-    using VoxelEngine.Rendering.D3D.Interfaces;
+    using VoxelEngine.Graphics.D3D11.Interfaces;
 
     [Obsolete]
     [StructLayout(LayoutKind.Sequential)]

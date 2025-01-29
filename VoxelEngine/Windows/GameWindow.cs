@@ -1,18 +1,16 @@
 ﻿namespace VoxelEngine.Windows
 {
     using System.Diagnostics;
-    using HexaEngine.Editor;
-    using HexaEngine.Rendering.Renderers;
+    using Hexa.NET.D3D11;
     using VoxelEngine.Core;
     using VoxelEngine.Core.Input;
     using VoxelEngine.Core.Input.Events;
     using VoxelEngine.Core.Windows;
     using VoxelEngine.Core.Windows.Events;
     using VoxelEngine.Debugging;
-    using VoxelEngine.Rendering.D3D;
-    using VoxelEngine.Rendering.DXGI;
-    using VoxelEngine.Rendering.Shaders;
+    using VoxelEngine.Graphics.D3D11;
     using VoxelEngine.Scenes;
+    using VoxelEngine.UI;
 
     public class GameWindow : CoreWindow
     {
@@ -46,8 +44,8 @@
             swapChain = DXGIDeviceManager.CreateSwapChain(this);
 
             renderDispatcher = Dispatcher.CurrentDispatcher;
-            renderer = new(this, D3D11DeviceManager.ID3D11Device, D3D11DeviceManager.ID3D11DeviceContext);
-            debugDraw = new(D3D11DeviceManager.ID3D11Device, D3D11DeviceManager.ID3D11DeviceContext);
+            renderer = new(this, D3D11DeviceManager.Device.As<ID3D11Device>(), D3D11DeviceManager.Context.As<ID3D11DeviceContext>());
+            debugDraw = new(D3D11DeviceManager.Device.As<ID3D11Device>(), D3D11DeviceManager.Context.As<ID3D11DeviceContext>());
             SceneManager.SceneChanged += (_, _) => { firstFrame = true; };
             SceneManager.Load(scene);
         }
@@ -57,7 +55,7 @@
             if (resize)
             {
                 swapChain.Resize(Width, Height);
-                SceneManager.Current?.Renderer.Resize(D3D11DeviceManager.ID3D11Device, this);
+                SceneManager.Current?.Renderer.Resize(this);
                 resize = false;
             }
             debugDraw.BeginDraw();
@@ -76,12 +74,12 @@
 
             ImGuiConsole.Draw();
 
-            swapChain.SetTarget(D3D11DeviceManager.ID3D11DeviceContext);
+            swapChain.SetTarget(D3D11DeviceManager.Context.As<ID3D11DeviceContext>());
             DebugDraw.SetViewport(new(Width, Height));
-            debugDraw.EndDraw(swapChain.RenderTarget.RTV, swapChain.DepthStencil?.DSV);
+            debugDraw.EndDraw(swapChain.RTV, swapChain.DSV);
             renderer.EndFrame();
 
-            swapChain.Present(Nucleus.Settings.VSync ? 1 : 0);
+            swapChain.Present(Nucleus.Settings.VSync ? 1u : 0u);
         }
 
         public override void RendererDestroy()

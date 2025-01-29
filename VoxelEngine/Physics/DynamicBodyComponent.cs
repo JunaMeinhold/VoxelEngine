@@ -2,7 +2,7 @@
 {
     using BepuPhysics;
     using BepuPhysics.Collidables;
-    using Vortice.Direct3D11;
+    using Hexa.NET.D3D11;
     using VoxelEngine.Scenes;
 
     public class DynamicBodyComponent<T> : IBodyComponent, IDynamicBodyComponent<T> where T : unmanaged, IShape
@@ -32,7 +32,7 @@
 
         public RigidPose Pose => pose;
 
-        public void Initialize(ID3D11Device device, GameObject element)
+        public void Initialize(GameObject element)
         {
             sceneElement = element;
             typedIndex = sceneElement.Scene.Simulation.Shapes.Add(shape);

@@ -7,9 +7,8 @@
     using Vortice.Direct3D11;
     using Vortice.DXGI;
     using VoxelEngine.Graphics.Buffers;
-    using VoxelEngine.Graphics.Shaders;
-    using VoxelEngine.Rendering.D3D.Interfaces;
-    using VoxelEngine.Rendering.Shaders;
+    using VoxelEngine.Graphics.D3D11;
+    using VoxelEngine.Graphics.D3D11.Interfaces;
     using VoxelEngine.Voxel;
 
     public class ChunkDepthPipeline : GraphicsPipeline
@@ -28,7 +27,7 @@
         {
             VertexShader = "forward/depth/voxel/vs.hlsl",
             PixelShader = "forward/depth/voxel/ps.hlsl",
-        }, GraphicsPipelineState.Default)
+        }, GraphicsPipelineStateDesc.Default)
         {
             mvpBuffer = new(device, CpuAccessFlags.Write);
             worldDataBuffer = new(device, CpuAccessFlags.Write);

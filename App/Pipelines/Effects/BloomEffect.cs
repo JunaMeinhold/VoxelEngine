@@ -1,77 +1,74 @@
 ﻿namespace App.Pipelines.Effects
 {
+    using Hexa.NET.D3D11;
+    using Hexa.NET.DXGI;
+    using HexaGen.Runtime.COM;
     using System.Numerics;
-    using Vortice.Direct3D11;
-    using Vortice.DXGI;
-    using Vortice.Mathematics;
     using VoxelEngine.Graphics.Buffers;
-    using VoxelEngine.Rendering.D3D;
-    using VoxelEngine.Rendering.Shaders;
+    using VoxelEngine.Graphics.D3D11;
 
-    public class BloomEffect
+    public unsafe class BloomEffect : DisposableBase
     {
-        private GraphicsPipeline downsample;
-        private GraphicsPipeline upsample;
-        private ConstantBuffer<ParamsDownsample> downsampleCB;
-        private ConstantBuffer<ParamsUpsample> upsampleCB;
-        private ID3D11SamplerState sampler;
+        private readonly GraphicsPipelineState downsample;
+        private readonly GraphicsPipelineState upsample;
+        private readonly ConstantBuffer<ParamsDownsample> downsampleCB;
+        private readonly ConstantBuffer<ParamsUpsample> upsampleCB;
+        private readonly SamplerState sampler;
 
-        private ID3D11Texture2D[] textures;
-        private ID3D11RenderTargetView[] mipChainRTVs;
-        private ID3D11ShaderResourceView[] mipChainSRVs;
+        private Texture2D[] textures;
         private Viewport[] viewports;
 
-        private float radius = 0.003f;
-        private readonly ID3D11Device device;
+        private readonly float radius = 0.003f;
         private int width;
         private int height;
         private bool dirty;
-        private bool disposedValue;
 
-        public BloomEffect(ID3D11Device device, int width, int height)
+        public BloomEffect(int width, int height)
         {
-            downsampleCB = new(device, CpuAccessFlags.Write);
-            upsampleCB = new(device, CpuAccessFlags.Write);
+            downsampleCB = new(CpuAccessFlag.Write);
+            upsampleCB = new(CpuAccessFlag.Write);
 
-            sampler = device.CreateSamplerState(SamplerDescription.LinearClamp);
+            sampler = new(SamplerDescription.LinearClamp);
 
-            downsample = new(device, new()
+            downsample = GraphicsPipelineState.Create(new()
             {
                 VertexShader = "quad.hlsl",
                 PixelShader = "bloom/downsample/ps.hlsl",
-            }, GraphicsPipelineState.DefaultFullscreen);
-            upsample = new(device, new()
+            }, GraphicsPipelineStateDesc.DefaultFullscreen);
+
+            downsample.Bindings.SetCBV("Params", downsampleCB);
+            downsample.Bindings.SetSampler("samplerState", sampler);
+
+            upsample = GraphicsPipelineState.Create(new()
             {
                 VertexShader = "quad.hlsl",
                 PixelShader = "bloom/upsample/ps.hlsl",
-            }, GraphicsPipelineState.DefaultFullscreen);
+            }, GraphicsPipelineStateDesc.DefaultFullscreen);
+
+            upsample.Bindings.SetCBV("Params", upsampleCB);
+            downsample.Bindings.SetSampler("samplerState", sampler);
 
             int currentWidth = width / 2;
             int currentHeight = height / 2;
             int levels = Math.Min(TextureHelper.ComputeMipLevels(currentWidth, currentHeight), 8);
 
-            textures = new ID3D11Texture2D[levels];
-            mipChainRTVs = new ID3D11RenderTargetView[levels];
-            mipChainSRVs = new ID3D11ShaderResourceView[levels];
+            textures = new Texture2D[levels];
             viewports = new Viewport[levels];
             for (int i = 0; i < levels; i++)
             {
-                textures[i] = device.CreateTexture2D(new(Format.R16G16B16A16_Float, currentWidth, currentHeight, 1, 1, BindFlags.ShaderResource | BindFlags.RenderTarget));
-                mipChainRTVs[i] = device.CreateRenderTargetView(textures[i]);
-                mipChainSRVs[i] = device.CreateShaderResourceView(textures[i]);
+                textures[i] = new(Format.R16G16B16A16Float, currentWidth, currentHeight, 1, 1, gpuAccessFlags: GpuAccessFlags.RW);
                 viewports[i] = new(currentWidth, currentHeight);
                 currentWidth /= 2;
                 currentHeight /= 2;
             }
 
-            this.device = device;
             this.width = width;
             this.height = height;
 
             dirty = true;
         }
 
-        public ID3D11ShaderResourceView Output => mipChainSRVs[0];
+        public ComPtr<ID3D11ShaderResourceView> Output => textures[0].SRV;
 
         #region Structs
 
@@ -107,16 +104,12 @@
             int currentHeight = height / 2;
             int levels = Math.Min(TextureHelper.ComputeMipLevels(currentWidth, currentHeight), 8);
 
-            textures = new ID3D11Texture2D[levels];
-            mipChainRTVs = new ID3D11RenderTargetView[levels];
-            mipChainSRVs = new ID3D11ShaderResourceView[levels];
+            textures = new Texture2D[levels];
             viewports = new Viewport[levels];
 
             for (int i = 0; i < levels; i++)
             {
-                textures[i] = device.CreateTexture2D(new(Format.R16G16B16A16_Float, currentWidth, currentHeight, 1, 1, BindFlags.ShaderResource | BindFlags.RenderTarget));
-                mipChainRTVs[i] = device.CreateRenderTargetView(textures[i]);
-                mipChainSRVs[i] = device.CreateShaderResourceView(textures[i]);
+                textures[i] = new(Format.R16G16B16A16Float, currentWidth, currentHeight, 1, 1, gpuAccessFlags: GpuAccessFlags.RW);
                 currentWidth /= 2;
                 currentHeight /= 2;
             }
@@ -126,75 +119,60 @@
             dirty = true;
         }
 
-        public void Update(ID3D11DeviceContext context)
+        public void Update(ComPtr<ID3D11DeviceContext> context)
         {
             if (dirty)
             {
-                context.ClearRenderTargetView(mipChainRTVs[0], default);
+                context.ClearRenderTargetView(textures[0].RTV, default);
                 downsampleCB.Update(context, new ParamsDownsample(new(width, height)));
                 upsampleCB.Update(context, new ParamsUpsample(radius));
                 dirty = false;
             }
         }
 
-        public void Pass(ID3D11DeviceContext context, ID3D11ShaderResourceView input)
+        public void Pass(ComPtr<ID3D11DeviceContext> context, IShaderResourceView input)
         {
-            context.ClearState();
-            context.PSSetConstantBuffer(0, downsampleCB);
-            context.PSSetSampler(0, sampler);
-            downsample.Begin(context);
-            for (int i = 0; i < mipChainRTVs.Length; i++)
+            for (int i = 0; i < textures.Length; i++)
             {
                 if (i > 0)
                 {
-                    context.PSSetShaderResource(0, mipChainSRVs[i - 1]);
+                    downsample.Bindings.SetSRV("srcTexture", textures[i - 1]);
                 }
                 else
                 {
-                    context.PSSetShaderResource(0, input);
+                    downsample.Bindings.SetSRV("srcTexture", input);
                 }
 
-                context.OMSetRenderTargets(mipChainRTVs[i], null);
+                downsample.Begin(context);
+                context.SetRenderTarget(textures[i], null);
                 context.RSSetViewport(viewports[i]);
                 context.DrawInstanced(4, 1, 0, 0);
-                context.PSSetShaderResource(0, null);
-                context.OMSetRenderTargets((ID3D11RenderTargetView)null, null);
+                downsample.End(context);
+                context.SetRenderTarget(null, null);
             }
 
-            context.PSSetConstantBuffer(0, upsampleCB);
-            upsample.Begin(context);
-            for (int i = mipChainRTVs.Length - 1; i > 0; i--)
+            for (int i = textures.Length - 1; i > 0; i--)
             {
-                context.OMSetRenderTargets(mipChainRTVs[i - 1], null);
-                context.PSSetShaderResource(0, mipChainSRVs[i]);
+                context.SetRenderTarget(textures[i - 1], null);
+                upsample.Bindings.SetSRV("srcTexture", textures[i]);
+                upsample.Begin(context);
                 context.RSSetViewport(viewports[i - 1]);
                 context.DrawInstanced(4, 1, 0, 0);
-                context.PSSetShaderResource(0, null);
-                context.OMSetRenderTargets((ID3D11RenderTargetView)null, null);
+                upsample.End(context);
+                context.SetRenderTarget(null, null);
             }
-            context.PSSetSampler(0, null);
-            context.PSSetConstantBuffer(0, null);
-            upsample.End(context);
-            context.ClearState();
         }
 
-        protected virtual void Dispose(bool disposing)
+        protected override void DisposeCore()
         {
-            if (!disposedValue)
+            downsample.Dispose();
+            upsample.Dispose();
+            downsampleCB.Dispose();
+            upsampleCB.Dispose();
+            sampler.Dispose();
+            for (int i = 0; i < textures.Length; i++)
             {
-                downsample.Dispose();
-                upsample.Dispose();
-                downsampleCB.Dispose();
-                upsampleCB.Dispose();
-                sampler.Dispose();
-                for (int i = 0; i < mipChainRTVs.Length; i++)
-                {
-                    textures[i].Dispose();
-                    mipChainRTVs[i].Dispose();
-                    mipChainSRVs[i].Dispose();
-                }
-
-                disposedValue = true;
+                textures[i].Dispose();
             }
         }
     }

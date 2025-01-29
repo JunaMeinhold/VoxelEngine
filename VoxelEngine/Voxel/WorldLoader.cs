@@ -8,9 +8,10 @@
     using System.Threading;
     using BepuUtilities.Memory;
     using Hexa.NET.Utilities;
-    using Vortice.Direct3D11;
+    using Hexa.NET.D3D11;
     using VoxelEngine.Core;
     using VoxelEngine.Threading;
+    using HexaGen.Runtime.COM;
 
     public readonly struct SpatialSorter : IComparer<Vector2>
     {
@@ -526,7 +527,7 @@
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Upload(ID3D11Device device, ID3D11DeviceContext context)
+        public void Upload(ComPtr<ID3D11Device> device, ComPtr<ID3D11DeviceContext> context)
         {
             if (uploadQueue.IsEmpty & unloadQueue.IsEmpty)
             {

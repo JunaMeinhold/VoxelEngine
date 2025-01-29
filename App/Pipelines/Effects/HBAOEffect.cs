@@ -6,10 +6,8 @@
     using Vortice.DXGI;
     using Vortice.Mathematics;
     using VoxelEngine.Graphics.Buffers;
-    using VoxelEngine.Graphics.Shaders;
+    using VoxelEngine.Graphics.D3D11;
     using VoxelEngine.Mathematics;
-    using VoxelEngine.Rendering.D3D;
-    using VoxelEngine.Rendering.Shaders;
     using VoxelEngine.Scenes;
     using Viewport = Vortice.Mathematics.Viewport;
 
@@ -60,7 +58,7 @@
             {
                 VertexShader = "quad.hlsl",
                 PixelShader = "hbao/ps.hlsl",
-            }, GraphicsPipelineState.DefaultFullscreen);
+            }, GraphicsPipelineStateDesc.DefaultFullscreen);
             paramsBuffer = new(device, CpuAccessFlags.Write);
             cameraBuffer = new(device, CpuAccessFlags.Write);
             unsafe

@@ -1,22 +1,20 @@
 ﻿namespace App.Pipelines.Deferred
 {
+    using Hexa.NET.D3D11;
+    using HexaGen.Runtime.COM;
     using System.Linq;
     using System.Numerics;
     using System.Runtime.CompilerServices;
     using System.Runtime.InteropServices;
-    using Vortice.Direct3D;
-    using Vortice.Direct3D11;
     using VoxelEngine.Graphics.Buffers;
-    using VoxelEngine.Graphics.Shaders;
-    using VoxelEngine.Rendering.D3D;
-    using VoxelEngine.Rendering.D3D.Interfaces;
-    using VoxelEngine.Rendering.Shaders;
-    using VoxelEngine.Voxel;
+    using VoxelEngine.Graphics.D3D11;
+    using VoxelEngine.Graphics.D3D11.Interfaces;
     using VoxelEngine.Voxel.Blocks;
 
-    public class ChunkGeometryPipeline : GraphicsPipeline
+    public class ChunkGeometryPass : RenderPass
     {
-        private readonly Texture2DArray textures;
+        private readonly Texture2D textures;
+        private readonly SamplerState samplerState;
         private readonly ConstantBuffer<ModelViewProjBuffer> mvpBuffer;
         private readonly ConstantBuffer<WorldData> worldDataBuffer;
         private readonly ConstantBuffer<BlockDescriptionPacked> blockBuffer;
@@ -28,37 +26,47 @@
             public float padd;
         }
 
-        public ChunkGeometryPipeline(ID3D11Device device) : base(device, new()
+        public ChunkGeometryPass()
         {
-            VertexShader = "deferred/prepass/voxel/vs.hlsl",
-            PixelShader = "deferred/prepass/voxel/ps.hlsl",
-        }, GraphicsPipelineState.Default)
+            textures = new([.. BlockRegistry.Textures]);
+            samplerState = new SamplerState(SamplerDescription.PointWrap);
+
+            mvpBuffer = new(CpuAccessFlag.Write);
+            worldDataBuffer = new(CpuAccessFlag.Write);
+            blockBuffer = new(CpuAccessFlag.Write, 256);
+
+            state.Bindings.SetSRV("shaderTexture", textures);
+            state.Bindings.SetSampler("Sampler", samplerState);
+            state.Bindings.SetCBV("MatrixBuffer", mvpBuffer);
+            state.Bindings.SetCBV("WorldData", worldDataBuffer);
+            state.Bindings.SetCBV("TexData", blockBuffer);
+        }
+
+        protected override GraphicsPipelineState CreatePipelineState()
         {
-            textures = new();
-            textures.Sampler = device.CreateSamplerState(SamplerDescription.PointWrap);
-            textures.Load(device, BlockRegistry.Textures.ToArray());
-
-            mvpBuffer = new(device, CpuAccessFlags.Write);
-            worldDataBuffer = new(device, CpuAccessFlags.Write);
-            blockBuffer = new(device, CpuAccessFlags.Write, 256);
-
-            ShaderResourceViews.Append(textures, ShaderStage.Pixel);
-            ConstantBuffers.AppendRange(new ID3D11Buffer[] { mvpBuffer, worldDataBuffer, blockBuffer }, ShaderStage.Vertex);
-            SamplerStates.Append(textures.Sampler, ShaderStage.Pixel);
+            return GraphicsPipelineState.Create(new()
+            {
+                VertexShader = "deferred/prepass/voxel/vs.hlsl",
+                PixelShader = "deferred/prepass/voxel/ps.hlsl",
+            }, GraphicsPipelineStateDesc.Default);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Update(ID3D11DeviceContext context, IView view)
+        public void Update(ComPtr<ID3D11DeviceContext> context, IView view)
         {
             mvpBuffer.Update(context, new ModelViewProjBuffer(view, Matrix4x4.Identity));
             worldDataBuffer.Update(context, new WorldData() { chunkOffset = Vector3.Zero });
             blockBuffer.Update(context, BlockRegistry.GetDescriptionPackeds().ToArray());
         }
 
-        public override void Dispose()
+        protected override void DisposeCore()
         {
-            base.Dispose();
+            base.DisposeCore();
             textures.Dispose();
+            samplerState.Dispose();
+            mvpBuffer.Dispose();
+            worldDataBuffer.Dispose();
+            blockBuffer.Dispose();
         }
     }
 }

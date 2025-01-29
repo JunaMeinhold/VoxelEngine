@@ -1,57 +1,40 @@
-﻿// Copyright (c) 2022 Juna Meinhold
-//
-// Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated
-// documentation files (the "Software"), to deal in the Software without restriction, including without limitation
-// the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software,
-// and to permit persons to whom the Software is furnished to do so, subject to the following conditions:
-//
-// The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.
-//
-// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY,
-// WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-
-namespace App.Renderers
+﻿namespace App.Renderers
 {
-    using System.Numerics;
-    using System.Runtime.CompilerServices;
     using App.Pipelines.Deferred;
     using App.Pipelines.Effects;
     using App.Pipelines.Forward;
     using App.Renderers.Forward;
-    using HexaEngine.Editor;
     using Hexa.NET.ImGui;
-    using Vortice.Direct3D11;
+    using Hexa.NET.Mathematics;
+    using System.Numerics;
+    using System.Runtime.CompilerServices;
     using VoxelEngine.Core;
     using VoxelEngine.Core.Input;
+    using VoxelEngine.Debugging;
     using VoxelEngine.Graphics.Buffers;
-    using VoxelEngine.Graphics.Shaders;
+    using VoxelEngine.Graphics.D3D11;
     using VoxelEngine.Lightning;
-    using VoxelEngine.Mathematics;
-    using VoxelEngine.Rendering.D3D;
-    using VoxelEngine.Rendering.DXGI;
     using VoxelEngine.Scenes;
     using VoxelEngine.Voxel;
     using VoxelEngine.Windows;
-    using Hexa.NET.Mathematics;
 
     public class MainSceneDeferredRenderer : ISceneRenderer
     {
         private ConstantBuffer<CBCamera> camera;
 
         private SwapChain swapChain;
-        private ChunkGeometryPipeline chunkPrepass;
+        private ChunkGeometryPass chunkPrepass;
         private CSMChunkPipeline chunkDepthPrepassCSM;
-        private LightPipeline lightPipeline;
+        private DeferredLightPass lightPipeline;
         private ComposeEffect compose;
         private FXAAEffect fxaa;
         private HBAOEffect hbao;
         private GodRaysEffect godRays;
         private BloomEffect bloom;
 
-        private ID3D11SamplerState anisotropicClamp;
-        private ID3D11SamplerState pointClamp;
-        private ID3D11SamplerState linearClamp;
+        private SamplerState anisotropicClamp;
+        private SamplerState pointClamp;
+        private SamplerState linearClamp;
 
         private DepthStencil depthStencil;
         private GBuffer gbuffer;
@@ -73,7 +56,7 @@ namespace App.Renderers
         private bool debugChunksRegion;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Initialize(ID3D11Device device, GameWindow window)
+        public void Initialize(GameWindow window)
         {
             for (int i = 0; i < 16; i++)
             {
@@ -155,17 +138,17 @@ namespace App.Renderers
             }
         }
 
-        public void Resize(ID3D11Device device, GameWindow window)
+        public void Resize(GameWindow window)
         {
             width = window.Width;
             height = window.Height;
 
-            depthStencil.Resize(device, width, height);
-            gbuffer.Resize(device, width, height);
+            depthStencil.Resize(width, height);
+            gbuffer.Resize(width, height);
             gbuffer.RenderTargets.DepthStencil = depthStencil;
-            lightBuffer.Resize(device, width, height);
-            fxaaBuffer.Resize(device, width, height);
-            hbaoBuffer.Resize(device, width, height);
+            lightBuffer.Resize(width, height);
+            fxaaBuffer.Resize(width, height);
+            hbaoBuffer.Resize(width, height);
 
             hbao.Depth = depthStencil.SRV;
             hbao.Normal = gbuffer.SRVs[1];

@@ -1,20 +1,21 @@
 ﻿namespace VoxelEngine.Objects
 {
+    using Hexa.NET.D3D11;
+    using HexaGen.Runtime.COM;
     using System.Runtime.CompilerServices;
-    using Vortice.Direct3D11;
     using VoxelEngine.Graphics.Buffers;
-    using VoxelEngine.Rendering.Shaders;
+    using VoxelEngine.Graphics.D3D11;
     using VoxelEngine.Resources;
 
-    public abstract class Mesh<T> : Resource where T : unmanaged
+    public abstract class Mesh<TVertex, TIndex> : Resource where TVertex : unmanaged where TIndex : unmanaged
     {
         public Mesh()
         {
             Initialize();
         }
 
-        public VertexBuffer<T> VertexBuffer;
-        public IndexBuffer IndexBuffer;
+        public VertexBuffer<TVertex> VertexBuffer;
+        public IndexBuffer<TIndex> IndexBuffer;
 
         public bool HasVertexBuffer => VertexBuffer != null;
 
@@ -31,7 +32,7 @@
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public BindType Bind(ID3D11DeviceContext context)
+        public BindType Bind(ComPtr<ID3D11DeviceContext> context)
         {
             if (HasIndexBuffer)
             {
@@ -47,7 +48,7 @@
             return BindType.None;
         }
 
-        public BindType Bind(ID3D11DeviceContext context, int slot)
+        public BindType Bind(ComPtr<ID3D11DeviceContext> context, int slot)
         {
             if (HasIndexBuffer)
             {
@@ -63,26 +64,26 @@
             return BindType.None;
         }
 
-        public void DrawAuto(ID3D11DeviceContext context, GraphicsPipeline pipeline)
+        public void DrawAuto(ComPtr<ID3D11DeviceContext> context, GraphicsPipelineState pso)
         {
             if (HasIndexBuffer)
             {
                 VertexBuffer.Bind(context, 0);
                 IndexBuffer.Bind(context);
-                pipeline.Begin(context);
-                context.DrawIndexed(IndexBuffer.Count, 0, 0);
+                pso.Begin(context);
+                context.DrawIndexed((uint)IndexBuffer.Count, 0, 0);
                 return;
             }
             if (HasVertexBuffer)
             {
                 VertexBuffer.Bind(context, 0);
-                pipeline.Begin(context);
-                context.Draw(VertexBuffer.Count, 0);
+                pso.Begin(context);
+                context.Draw((uint)VertexBuffer.Count, 0);
                 return;
             }
         }
 
-        protected override void Dispose(bool disposing)
+        protected override void DisposeCore()
         {
             Uninitialize();
         }

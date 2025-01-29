@@ -2,7 +2,7 @@
 {
     using System.Numerics;
     using Hexa.NET.Mathematics;
-    using Vortice.Direct3D11;
+    using Hexa.NET.D3D11;
     using VoxelEngine.Core;
     using VoxelEngine.Mathematics;
 
@@ -58,11 +58,11 @@
         /// Called by <see cref="Scene.Initialize"/> ... <see cref="SceneManager.Load(Scene)"/><br/>
         /// Called by <see cref="Scene.Add(GameObject)"/> if <see cref="Scene.initialized"/> == <see langword="true" /><br/>
         /// </summary>
-        public virtual void Initialize(ID3D11Device device)
+        public virtual void Initialize()
         {
             Children.ForEach(child => child.Scene = Scene);
-            Components.ForEach(component => component.Initialize(device, this));
-            Children.ForEach(child => child.Initialize(device));
+            Components.ForEach(component => component.Initialize(this));
+            Children.ForEach(child => child.Initialize());
             Scene.Register(this);
         }
 

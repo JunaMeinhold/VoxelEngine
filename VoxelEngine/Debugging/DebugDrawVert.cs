@@ -1,6 +1,6 @@
 ﻿#nullable disable
 
-namespace HexaEngine.Editor
+namespace VoxelEngine.Debugging
 {
     using System.Numerics;
 

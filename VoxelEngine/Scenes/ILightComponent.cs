@@ -1,6 +1,6 @@
 ﻿namespace VoxelEngine.Scenes
 {
-    using VoxelEngine.Rendering.D3D.Interfaces;
+    using VoxelEngine.Graphics.D3D11.Interfaces;
 
     public interface ILightComponent : IComponent
     {

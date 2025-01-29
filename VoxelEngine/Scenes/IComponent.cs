@@ -1,6 +1,6 @@
 ﻿namespace VoxelEngine.Scenes
 {
-    using Vortice.Direct3D11;
+    using Hexa.NET.D3D11;
 
     /// <summary>
     /// Interface for SceneElement Components
@@ -13,7 +13,7 @@
         /// Called by <see cref="GameObject.Initialize"/> ... <see cref="Scene.Add(GameObject)"/> <see cref="Scene.initialized"/> == <see langword="true" /><br/>
         /// </summary>
         /// <param name="element">The element.</param>
-        void Initialize(ID3D11Device device, GameObject element);
+        void Initialize(GameObject element);
 
         /// <summary>
         /// Uninitializes the component.<br/>

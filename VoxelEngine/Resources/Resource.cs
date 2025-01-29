@@ -9,16 +9,16 @@
         {
         }
 
-        protected abstract void Dispose(bool disposing);
+        protected abstract void DisposeCore();
 
         public bool IsDisposed { get; private set; }
 
-        public event EventHandler Disposed;
+        public event EventHandler? Disposed;
 
         ~Resource()
         {
             Trace.Assert(!IsDisposed, "Not correctly disposed, can lead to memory leaks.");
-            Dispose(disposing: false);
+            DisposeCore();
         }
 
         public void Dispose()
@@ -26,7 +26,7 @@
             if (!IsDisposed)
             {
                 Disposed?.Invoke(this, EventArgs.Empty);
-                Dispose(disposing: true);
+                DisposeCore();
                 IsDisposed = true;
                 GC.SuppressFinalize(this);
             }

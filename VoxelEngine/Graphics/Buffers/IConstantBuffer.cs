@@ -1,20 +1,22 @@
 ﻿namespace VoxelEngine.Graphics.Buffers
 {
-    using Vortice.Direct3D11;
+    using Hexa.NET.D3D11;
+    using HexaGen.Runtime.COM;
+    using VoxelEngine.Graphics.D3D11;
 
-    public interface IConstantBuffer<T> : IConstantBuffer
+    public interface IConstantBuffer<T> : IConstantBuffer where T : unmanaged
     {
-        void Resize(ID3D11Device device, int length);
+        void Resize(int length);
 
-        void Update(ID3D11DeviceContext context, T value);
+        void Update(ComPtr<ID3D11DeviceContext> context, T value);
 
-        void Update(ID3D11DeviceContext context, T[] value);
+        void Update(ComPtr<ID3D11DeviceContext> context, T[] value);
 
-        unsafe void Update(ID3D11DeviceContext context, T* value, int length);
+        unsafe void Update(ComPtr<ID3D11DeviceContext> context, T* value, int length);
     }
 
-    public interface IConstantBuffer : IDisposable
+    public interface IConstantBuffer : IBuffer, IDisposable
     {
-        void Update(ID3D11DeviceContext context);
+        void Update(ComPtr<ID3D11DeviceContext> context);
     }
 }

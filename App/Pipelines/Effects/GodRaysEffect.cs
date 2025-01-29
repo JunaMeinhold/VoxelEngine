@@ -1,14 +1,13 @@
 ﻿namespace App.Pipelines.Effects
 {
+    using Hexa.NET.D3D11;
+    using Hexa.NET.D3DCommon;
+    using Hexa.NET.DXGI;
+    using HexaGen.Runtime.COM;
     using System.Numerics;
-    using Vortice.Direct3D;
-    using Vortice.Direct3D11;
-    using Vortice.DXGI;
-    using Vortice.Mathematics;
     using VoxelEngine.Graphics.Buffers;
+    using VoxelEngine.Graphics.D3D11;
     using VoxelEngine.Lightning;
-    using VoxelEngine.Rendering.D3D;
-    using VoxelEngine.Rendering.Shaders;
     using VoxelEngine.Scenes;
 
     public enum EffectFlags
@@ -41,11 +40,11 @@
         private ConstantBuffer<SunParams> paramsSunBuffer;
         private ConstantBuffer<CBWorld> paramsWorldBuffer;
         private ConstantBuffer<CBCamera> cameraBuffer;
-        private ID3D11SamplerState sunSampler;
+        private SamplerState sunSampler;
         private GraphicsPipeline sun;
 
         private ConstantBuffer<GodRaysParams> paramsBuffer;
-        private ID3D11SamplerState sampler;
+        private SamplerState sampler;
         private GraphicsPipeline godrays;
 
         private Texture2D sunsprite;
@@ -56,7 +55,6 @@
         private float godraysWeight = 0.25f;
         private float godraysDecay = 0.825f;
         private float godraysExposure = 2.0f;
-        private readonly ID3D11Device device;
 
         public struct GodRaysParams
         {
@@ -74,15 +72,15 @@
             public float AlbedoFactor;
         }
 
-        public GodRaysEffect(ID3D11Device device, int width, int height)
+        public GodRaysEffect(int width, int height)
         {
-            plane = new(device, 5);
+            plane = new(5);
 
-            sun = new(device, new()
+            sun = new(new()
             {
                 VertexShader = "sun/vs.hlsl",
                 PixelShader = "sun/ps.hlsl"
-            }, new GraphicsPipelineState()
+            }, new GraphicsPipelineStateDesc()
             {
                 Blend = BlendDescription.AlphaBlend,
                 BlendFactor = Vector4.One,
@@ -90,47 +88,46 @@
                 Rasterizer = RasterizerDescription.CullBack,
                 SampleMask = int.MaxValue,
                 StencilRef = 0,
-                Topology = PrimitiveTopology.TriangleList
+                Topology = PrimitiveTopology.Trianglelist
             });
-            sunSampler = device.CreateSamplerState(SamplerDescription.LinearWrap);
+            sunSampler = new(SamplerDescription.LinearWrap);
 
-            paramsSunBuffer = new(device, CpuAccessFlags.Write);
-            paramsWorldBuffer = new(device, CpuAccessFlags.Write);
-            cameraBuffer = new(device, CpuAccessFlags.Write);
+            paramsSunBuffer = new(CpuAccessFlag.Write);
+            paramsWorldBuffer = new(CpuAccessFlag.Write);
+            cameraBuffer = new(CpuAccessFlag.Write);
 
-            godrays = new(device, new()
+            godrays = new(new()
             {
                 VertexShader = "quad.hlsl",
                 PixelShader = "godrays/ps.hlsl"
             },
-            new GraphicsPipelineState()
+            new GraphicsPipelineStateDesc()
             {
                 DepthStencil = DepthStencilDescription.Default,
                 Rasterizer = RasterizerDescription.CullBack,
                 Blend = BlendDescription.Additive,
-                Topology = PrimitiveTopology.TriangleStrip,
+                Topology = PrimitiveTopology.Trianglestrip,
                 BlendFactor = default,
                 SampleMask = int.MaxValue
             });
-            sampler = device.CreateSamplerState(SamplerDescription.LinearClamp);
+            sampler = new(SamplerDescription.LinearClamp);
 
-            paramsBuffer = new(device, CpuAccessFlags.Write);
+            paramsBuffer = new(CpuAccessFlag.Write);
 
-            sunsprite = new(device, "sun/sunsprite.png");
-            sunBuffer = new(device, Format.R16G16B16A16_Float, width, height, 1, 1, CpuAccessFlags.None, GpuAccessFlags.RW);
+            sunsprite = new("sun/sunsprite.png");
+            sunBuffer = new(Format.R16G16B16A16Float, width, height, 1, 1, 0, GpuAccessFlags.RW);
 
-            noiseTex = new(device, Format.R32_Float, 1024, 1024, 1, 1, CpuAccessFlags.None, GpuAccessFlags.RW);
-            this.device = device;
+            noiseTex = new(Format.R32Float, 1024, 1024, 1, 1, 0, GpuAccessFlags.RW);
             viewport = new(width, height);
         }
 
         public void Resize(int width, int height)
         {
-            sunBuffer.Resize(device, Format.R16G16B16A16_Float, width, height, 1, 1, CpuAccessFlags.None);
+            sunBuffer.Resize(Format.R16G16B16A16Float, width, height, 1, 1);
             viewport = new(width, height);
         }
 
-        public void Update(ID3D11DeviceContext context, Camera camera, DirectionalLight light)
+        public void Update(ComPtr<ID3D11DeviceContext> context, Camera camera, DirectionalLight light)
         {
             GodRaysParams raysParams = default;
 
@@ -172,7 +169,7 @@
             cameraBuffer.Update(context, new CBCamera(camera, viewport));
         }
 
-        public void PrePass(ID3D11DeviceContext context, DepthStencil depth)
+        public void PrePass(ComPtr<ID3D11DeviceContext> context, DepthStencil depth)
         {
             context.ClearRenderTargetView(sunBuffer.RTV, default);
             context.OMSetRenderTargets(sunBuffer.RTV, depth.DSV);
@@ -186,7 +183,7 @@
             context.ClearState();
         }
 
-        public void Pass(ID3D11DeviceContext context)
+        public void Pass(ComPtr<ID3D11DeviceContext> context)
         {
             context.PSSetConstantBuffer(0, paramsBuffer);
             context.PSSetShaderResource(0, sunBuffer.SRV);

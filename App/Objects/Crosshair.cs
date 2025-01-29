@@ -1,7 +1,6 @@
 ﻿namespace App.Objects
 {
     using App.Renderers.Forward;
-    using Vortice.Direct3D11;
     using VoxelEngine.Graphics.Buffers;
     using VoxelEngine.Mathematics;
     using VoxelEngine.Scenes;
@@ -13,17 +12,16 @@
 
         public Crosshair()
         {
-            vertexBuffer = new();
-            vertexBuffer.DebugName = "Crosshair";
+            //vertexBuffer.DebugName = "Crosshair";
             textureComponent = new();
             textureComponent.TexturePath = "crosshair.png";
             AddComponent(textureComponent);
         }
 
-        public override void Initialize(ID3D11Device device)
+        public override void Initialize()
         {
             Load();
-            base.Initialize(device);
+            base.Initialize();
         }
 
         public override void Uninitialize()
@@ -40,8 +38,8 @@
             int right = 12;
             int bottom = 12;
 
-            OrthoVertex[] vertices = new OrthoVertex[]
-            {
+            OrthoVertex[] vertices =
+            [
                 new()
                 {
                     Position = new(right, bottom, 0),
@@ -72,9 +70,9 @@
                     Position = new(right, bottom, 0),
                     Texture = new(1, 0)
                 }
-            };
+            ];
 
-            vertexBuffer.Append(vertices);
+            vertexBuffer = new(0, vertices);
             textureComponent.VertexBuffer = vertexBuffer;
         }
     }

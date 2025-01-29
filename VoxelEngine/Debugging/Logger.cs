@@ -1,4 +1,4 @@
-﻿namespace HexaEngine.Core.Debugging
+﻿namespace VoxelEngine.Debugging
 {
     using System;
     using System.Diagnostics;

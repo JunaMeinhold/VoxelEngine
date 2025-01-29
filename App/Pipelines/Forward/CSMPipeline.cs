@@ -5,8 +5,7 @@
     using System.Runtime.InteropServices;
     using Vortice.Direct3D11;
     using VoxelEngine.Graphics.Buffers;
-    using VoxelEngine.Graphics.Shaders;
-    using VoxelEngine.Rendering.Shaders;
+    using VoxelEngine.Graphics.D3D11;
     using VoxelEngine.Voxel;
 
     public class CSMChunkPipeline : GraphicsPipeline
@@ -26,7 +25,7 @@
         {
             VertexShader = "forward/csm/voxel/vs.hlsl",
             GeometryShader = "forward/csm/voxel/gs.hlsl",
-        }, new GraphicsPipelineState()
+        }, new GraphicsPipelineStateDesc()
         {
             Rasterizer = RasterizerDescription.CullFront,
         })

@@ -3,7 +3,7 @@
     using System.Runtime.CompilerServices;
     using BepuPhysics;
     using BepuPhysics.Collidables;
-    using Vortice.Direct3D11;
+    using Hexa.NET.D3D11;
     using VoxelEngine.Scenes;
 
     public class StaticBodyComponent<T> : IBodyComponent, IStaticBodyComponent<T> where T : unmanaged, IShape
@@ -44,7 +44,7 @@
         public StaticHandle Handle => handle;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Initialize(ID3D11Device device, GameObject element)
+        public void Initialize(GameObject element)
         {
             sceneElement = element;
             typedIndex = sceneElement.Scene.Simulation.Shapes.Add(shape);

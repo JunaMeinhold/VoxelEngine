@@ -3,7 +3,8 @@
     using System.Collections.Generic;
     using System.Numerics;
     using Hexa.NET.Mathematics;
-    using Vortice.Direct3D11;
+    using Hexa.NET.D3D11;
+    using HexaGen.Runtime.COM;
 
     public class RenderRegion
     {
@@ -70,7 +71,7 @@
             return false;
         }
 
-        public void Update(ID3D11Device device, ID3D11DeviceContext context)
+        public void Update(ComPtr<ID3D11Device> device, ComPtr<ID3D11DeviceContext> context)
         {
             vertexBuffer.Reset();
             var max = Offset + Size;
@@ -88,7 +89,7 @@
                 }
             }
 
-            vertexBuffer.BufferData(device);
+            vertexBuffer.BufferData(context);
         }
 
         public void Release()
@@ -96,7 +97,7 @@
             vertexBuffer?.Dispose();
         }
 
-        public void Bind(ID3D11DeviceContext context)
+        public void Bind(ComPtr<ID3D11DeviceContext> context)
         {
             vertexBuffer.Bind(context);
         }

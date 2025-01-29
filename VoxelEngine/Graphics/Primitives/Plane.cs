@@ -1,86 +1,87 @@
 ﻿namespace VoxelEngine.Graphics.Primitives
 {
     using System.Numerics;
-    using Vortice.Direct3D11;
+    using Hexa.NET.D3D11;
+    using HexaGen.Runtime.COM;
     using VoxelEngine.Graphics.Buffers;
+    using VoxelEngine.Graphics.D3D11;
     using VoxelEngine.Mathematics;
-    using VoxelEngine.Rendering.Shaders;
 
-    public class Plane : IPrimitive
+    public unsafe class Plane : IPrimitive
     {
         private readonly VertexBuffer<MeshVertex> vertexBuffer;
-        private readonly IndexBuffer indexBuffer;
+        private readonly IndexBuffer<ushort> indexBuffer;
         private bool disposedValue;
 
-        public Plane(ID3D11Device device, float size)
+        public Plane(float size)
         {
-            CreatePlane(device, out vertexBuffer, out indexBuffer, size);
+            CreatePlane(out vertexBuffer, out indexBuffer, size);
         }
 
-        public static void CreatePlane(ID3D11Device device, out VertexBuffer<MeshVertex> vertexBuffer, out IndexBuffer indexBuffer, float size = 1)
+        public static void CreatePlane(out VertexBuffer<MeshVertex> vertexBuffer, out IndexBuffer<ushort> indexBuffer, float size = 1)
         {
-            vertexBuffer = new(device, new MeshVertex[]
-            {
+            vertexBuffer = new(0,
+            [
              new(new(-1 * size, 1 * size, 0), new Vector2(0,0), new(0,0,-1), new(1,0,0), new(0,1,0)),
              new(new(-1 * size, -1 * size, 0), new Vector2(0,1), new(0,0,-1), new(1,0,0), new(0,1,0)),
              new(new(1 * size, 1 * size, 0), new Vector2(1,0), new(0,0,-1), new(1,0,0), new(0,1,0)),
              new(new(1 * size, -1 * size, 0), new Vector2(1,1), new(0,0,-1), new(1,0,0), new(0,1,0))
-            });
+            ]);
 
-            indexBuffer = new(device, new int[]
-            {
+            indexBuffer = new(0,
+            [
              0, 3, 1,
              0, 2, 3
-            });
+            ]);
         }
 
-        public void DrawAuto(ID3D11DeviceContext context, GraphicsPipeline pipeline)
+        public void DrawAuto(ComPtr<ID3D11DeviceContext> context, GraphicsPipelineState pso)
         {
-            pipeline.Begin(context);
-            context.IASetVertexBuffer(0, vertexBuffer, vertexBuffer.Stride);
+            pso.Begin(context);
+            vertexBuffer.Bind(context, 0);
             if (indexBuffer != null)
             {
                 indexBuffer.Bind(context);
-                context.DrawIndexedInstanced(indexBuffer.Count, 1, 0, 0, 0);
-                context.IASetIndexBuffer(null, 0, 0);
+                context.DrawIndexedInstanced((uint)indexBuffer.Count, 1, 0, 0, 0);
+                context.IAUnsetIndexBuffer();
             }
             else
             {
-                context.DrawInstanced(vertexBuffer.Count, 1, 0, 0);
+                context.DrawInstanced((uint)vertexBuffer.Count, 1, 0, 0);
             }
-            context.IASetVertexBuffer(0, null, 0);
-            pipeline.End(context);
+            context.IAUnsetVertexBuffers(0, 1);
+            pso.End(context);
         }
 
-        public void DrawAuto(ID3D11DeviceContext context)
+        public void DrawAuto(ComPtr<ID3D11DeviceContext> context)
         {
-            context.IASetVertexBuffer(0, vertexBuffer, vertexBuffer.Stride);
+            vertexBuffer.Bind(context, 0);
             if (indexBuffer != null)
             {
                 indexBuffer.Bind(context);
-                context.DrawIndexedInstanced(indexBuffer.Count, 1, 0, 0, 0);
-                context.IASetIndexBuffer(null, 0, 0);
+                context.DrawIndexedInstanced((uint)indexBuffer.Count, 1, 0, 0, 0);
+                context.IAUnsetIndexBuffer();
             }
             else
             {
-                context.DrawInstanced(vertexBuffer.Count, 1, 0, 0);
+                context.DrawInstanced((uint)vertexBuffer.Count, 1, 0, 0);
             }
-            context.IASetVertexBuffer(0, null, 0);
+            context.IAUnsetVertexBuffers(0, 1);
         }
 
-        public void Bind(ID3D11DeviceContext context, out int vertexCount, out int indexCount, out int instanceCount)
+        public void Bind(ComPtr<ID3D11DeviceContext> context, out int vertexCount, out int indexCount, out int instanceCount)
         {
-            context.IASetVertexBuffer(0, vertexBuffer, vertexBuffer.Stride);
+            vertexBuffer.Bind(context, 0);
             vertexCount = vertexBuffer.Count;
             indexBuffer.Bind(context);
             indexCount = indexBuffer?.Count ?? 0;
             instanceCount = 1;
         }
 
-        public void Unbind(ID3D11DeviceContext context)
+        public void Unbind(ComPtr<ID3D11DeviceContext> context)
         {
-            context.IASetVertexBuffer(0, null, 0);
-            context.IASetIndexBuffer(null, 0, 0);
+            context.IAUnsetVertexBuffers(0, 1);
+            context.IAUnsetIndexBuffer();
         }
 
         protected virtual void Dispose(bool disposing)

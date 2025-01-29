@@ -1,16 +1,17 @@
 ﻿namespace VoxelEngine.Graphics.Primitives
 {
-    using Vortice.Direct3D11;
-    using VoxelEngine.Rendering.Shaders;
+    using Hexa.NET.D3D11;
+    using HexaGen.Runtime.COM;
+    using VoxelEngine.Graphics.D3D11;
 
     public interface IPrimitive : IDisposable
     {
-        void DrawAuto(ID3D11DeviceContext context, GraphicsPipeline pipeline);
+        void DrawAuto(ComPtr<ID3D11DeviceContext> context, GraphicsPipelineState pso);
 
-        void DrawAuto(ID3D11DeviceContext context);
+        void DrawAuto(ComPtr<ID3D11DeviceContext> context);
 
-        void Bind(ID3D11DeviceContext context, out int vertexCount, out int indexCount, out int instanceCount);
+        void Bind(ComPtr<ID3D11DeviceContext> context, out int vertexCount, out int indexCount, out int instanceCount);
 
-        void Unbind(ID3D11DeviceContext context);
+        void Unbind(ComPtr<ID3D11DeviceContext> context);
     }
 }

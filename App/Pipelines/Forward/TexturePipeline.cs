@@ -1,7 +1,7 @@
 ﻿namespace App.Pipelines.Forward
 {
     using Vortice.Direct3D11;
-    using VoxelEngine.Rendering.Shaders;
+    using VoxelEngine.Graphics.D3D11;
 
     public class TexturePipeline : GraphicsPipeline
     {
@@ -9,7 +9,7 @@
         {
             VertexShader = "forward/texture/vs.hlsl",
             PixelShader = "forward/texture/ps.hlsl",
-        }, new GraphicsPipelineState()
+        }, new GraphicsPipelineStateDesc()
         {
             DepthStencil = DepthStencilDescription.None,
             Blend = BlendDescription.AlphaBlend,

@@ -1,85 +1,120 @@
 ﻿namespace VoxelEngine.Voxel
 {
-    using System.Runtime.InteropServices;
-    using Vortice.Direct3D11;
+    using Hexa.NET.D3D11;
+    using HexaGen.Runtime.COM;
+    using VoxelEngine.Graphics.D3D11;
 
-    public class VertexBufferPool<T>
+    public unsafe class VertexBufferPool<T> where T : unmanaged
     {
-        private readonly ID3D11Device device;
-        private readonly List<ID3D11Buffer> buffers = new();
-        private readonly List<ID3D11Buffer> freeBuffers = new();
+        private readonly ComPtr<ID3D11Device> device;
+        private readonly List<ComPtr<ID3D11Buffer>> buffers = [];
+        private readonly List<ComPtr<ID3D11Buffer>> freeBuffers = [];
+        private readonly SemaphoreSlim semaphore = new(1);
 
-        public VertexBufferPool(ID3D11Device device)
+        public VertexBufferPool()
         {
-            this.device = device;
+            device = D3D11DeviceManager.Device.As<ID3D11Device>();
         }
 
         public const int MaxFreeBuffers = 64;
         public const int ResizeSmallerAt = 32;
 
-        public ID3D11Buffer Rent(int minCapacity)
+        public ComPtr<ID3D11Buffer> Rent(int minCapacity)
         {
-            int size = minCapacity * Marshal.SizeOf<T>();
-            for (int i = 0; i < freeBuffers.Count; i++)
+            int size = minCapacity * sizeof(T);
+            BufferDesc desc;
+
+            semaphore.Wait();
+            try
             {
-                ID3D11Buffer buffer = freeBuffers[i];
-                if (buffer.Description.ByteWidth >= size)
+                for (int i = 0; i < freeBuffers.Count; i++)
                 {
-                    freeBuffers.RemoveAt(i);
+                    ComPtr<ID3D11Buffer> buffer = freeBuffers[i];
+                    buffer.GetDesc(&desc);
+                    if (desc.ByteWidth >= size)
+                    {
+                        freeBuffers.RemoveAt(i);
+                        return buffer;
+                    }
+                }
+
+                if (freeBuffers.Count > ResizeSmallerAt)
+                {
+                    ComPtr<ID3D11Buffer> buffer = freeBuffers[0];
+                    freeBuffers.RemoveAt(0);
+                    Resize(ref buffer, minCapacity);
                     return buffer;
                 }
+
+                desc = new()
+                {
+                    BindFlags = (uint)BindFlag.VertexBuffer,
+                    CPUAccessFlags = (uint)CpuAccessFlag.Write,
+                    MiscFlags = 0,
+                    ByteWidth = (uint)size,
+                    Usage = Usage.Dynamic
+                };
+
+                device.CreateBuffer(&desc, null, out var newBuffer);
+                buffers.Add(newBuffer);
+
+                return newBuffer;
             }
-
-            if (freeBuffers.Count > ResizeSmallerAt)
+            finally
             {
-                ID3D11Buffer buffer = freeBuffers[0];
-                freeBuffers.RemoveAt(0);
-                Resize(ref buffer, minCapacity);
-                return buffer;
-            }
-
-            ID3D11Buffer newBuffer = device.CreateBuffer(new()
-            {
-                BindFlags = BindFlags.VertexBuffer,
-                CPUAccessFlags = CpuAccessFlags.Write,
-                MiscFlags = ResourceOptionFlags.None,
-                ByteWidth = size,
-                Usage = ResourceUsage.Dynamic
-            });
-            buffers.Add(newBuffer);
-            return newBuffer;
-        }
-
-        public void Return(ID3D11Buffer buffer)
-        {
-            freeBuffers.Add(buffer);
-            if (freeBuffers.Count > MaxFreeBuffers)
-            {
-                ID3D11Buffer freeBuffer = freeBuffers[0];
-                freeBuffers.RemoveAt(0);
-                freeBuffer.Dispose();
+                semaphore.Release();
             }
         }
 
-        public void Resize(ref ID3D11Buffer buffer, int capacity)
+        public void Return(ComPtr<ID3D11Buffer> buffer)
         {
-            int size = capacity * Marshal.SizeOf<T>();
-            if (buffer.Description.ByteWidth > size)
+            semaphore.Wait();
+            try
+            {
+                freeBuffers.Add(buffer);
+                if (freeBuffers.Count > MaxFreeBuffers)
+                {
+                    ComPtr<ID3D11Buffer> freeBuffer = freeBuffers[0];
+                    freeBuffers.RemoveAt(0);
+                    freeBuffer.Release();
+                }
+            }
+            finally
+            {
+                semaphore.Release();
+            }
+        }
+
+        public void Resize(ref ComPtr<ID3D11Buffer> buffer, int capacity)
+        {
+            int size = capacity * sizeof(T);
+            BufferDesc desc;
+            buffer.GetDesc(&desc);
+            if (desc.ByteWidth > size)
             {
                 return;
             }
 
-            buffers.Remove(buffer);
-            buffer.Dispose();
-            buffer = device.CreateBuffer(new()
+            semaphore.Wait();
+            try
             {
-                BindFlags = BindFlags.VertexBuffer,
-                CPUAccessFlags = CpuAccessFlags.Write,
-                MiscFlags = ResourceOptionFlags.None,
-                ByteWidth = size,
-                Usage = ResourceUsage.Dynamic
-            });
-            buffers.Add(buffer);
+                buffers.Remove(buffer);
+                buffer.Dispose();
+                desc = new()
+                {
+                    BindFlags = (uint)BindFlag.VertexBuffer,
+                    CPUAccessFlags = (uint)CpuAccessFlag.Write,
+                    MiscFlags = 0,
+                    ByteWidth = (uint)size,
+                    Usage = Usage.Dynamic
+                };
+                device.CreateBuffer(&desc, null, out buffer);
+                buffers.Add(buffer);
+            }
+            finally
+            {
+                semaphore.Release();
+            }
         }
     }
 }

@@ -6,9 +6,9 @@
     using Vortice.Direct3D11;
     using Vortice.Mathematics;
     using VoxelEngine.Graphics.Buffers;
+    using VoxelEngine.Graphics.D3D11;
+    using VoxelEngine.Graphics.D3D11.Interfaces;
     using VoxelEngine.Graphics.Primitives;
-    using VoxelEngine.Graphics.Shaders;
-    using VoxelEngine.Rendering.D3D.Interfaces;
     using VoxelEngine.Scenes;
     using VoxelEngine.Voxel;
     using BoundingBox = Hexa.NET.Mathematics.BoundingBox;

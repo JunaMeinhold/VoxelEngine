@@ -1,38 +1,37 @@
 ﻿namespace App.Pipelines.Effects
 {
-    using Vortice.Direct3D;
-    using Vortice.Direct3D11;
-    using VoxelEngine.Graphics.Shaders;
-    using VoxelEngine.Rendering.Shaders;
+    using Hexa.NET.D3D11;
+    using HexaGen.Runtime.COM;
+    using VoxelEngine.Graphics.D3D11;
 
     public class FXAAEffect
     {
-        private readonly GraphicsPipeline pipeline;
-        private readonly ID3D11SamplerState samplerState;
+        private readonly GraphicsPipelineState pso;
+        private readonly SamplerState samplerState;
 
-        public FXAAEffect(ID3D11Device device)
+        public FXAAEffect()
         {
-            pipeline = new(device, new()
+            pso = GraphicsPipelineState.Create(new()
             {
                 VertexShader = "quad.hlsl",
                 PixelShader = "fxaa/ps.hlsl",
-            }, GraphicsPipelineState.DefaultFullscreen);
-            samplerState = device.CreateSamplerState(SamplerDescription.LinearClamp);
-            pipeline.SamplerStates.Add(samplerState, ShaderStage.Pixel, 0);
+            }, GraphicsPipelineStateDesc.DefaultFullscreen);
+            samplerState = new(SamplerDescription.LinearClamp);
+            pso.Bindings.SetSampler("g_samLinear", samplerState);
         }
 
-        public ID3D11ShaderResourceView Input { set => pipeline.ShaderResourceViews.SetOrAdd(value, ShaderStage.Pixel, 0); }
+        public IShaderResourceView Input { set => pso.Bindings.SetSRV("g_txProcessed", value); }
 
-        public void Pass(ID3D11DeviceContext context)
+        public void Pass(ComPtr<ID3D11DeviceContext> context)
         {
-            pipeline.Begin(context);
+            pso.Begin(context);
             context.DrawInstanced(4, 1, 0, 0);
-            pipeline.End(context);
+            pso.End(context);
         }
 
         public void Dispose()
         {
-            pipeline.Dispose();
+            pso.Dispose();
             samplerState.Dispose();
         }
     }

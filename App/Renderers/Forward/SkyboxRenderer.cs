@@ -1,4 +1,4 @@
-﻿using VoxelEngine.Graphics.Shaders;
+﻿using VoxelEngine.Graphics.D3D11;
 
 namespace App.Renderers.Forward
 {
@@ -11,9 +11,9 @@ namespace App.Renderers.Forward
     using Hexa.NET.Mathematics.Sky.HosekWilkie;
     using Vortice.Direct3D11;
     using VoxelEngine.Graphics.Buffers;
+    using VoxelEngine.Graphics.D3D11;
+    using VoxelEngine.Graphics.D3D11.Interfaces;
     using VoxelEngine.Graphics.Primitives;
-    using VoxelEngine.Rendering.D3D;
-    using VoxelEngine.Rendering.D3D.Interfaces;
     using VoxelEngine.Scenes;
     using ShaderStage = ShaderStage;
 

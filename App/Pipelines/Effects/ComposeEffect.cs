@@ -1,27 +1,30 @@
 ﻿namespace App.Pipelines.Effects
 {
+    using Hexa.NET.D3D11;
+    using HexaGen.Runtime.COM;
     using System.Numerics;
-    using Vortice.Direct3D11;
     using VoxelEngine.Graphics.Buffers;
-    using VoxelEngine.Graphics.Shaders;
-    using VoxelEngine.Rendering.Shaders;
+    using VoxelEngine.Graphics.D3D11;
 
-    public class ComposeEffect : GraphicsPipeline
+    public class ComposeEffect : DisposableBase
     {
+        private readonly GraphicsPipelineState pso;
         private readonly ConstantBuffer<ComposeParams> cbOptions;
         private bool isDirty = true;
         private float fogStart = 900;
         private float fogEnd = 1000;
         private Vector3 fogColor = Vector3.One;
 
-        public ComposeEffect(ID3D11Device device) : base(device, new()
+        public ComposeEffect() : base()
         {
-            VertexShader = "quad.hlsl",
-            PixelShader = "compose/ps.hlsl",
-        }, GraphicsPipelineState.DefaultFullscreen)
-        {
-            cbOptions = new(device, CpuAccessFlags.Write);
-            ConstantBuffers.Add(cbOptions, ShaderStage.Pixel, 0);
+            pso = GraphicsPipelineState.Create(new()
+            {
+                VertexShader = "quad.hlsl",
+                PixelShader = "compose/ps.hlsl",
+            }, GraphicsPipelineStateDesc.DefaultFullscreen);
+
+            cbOptions = new(CpuAccessFlag.Write);
+            pso.Bindings.SetCBV("Params", cbOptions);
         }
 
         private struct ComposeParams
@@ -44,13 +47,13 @@
             }
         }
 
-        public ID3D11ShaderResourceView Input { set => ShaderResourceViews.SetOrAdd(value, ShaderStage.Pixel, 0); }
+        public IShaderResourceView Input { set => pso.Bindings.SetSRV("hdrTexture", value); }
 
-        public ID3D11ShaderResourceView Bloom { set => ShaderResourceViews.SetOrAdd(value, ShaderStage.Pixel, 1); }
+        public IShaderResourceView Bloom { set => pso.Bindings.SetSRV("bloomTexture", value); }
 
-        public ID3D11ShaderResourceView Depth { set => ShaderResourceViews.SetOrAdd(value, ShaderStage.Pixel, 3); }
+        public IShaderResourceView Depth { set => pso.Bindings.SetSRV("depthTexture", value); }
 
-        public ID3D11Buffer Camera { set => ConstantBuffers.SetOrAdd(value, ShaderStage.Pixel, 1); }
+        public IBuffer Camera { set => pso.Bindings.SetCBV("CameraBuffer", value); }
 
         public float FogStart
         {
@@ -82,7 +85,7 @@
             }
         }
 
-        public void Pass(ID3D11DeviceContext context)
+        public void Pass(ComPtr<ID3D11DeviceContext> context)
         {
             if (isDirty)
             {
@@ -90,15 +93,15 @@
                 cbOptions.Update(context, composeParams);
                 isDirty = false;
             }
-            Begin(context);
+            pso.Begin(context);
             context.DrawInstanced(4, 1, 0, 0);
-            End(context);
+            pso.End(context);
         }
 
-        public override void Dispose()
+        protected override void DisposeCore()
         {
+            pso.Dispose();
             cbOptions.Dispose();
-            base.Dispose();
         }
     }
 }
