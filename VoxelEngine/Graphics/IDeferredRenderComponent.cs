@@ -1,4 +1,6 @@
-﻿namespace VoxelEngine.Scenes
+﻿using VoxelEngine.Scenes;
+
+namespace VoxelEngine.Graphics
 {
     using BepuUtilities;
     using Hexa.NET.D3D11;

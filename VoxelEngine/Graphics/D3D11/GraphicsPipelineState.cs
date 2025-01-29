@@ -68,7 +68,7 @@
 
             ComPtr<ID3D11RasterizerState2> rasterizerState;
             var rsDesc = desc.Rasterizer;
-            device.CreateRasterizerState2(&rsDesc, &rasterizerState.Handle);
+            device.CreateRasterizerState2(&rsDesc, &rasterizerState.Handle).ThrowIf();
             RasterizerState = rasterizerState;
 
             /*  if (!result.IsSuccess)
@@ -80,7 +80,7 @@
 
             ComPtr<ID3D11DepthStencilState> depthStencilState;
             var dsDesc = desc.DepthStencil;
-            device.CreateDepthStencilState(&dsDesc, &depthStencilState.Handle);
+            device.CreateDepthStencilState(&dsDesc, &depthStencilState.Handle).ThrowIf();
             DepthStencilState = depthStencilState;
 
             /*if (!result.IsSuccess)
@@ -91,7 +91,7 @@
 
             ComPtr<ID3D11BlendState1> blendState;
             var bsDesc = desc.Blend;
-            device.CreateBlendState1(&bsDesc, &blendState.Handle);
+            device.CreateBlendState1(&bsDesc, &blendState.Handle).ThrowIf();
             BlendState = blendState;
 
             /*  if (!result.IsSuccess)
@@ -149,6 +149,7 @@
 
                 if (!result.IsSuccess)
                 {
+                    result.ThrowIf();
                     isValid = false;
                     return;
                 }

@@ -18,7 +18,7 @@
 
         public override void Awake()
         {
-            world = Parent as World;
+            world = GameObject as World;
         }
 
         public override void Destroy()

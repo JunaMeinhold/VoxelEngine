@@ -16,7 +16,7 @@
         private StaticReference reference;
         private bool overwritePosition;
 
-        private GameObject sceneElement;
+        public GameObject GameObject { get; set; } = null!;
 
         public StaticBodyComponent(T shape, RigidPose pose, ContinuousDetection continuousDetection)
         {
@@ -44,19 +44,18 @@
         public StaticHandle Handle => handle;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Initialize(GameObject element)
+        public void Awake()
         {
-            sceneElement = element;
-            typedIndex = sceneElement.Scene.Simulation.Shapes.Add(shape);
-            handle = sceneElement.Scene.Simulation.Statics.Add(new StaticDescription(pose, typedIndex, continuousDetection));
-            reference = sceneElement.Scene.Simulation.Statics.GetStaticReference(handle);
+            typedIndex = GameObject.Scene.Simulation.Shapes.Add(shape);
+            handle = GameObject.Scene.Simulation.Statics.Add(new StaticDescription(pose, typedIndex, continuousDetection));
+            reference = GameObject.Scene.Simulation.Statics.GetStaticReference(handle);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Uninitialize()
+        public void Destroy()
         {
-            sceneElement.Scene.Simulation.Statics.Remove(handle);
-            sceneElement.Scene.Simulation.Shapes.Remove(typedIndex);
+            GameObject.Scene.Simulation.Statics.Remove(handle);
+            GameObject.Scene.Simulation.Shapes.Remove(typedIndex);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -72,8 +71,8 @@
                 pose = reference.Pose;
             }
 
-            sceneElement.Transform.Position = pose.Position;
-            sceneElement.Transform.Orientation = pose.Orientation;
+            GameObject.Transform.Position = pose.Position;
+            GameObject.Transform.Orientation = pose.Orientation;
         }
     }
 }

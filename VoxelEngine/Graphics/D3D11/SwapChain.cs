@@ -95,6 +95,11 @@
             }
         }
 
+        public void SetTarget(ComPtr<ID3D11DeviceContext> context, IDepthStencilView depthStencilView)
+        {
+            context.OMSetRenderTargets(1, rtv.GetAddressOf(), (ID3D11DepthStencilView*)depthStencilView.NativePointer);
+        }
+
         public void ClearTarget(ComPtr<ID3D11DeviceContext> context, Vector4 color, ClearFlag flag = ClearFlag.Depth | ClearFlag.Stencil, float depth = 1, byte stencil = 0)
         {
             context.ClearRenderTargetView(rtv, (float*)&color);

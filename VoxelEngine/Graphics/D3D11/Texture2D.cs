@@ -51,10 +51,10 @@
         {
             this.gpuAccessFlags = gpuAccessFlags;
             ComPtr<ID3D11Device> device = D3D11DeviceManager.Device.As<ID3D11Device>();
-            description = new((uint)width, (uint)height, (uint)arraySize, (uint)mipLevels, format, new SampleDesc(1, 0), 0, 0, 0, (uint)miscFlags);
+            description = new((uint)width, (uint)height, (uint)arraySize, (uint)mipLevels, format, new SampleDesc(1, 0), 0, 0, (uint)cpuAccessFlag, (uint)miscFlags);
             (description.Usage, description.BindFlags) = TextureHelper.ConvertToUB(cpuAccessFlag, gpuAccessFlags);
 
-            device.CreateTexture2D(ref description, null, out texture);
+            device.CreateTexture2D(ref description, null, out texture).ThrowIf();
             texture.GetDesc(ref description);
             //texture.DebugName = nameof(Texture2D);
             CreateViews(device, description);
@@ -65,10 +65,10 @@
         {
             this.gpuAccessFlags = gpuAccessFlags;
             ComPtr<ID3D11Device> device = D3D11DeviceManager.Device.As<ID3D11Device>();
-            description = new((uint)width, (uint)height, (uint)arraySize, (uint)mipLevels, format, new SampleDesc(1, 0), 0, 0, 0, (uint)miscFlags);
+            description = new((uint)width, (uint)height, (uint)arraySize, (uint)mipLevels, format, new SampleDesc(1, 0), 0, 0, (uint)cpuAccessFlag, (uint)miscFlags);
             (description.Usage, description.BindFlags) = TextureHelper.ConvertToUB(cpuAccessFlag, gpuAccessFlags);
 
-            device.CreateTexture2D(ref description, &subresourceData, out texture);
+            device.CreateTexture2D(ref description, &subresourceData, out texture).ThrowIf();
             texture.GetDesc(ref description);
             //texture.DebugName = nameof(Texture2D);
             CreateViews(device, description);
@@ -79,7 +79,7 @@
         {
             this.gpuAccessFlags = gpuAccessFlags;
             ComPtr<ID3D11Device> device = D3D11DeviceManager.Device.As<ID3D11Device>();
-            Texture2DDesc description = new((uint)width, (uint)height, (uint)arraySize, (uint)mipLevels, format, new SampleDesc(1, 0), 0, 0, 0, (uint)miscFlags);
+            Texture2DDesc description = new((uint)width, (uint)height, (uint)arraySize, (uint)mipLevels, format, new SampleDesc(1, 0), 0, 0, (uint)cpuAccessFlag, (uint)miscFlags);
             (description.Usage, description.BindFlags) = TextureHelper.ConvertToUB(cpuAccessFlag, gpuAccessFlags);
 
             device.CreateTexture2D(ref description, ref subresourceData[0], out texture).ThrowIf();
@@ -99,7 +99,7 @@
 
         nint IUnorderedAccessView.NativePointer => (nint)uav.Handle;
 
-        public nint NativePointer => (nint)texture.Handle;
+        nint IDeviceChild.NativePointer => (nint)texture.Handle;
 
         public Hexa.NET.Mathematics.Viewport Viewport => new(description.Width, description.Height);
 
@@ -144,7 +144,7 @@
         public void Resize(Format format, int width, int height, int arraySize, int mipLevels, CpuAccessFlag cpuAccessFlag, GpuAccessFlags gpuAccessFlags = GpuAccessFlags.Read, ResourceMiscFlag miscFlag = 0)
         {
             ComPtr<ID3D11Device> device = D3D11DeviceManager.Device.As<ID3D11Device>();
-            description = new((uint)width, (uint)height, (uint)arraySize, (uint)mipLevels, format, new SampleDesc(1, 0), 0, 0, 0, (uint)miscFlag);
+            description = new((uint)width, (uint)height, (uint)arraySize, (uint)mipLevels, format, new SampleDesc(1, 0), 0, 0, (uint)cpuAccessFlag, (uint)miscFlag);
             (description.Usage, description.BindFlags) = TextureHelper.ConvertToUB(cpuAccessFlag, gpuAccessFlags);
             CreateViews(device, description);
 
@@ -166,19 +166,19 @@
             if ((description.BindFlags & (uint)BindFlag.UnorderedAccess) != 0)
             {
                 UnorderedAccessViewDesc desc = new(description.Format, description.ArraySize > 1 ? UavDimension.Texture2Darray : UavDimension.Texture2D);
-                device.CreateUnorderedAccessView(texture.As<ID3D11Resource>(), ref desc, out uav);
+                device.CreateUnorderedAccessView(texture.As<ID3D11Resource>(), ref desc, out uav).ThrowIf();
                 //uav.DebugName = nameof(Texture2D) + ".UAV";
             }
 
             if ((description.BindFlags & (uint)BindFlag.ShaderResource) != 0)
             {
-                device.CreateShaderResourceView(texture.As<ID3D11Resource>(), null, out srv);
+                device.CreateShaderResourceView(texture.As<ID3D11Resource>(), null, out srv).ThrowIf();
                 //srv.DebugName = nameof(Texture2D) + ".SRV";
             }
 
             if ((description.BindFlags & (uint)BindFlag.RenderTarget) != 0)
             {
-                device.CreateRenderTargetView(texture.As<ID3D11Resource>(), null, out rtv);
+                device.CreateRenderTargetView(texture.As<ID3D11Resource>(), null, out rtv).ThrowIf();
                 //rtv.DebugName = nameof(Texture2D) + ".RTV";
             }
         }

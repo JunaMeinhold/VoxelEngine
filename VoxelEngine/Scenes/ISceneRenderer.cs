@@ -18,9 +18,9 @@
         /// <summary>
         /// Renders the scene with the current Camera. Called by <see cref="Scene.Render"/> ... <see cref="GameWindow.RenderVoid"/>
         /// </summary>
-        /// <param name="view">The view.</param>
-        /// <param name="elements">The elements.</param>
-        void Render(ComPtr<ID3D11DeviceContext> context, Camera view, SceneElementCollection elements);
+        /// <param name="camera">The view.</param>
+        /// <param name="scene">The scene.</param>
+        void Render(ComPtr<ID3D11DeviceContext> context, Camera camera, Scene scene);
 
         void Resize(GameWindow window);
 

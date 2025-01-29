@@ -1,4 +1,4 @@
-Texture2D texture : register(t0);
+Texture2D tex : register(t0);
 SamplerState linearWrapSampler : register(s0);
 
 cbuffer SunParams
@@ -15,6 +15,6 @@ struct PSInput
 
 float4 main(PSInput pin) : SV_TARGET
 {
-	float4 texColor = texture.Sample(linearWrapSampler, pin.TexCoord) * float4(diffuse, 1.0) * albedoFactor;
+	float4 texColor = tex.Sample(linearWrapSampler, pin.TexCoord) * float4(diffuse, 1.0) * albedoFactor;
 	return texColor;
 }

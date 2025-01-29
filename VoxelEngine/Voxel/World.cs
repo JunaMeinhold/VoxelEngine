@@ -2,6 +2,7 @@
 {
     using System.Collections.Generic;
     using System.IO;
+    using System.Linq;
     using System.Numerics;
     using Hexa.NET.D3D11;
     using VoxelEngine.Voxel.WorldGen;
@@ -151,17 +152,17 @@
             }
         }
 
-        public override void Initialize()
+        public override void Awake()
         {
-            Player = Scene.GetElementByType<Player>();
-            base.Initialize();
+            Player = Scene.Find<Player>()!;
+            base.Awake();
             WorldLoader = new(this);
             Generator.Dispose();
         }
 
-        public override void Uninitialize()
+        public override void Destroy()
         {
-            base.Uninitialize();
+            base.Destroy();
             WorldLoader.Dispose();
             Chunks.Clear();
             Chunks = null;

@@ -12,7 +12,7 @@
 
     public unsafe class GodRaysEffect : DisposableBase
     {
-        private Viewport viewport;
+        private Hexa.NET.Mathematics.Viewport viewport;
         private readonly VoxelEngine.Graphics.Primitives.Plane plane;
         private readonly ConstantBuffer<SunParams> paramsSunBuffer;
         private readonly ConstantBuffer<CBWorld> paramsWorldBuffer;
@@ -79,7 +79,7 @@
 
             sun.Bindings.SetCBV("WorldBuffer", paramsWorldBuffer);
             sun.Bindings.SetCBV("SunParams", paramsSunBuffer);
-            sun.Bindings.SetSRV("texture", sunsprite);
+            sun.Bindings.SetSRV("tex", sunsprite);
             sun.Bindings.SetSampler("linearWrapSampler", sunSampler);
 
             godrays = GraphicsPipelineState.Create(new()
@@ -153,7 +153,8 @@
 
         public void PrePass(ComPtr<ID3D11DeviceContext> context, DepthStencil depth)
         {
-            context.ClearRenderTargetView(sunBuffer.RTV, default);
+            Vector4 col = default;
+            context.ClearRenderTargetView(sunBuffer.RTV, (float*)&col);
             context.SetRenderTarget(sunBuffer, depth);
             context.RSSetViewport(viewport);
             plane.DrawAuto(context, sun);

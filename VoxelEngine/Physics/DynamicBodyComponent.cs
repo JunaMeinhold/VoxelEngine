@@ -13,7 +13,7 @@
         private TypedIndex typedIndex;
         private BodyHandle handle;
 
-        private GameObject sceneElement;
+        public GameObject GameObject { get; set; } = null!;
 
         public DynamicBodyComponent(T shape, BodyInertia inertia, RigidPose pose)
         {
@@ -32,23 +32,22 @@
 
         public RigidPose Pose => pose;
 
-        public void Initialize(GameObject element)
+        public void Awake()
         {
-            sceneElement = element;
-            typedIndex = sceneElement.Scene.Simulation.Shapes.Add(shape);
-            handle = sceneElement.Scene.Simulation.Bodies.Add(BodyDescription.CreateDynamic(pose, inertia, new CollidableDescription(typedIndex, 0), new BodyActivityDescription(0.01f)));
+            typedIndex = GameObject.Scene.Simulation.Shapes.Add(shape);
+            handle = GameObject.Scene.Simulation.Bodies.Add(BodyDescription.CreateDynamic(pose, inertia, new CollidableDescription(typedIndex, 0), new BodyActivityDescription(0.01f)));
         }
 
-        public void Uninitialize()
+        public void Destroy()
         {
         }
 
         public void Update()
         {
-            BodyReference reference = sceneElement.Scene.Simulation.Bodies.GetBodyReference(handle);
+            BodyReference reference = GameObject.Scene.Simulation.Bodies.GetBodyReference(handle);
             pose = reference.Pose;
-            sceneElement.Transform.Position = pose.Position;
-            sceneElement.Transform.Orientation = pose.Orientation;
+            GameObject.Transform.Position = pose.Position;
+            GameObject.Transform.Orientation = pose.Orientation;
         }
     }
 }

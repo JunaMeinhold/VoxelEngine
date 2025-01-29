@@ -48,7 +48,7 @@
             Texture3DDesc description = new((uint)width, (uint)height, (uint)arraySize, (uint)mipLevels, format, 0, (uint)Usage.Default, (uint)cpuAccessFlag, (uint)miscFlags);
             (description.Usage, description.BindFlags) = TextureHelper.ConvertToUB(cpuAccessFlag, gpuAccessFlags);
 
-            device.CreateTexture3D(ref description, null, out texture);
+            device.CreateTexture3D(ref description, null, out texture).ThrowIf();
             //texture.DebugName = nameof(Texture3D);
 
             CreateViews(device, description);
@@ -62,7 +62,7 @@
             Texture3DDesc description = new((uint)width, (uint)height, (uint)arraySize, (uint)mipLevels, format, 0, (uint)Usage.Default, (uint)cpuAccessFlag, (uint)miscFlags);
             (description.Usage, description.BindFlags) = TextureHelper.ConvertToUB(cpuAccessFlag, gpuAccessFlags);
 
-            device.CreateTexture3D(ref description, &subresourceData, out texture);
+            device.CreateTexture3D(ref description, &subresourceData, out texture).ThrowIf();
             //texture.DebugName = nameof(Texture3D);
 
             CreateViews(device, description);
@@ -76,7 +76,7 @@
             Texture3DDesc description = new((uint)width, (uint)height, (uint)arraySize, (uint)mipLevels, format, 0, (uint)Usage.Default, (uint)cpuAccessFlag, (uint)miscFlags);
             (description.Usage, description.BindFlags) = TextureHelper.ConvertToUB(cpuAccessFlag, gpuAccessFlags);
 
-            device.CreateTexture3D(ref description, ref subresourceData[0], out texture);
+            device.CreateTexture3D(ref description, ref subresourceData[0], out texture).ThrowIf();
             //texture.DebugName = nameof(Texture3D);
 
             CreateViews(device, description);
@@ -137,19 +137,19 @@
         {
             if ((description.BindFlags & (uint)BindFlag.UnorderedAccess) != 0)
             {
-                device.CreateUnorderedAccessView(texture.As<ID3D11Resource>(), null, out uav);
+                device.CreateUnorderedAccessView(texture.As<ID3D11Resource>(), null, out uav).ThrowIf();
                 //uav.DebugName = nameof(Texture2D) + ".UAV";
             }
 
             if ((description.BindFlags & (uint)BindFlag.ShaderResource) != 0)
             {
-                device.CreateShaderResourceView(texture.As<ID3D11Resource>(), null, out srv);
+                device.CreateShaderResourceView(texture.As<ID3D11Resource>(), null, out srv).ThrowIf();
                 //srv.DebugName = nameof(Texture2D) + ".SRV";
             }
 
             if ((description.BindFlags & (uint)BindFlag.RenderTarget) != 0)
             {
-                device.CreateRenderTargetView(texture.As<ID3D11Resource>(), null, out rtv);
+                device.CreateRenderTargetView(texture.As<ID3D11Resource>(), null, out rtv).ThrowIf();
                 //rtv.DebugName = nameof(Texture2D) + ".RTV";
             }
         }

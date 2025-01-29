@@ -69,6 +69,7 @@
                 SubresourceData subresource = new(pVertices);
                 device.CreateBuffer(ref desc, ref subresource, out vertexBuffer);
             }
+            vertexCount = vertices.Length;
         }
 
         public int Count => vertexCount;

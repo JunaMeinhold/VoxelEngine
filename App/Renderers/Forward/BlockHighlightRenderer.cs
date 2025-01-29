@@ -5,15 +5,13 @@
     using Hexa.NET.Mathematics;
     using HexaGen.Runtime.COM;
     using System.Numerics;
-    using System.Runtime.CompilerServices;
+    using VoxelEngine.Graphics;
     using VoxelEngine.Graphics.Buffers;
-    using VoxelEngine.Graphics.D3D11.Interfaces;
     using VoxelEngine.Graphics.Primitives;
     using VoxelEngine.Scenes;
     using VoxelEngine.Voxel;
-    using BoundingBox = Hexa.NET.Mathematics.BoundingBox;
 
-    public class BlockHighlightRenderer : IForwardRenderComponent
+    public class BlockHighlightRenderer : BaseRenderComponent
     {
         private ConstantBuffer<Matrix4x4> mvpBuffer;
         private ConstantBuffer<Vector4> colorBuffer;
@@ -23,10 +21,11 @@
 
         public Vector4 Color;
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Initialize(GameObject element)
+        public override int QueueIndex { get; } = (int)RenderQueueIndex.GeometryLast;
+
+        public override void Awake()
         {
-            if (element is World world)
+            if (GameObject is World world)
             {
                 _world = world;
             }
@@ -39,8 +38,15 @@
             lineBox = new();
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void DrawForward(ComPtr<ID3D11DeviceContext> context, IView view)
+        public override void Draw(ComPtr<ID3D11DeviceContext> context, PassIdentifer pass, Camera camera, object? parameter)
+        {
+            if (pass == PassIdentifer.ForwardPass)
+            {
+                DrawForward(context);
+            }
+        }
+
+        public void DrawForward(ComPtr<ID3D11DeviceContext> context)
         {
             if (_world.Player.IsLookingAtBlock)
             {
@@ -54,8 +60,7 @@
             }
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Uninitialize()
+        public override void Destroy()
         {
             linePipeline.Dispose();
             linePipeline = null;
@@ -66,12 +71,6 @@
             lineBox.Dispose();
             lineBox = null;
             _world = null;
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public BoundingBox GetBoundingBox()
-        {
-            return new BoundingBox(new Vector3(float.NaN), new Vector3(float.NaN));
         }
     }
 }

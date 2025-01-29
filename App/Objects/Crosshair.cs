@@ -18,15 +18,15 @@
             AddComponent(textureComponent);
         }
 
-        public override void Initialize()
+        public override void Awake()
         {
             Load();
-            base.Initialize();
+            base.Awake();
         }
 
-        public override void Uninitialize()
+        public override void Destroy()
         {
-            base.Uninitialize();
+            base.Destroy();
             textureComponent = null;
             vertexBuffer = null;
         }

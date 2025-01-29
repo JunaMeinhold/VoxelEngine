@@ -1,26 +1,22 @@
-﻿using VoxelEngine.Graphics.D3D11;
-
-namespace App.Renderers.Forward
+﻿namespace App.Renderers
 {
     using App.Pipelines.Forward;
     using Hexa.NET.D3D11;
     using Hexa.NET.ImGui;
     using Hexa.NET.Mathematics;
     using Hexa.NET.Mathematics.Sky;
-    using Hexa.NET.Mathematics.Sky.HosekWilkie;
+    using Hexa.NET.Mathematics.Sky.Preetham;
     using HexaGen.Runtime.COM;
     using System.Numerics;
     using System.Runtime.CompilerServices;
+    using VoxelEngine.Graphics;
     using VoxelEngine.Graphics.Buffers;
     using VoxelEngine.Graphics.D3D11;
-    using VoxelEngine.Graphics.D3D11.Interfaces;
     using VoxelEngine.Graphics.Primitives;
     using VoxelEngine.Scenes;
-    using ShaderStage = ShaderStage;
 
-    public class SkyboxRenderer : IForwardRenderComponent
+    public class SkyboxRenderer : BaseRenderComponent
     {
-        private GameObject sceneElement;
         private SkyboxPipeline pipeline;
 
         private ConstantBuffer<Matrix4x4> mvpBuffer;
@@ -35,6 +31,8 @@ namespace App.Renderers.Forward
 
         private float turbidity = 3;
         private float groundAlbedo = 0.1f;
+
+        public override int QueueIndex { get; } = (int)RenderQueueIndex.Background;
 
         public static Vector3 SunDir;
 
@@ -69,9 +67,8 @@ namespace App.Renderers.Forward
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Initialize(GameObject element)
+        public override void Awake()
         {
-            sceneElement = element;
             pipeline = new();
             sphere = new();
             Texture = new(TexturePath);
@@ -83,11 +80,20 @@ namespace App.Renderers.Forward
             pipeline.Bindings.SetCBV("WeatherCBuf", constantBuffer);
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void DrawForward(ComPtr<ID3D11DeviceContext> context, IView view)
+        public override void Draw(ComPtr<ID3D11DeviceContext> context, PassIdentifer pass, Camera camera, object? parameter)
         {
+            if (pass == PassIdentifer.ForwardPass)
+            {
+                DrawForward(context);
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void DrawForward(ComPtr<ID3D11DeviceContext> context)
+        {
+            Camera camera = Camera.Current;
             Vector3 sunDir = Vector3.Normalize(-SunDir);
-            SkyParameters skyParams = SkyModel.CalculateSkyParameters(turbidity, groundAlbedo, sunDir, 0);
+            SkyParameters skyParams = SkyModel.CalculateSkyParameters(turbidity, sunDir, 0, 0);
             colors.A = skyParams[(int)EnumSkyParams.A];
             colors.B = skyParams[(int)EnumSkyParams.B];
             colors.C = skyParams[(int)EnumSkyParams.C];
@@ -108,7 +114,7 @@ namespace App.Renderers.Forward
             ImGui.End();
 
             constantBuffer.Update(context, colors);
-            mvpBuffer.Update(context, Matrix4x4.Transpose(Matrix4x4.CreateScale(view.Transform.Far) * Matrix4x4.CreateTranslation(view.Transform.Position)));
+            mvpBuffer.Update(context, Matrix4x4.Transpose(Matrix4x4.CreateScale(camera.Transform.Far) * Matrix4x4.CreateTranslation(camera.Transform.Position)));
             sphere.Bind(context);
             pipeline.Begin(context);
             context.DrawIndexed((uint)sphere.IndexBuffer.Count, 0, 0);
@@ -116,7 +122,7 @@ namespace App.Renderers.Forward
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Uninitialize()
+        public override void Destroy()
         {
             pipeline.Dispose();
             pipeline = null;
@@ -124,7 +130,6 @@ namespace App.Renderers.Forward
             sphere.Dispose();
             Texture.Dispose();
             Texture = null;
-            sceneElement = null;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

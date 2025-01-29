@@ -39,7 +39,7 @@
         /// <summary>
         /// Disables the shader cache
         /// </summary>
-        public static bool DisableCache { get; set; } = false;
+        public static bool DisableCache { get; set; }
 
         /// <summary>
         /// Returns the list of shader cache entries, please use the SyncObject to avoid race conditions.
@@ -305,7 +305,7 @@
                 idx += ReadInt32(src[idx..], out int alignedByteOffset);
                 idx += ReadInt32(src[idx..], out int classification);
                 idx += ReadInt32(src[idx..], out int instanceDataStepRate);
-                InputElements[i] = new(semanticName, semanticIndex, (Format)format, alignedByteOffset, slot, (InputClassification)classification, instanceDataStepRate);
+                InputElements[i] = new(semanticName, semanticIndex, (Format)format, slot, alignedByteOffset, (InputClassification)classification, instanceDataStepRate);
             }
 
             int len = BinaryPrimitives.ReadInt32LittleEndian(src[idx..]);

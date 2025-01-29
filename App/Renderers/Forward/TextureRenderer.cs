@@ -1,20 +1,16 @@
-﻿using VoxelEngine.Graphics.D3D11;
-
-namespace App.Renderers.Forward
+﻿namespace App.Renderers.Forward
 {
     using App.Pipelines.Forward;
     using Hexa.NET.D3D11;
-    using Hexa.NET.Mathematics;
     using HexaGen.Runtime.COM;
     using System.Numerics;
-    using System.Runtime.CompilerServices;
+    using VoxelEngine.Graphics;
     using VoxelEngine.Graphics.Buffers;
     using VoxelEngine.Graphics.D3D11;
-    using VoxelEngine.Graphics.D3D11.Interfaces;
     using VoxelEngine.Mathematics;
     using VoxelEngine.Scenes;
 
-    public class TextureRenderer : IForwardRenderComponent
+    public class TextureRenderer : BaseRenderComponent
     {
         private TexturePipeline pipeline;
         private ConstantBuffer<Matrix4x4> mvpBuffer;
@@ -22,39 +18,40 @@ namespace App.Renderers.Forward
         public Texture2D Texture;
         public string TexturePath;
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Initialize(GameObject element)
+        public override int QueueIndex { get; } = (int)RenderQueueIndex.Overlay;
+
+        public override void Awake()
         {
             Texture = new(TexturePath);
 
             mvpBuffer = new(CpuAccessFlag.Write);
             pipeline = new();
             pipeline.Bindings.SetCBV("ModelBuffer", mvpBuffer);
-            pipeline.Bindings.SetSRV("texture", Texture);
+            pipeline.Bindings.SetSRV("tex", Texture);
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void DrawForward(ComPtr<ID3D11DeviceContext> context, IView view)
+        public override void Draw(ComPtr<ID3D11DeviceContext> context, PassIdentifer pass, Camera camera, object? parameter)
         {
-            // VertexBuffer.Bind(context);
-            //mvpBuffer.Update(context, Matrix4x4.Transpose(Matrix4x4.Identity));
-            // pipeline.Pass(context, ScreenCamera.Instance, Matrix4x4.Identity, VertexBuffer.Count, 0);
+            if (pass == PassIdentifer.ForwardPass)
+            {
+                DrawForward(context);
+            }
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Uninitialize()
+        public void DrawForward(ComPtr<ID3D11DeviceContext> context)
+        {
+            //VertexBuffer.Bind(context);
+            //mvpBuffer.Update(context, Matrix4x4.Transpose(Matrix4x4.Identity));
+            //pipeline.Pass(context, ScreenCamera.Instance, Matrix4x4.Identity, VertexBuffer.Count, 0);
+        }
+
+        public override void Destroy()
         {
             pipeline.Dispose();
             VertexBuffer.Dispose();
             VertexBuffer = null;
             Texture.Dispose();
             TexturePath = null;
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public BoundingBox GetBoundingBox()
-        {
-            return new BoundingBox(new Vector3(float.NaN), new Vector3(float.NaN));
         }
     }
 }

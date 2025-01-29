@@ -1,7 +1,6 @@
 ﻿namespace VoxelEngine.Voxel
 {
     using System.Numerics;
-    using Hexa.NET.D3D11;
     using VoxelEngine.Scenes;
     using VoxelEngine.Voxel.Blocks;
 
@@ -20,10 +19,10 @@
             Respawn();
         }
 
-        public override void Initialize()
+        public override void Awake()
         {
-            World = Scene.GetElementByType<World>();
-            base.Initialize();
+            World = Scene.Find<World>()!;
+            base.Awake();
         }
 
         public World World { get; private set; }

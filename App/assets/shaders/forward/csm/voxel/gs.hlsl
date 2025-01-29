@@ -1,7 +1,7 @@
 #include "defs.hlsl"
 #define MAX_CASCADED_NUM 5
 
-cbuffer CascadeBuffer : register(b0)
+cbuffer CSMCascadeBuffer : register(b0)
 {
 	matrix g_lightSpace[MAX_CASCADED_NUM];
 };

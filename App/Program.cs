@@ -6,4 +6,4 @@ using VoxelEngine.Windows;
 
 Logger.Initialize();
 Application.Boot();
-Application.Run(new GameWindow(new MainScene()));
+Application.Run(new GameWindow(MainScene.Create()));

@@ -156,7 +156,7 @@
 
         public static implicit operator BlendDesc1(BlendDescription desc)
         {
-            BlendDescription result = new()
+            BlendDesc1 result = new()
             {
                 AlphaToCoverageEnable = desc.AlphaToCoverageEnable,
                 IndependentBlendEnable = desc.IndependentBlendEnable,

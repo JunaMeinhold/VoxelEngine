@@ -1,16 +1,19 @@
 ﻿namespace VoxelEngine.Scenes
 {
-    using System;
-    using System.Numerics;
-    using System.Runtime.CompilerServices;
     using BepuPhysics;
-    using BepuPhysics.Collidables;
+    using BepuPhysics.Trees;
     using BepuUtilities;
     using BepuUtilities.Memory;
     using Hexa.NET.D3D11;
+    using HexaEngine.Queries;
+    using System;
+    using System.Numerics;
+    using System.Runtime.CompilerServices;
+    using System.Threading;
+    using System.Xml.Linq;
+    using VoxelEngine.Collections;
     using VoxelEngine.Core;
-    using VoxelEngine.Core.Input;
-    using VoxelEngine.Core.Windows;
+    using VoxelEngine.Graphics;
     using VoxelEngine.Graphics.D3D11;
     using VoxelEngine.Physics;
     using VoxelEngine.Physics.Characters;
@@ -18,29 +21,46 @@
     using VoxelEngine.Scripting;
     using VoxelEngine.Windows;
 
+    public delegate void SceneEventHandler<T>(Scene scene, T args);
+
+    public class SceneRootNode : GameObject
+    {
+        private Scene parent;
+
+        public SceneRootNode(Scene parent)
+        {
+            this.parent = parent;
+            Name = "Root";
+        }
+
+        public override Scene Scene { get => parent; internal set => parent = value; }
+    }
+
     public class Scene : IDisposable
     {
         private bool disposedValue;
         private bool initialized;
-        private Dispatcher dispatcher;
-        private SceneProfiler profiler = new();
-        private List<GameObject> flatList = new();
+        private SceneDispatcher dispatcher = new();
+        private readonly SceneProfiler profiler = new();
+        private readonly List<GameObject> gameObjects = new();
+        private readonly FlaggedList<SystemFlags, ISceneSystem> systems = new();
+        private readonly SceneRootNode root;
+
+        private readonly SemaphoreSlim semaphore = new(1);
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Scene"/> class.
         /// </summary>
         public Scene()
         {
-            Elements = new(this);
+            root = new(this);
+            systems.Add(QueryManager = new QuerySystem(this));
+            systems.Add(RenderSystem = new RenderSystem());
+            systems.Add(new ScriptSystem());
+            systems.Add(new TransformSystem());
         }
 
-        /// <summary>
-        /// Gets the elements.
-        /// </summary>
-        /// <value>
-        /// The elements.
-        /// </value>
-        protected SceneElementCollection Elements { get; private set; }
+        public IReadOnlyList<GameObject> GameObjects => gameObjects;
 
         /// <summary>
         /// Gets the dispatcher.
@@ -48,7 +68,7 @@
         /// <value>
         /// The dispatcher. Used to ensure thread-safety
         /// </value>
-        public Dispatcher Dispatcher => dispatcher;
+        public SceneDispatcher Dispatcher => dispatcher;
 
         /// <summary>
         /// Gets the window.
@@ -122,11 +142,18 @@
         /// </value>
         public bool IsSimulating { get; set; }
 
+        public event SceneEventHandler<GameObject>? GameObjectAdded;
+
+        public event SceneEventHandler<GameObject>? GameObjectRemoved;
+
         public SceneProfiler Profiler => profiler;
+
+        public QuerySystem QueryManager { get; }
+
+        public RenderSystem RenderSystem { get; }
 
         public virtual void Initialize()
         {
-            dispatcher = Dispatcher.CurrentDispatcher;
             BufferPool = new BufferPool();
 
             int targetThreadCount = Math.Max(1, Environment.ProcessorCount > 4 ? Environment.ProcessorCount - 2 : Environment.ProcessorCount - 1);
@@ -137,202 +164,111 @@
             Voxels.Register(Simulation);
             Window = (GameWindow)Application.MainWindow;
             Renderer.Initialize(Window);
-            Elements.ForEach(e => e.Initialize());
+
+            root.Awake();
+
+            foreach (var system in systems[SystemFlags.Awake])
+            {
+                system.Awake(this);
+            }
+
+            Time.FixedUpdate += FixedUpdate;
             initialized = true;
+        }
+
+        private void FixedUpdate(object? sender, EventArgs e)
+        {
+            if (IsSimulating)
+            {
+                lock (Simulation)
+                {
+                    float delta = Time.FixedDelta;
+                    Simulation.Timestep(delta, ThreadDispatcher);
+
+                    ContactEvents.Flush();
+
+                    foreach (var system in systems[SystemFlags.PhysicsUpdate])
+                    {
+                        system.FixedUpdate();
+                    }
+                }
+            }
+
+            foreach (var system in systems[SystemFlags.FixedUpdate])
+            {
+                system.FixedUpdate();
+            }
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Render()
         {
+            float delta = Time.Delta;
             profiler.Reset();
-            if (IsSimulating)
+
+            foreach (var system in systems[SystemFlags.EarlyUpdate])
             {
-                lock (Simulation)
-                {
-                    Simulate(Time.Delta);
-                }
+                system.Update(delta);
             }
 
-            profiler.ProfileSimulation();
-
-            foreach (ScriptComponent item in Elements.ScriptComponents)
+            foreach (var system in systems[SystemFlags.Update])
             {
-                item.Update();
+                system.Update(delta);
             }
 
-            foreach (ScriptFrameComponent item in Elements.ScriptFrameComponents)
+            foreach (var system in systems[SystemFlags.LateUpdate])
             {
-                item.Update();
-            }
-
-            foreach (IBodyComponent item in Elements.ColliderComponents)
-            {
-                item.Update();
+                system.Update(delta);
             }
 
             profiler.ProfileUpdate();
             Camera.Transform.Recalculate();
-            Renderer.Render(D3D11DeviceManager.Context.As<ID3D11DeviceContext>(), Camera, Elements);
+            Renderer.Render(D3D11DeviceManager.Context.As<ID3D11DeviceContext>(), Camera, this);
             profiler.ProfileRender();
 
-            Dispatcher.ExecuteQueue();
+            Dispatcher.ExecuteInvokes();
             profiler.ProfileDispatch();
-        }
-
-        private const float stepsize = 0.010f;
-        private float interpol;
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Simulate(float delta)
-        {
-            interpol += delta;
-            while (interpol > stepsize)
-            {
-                interpol -= stepsize;
-                Simulation.Timestep(stepsize, ThreadDispatcher);
-            }
-            ContactEvents.Flush();
-        }
-
-        /// <summary>
-        /// Gets the element by T and the given name.
-        /// </summary>
-        /// <typeparam name="T">Type</typeparam>
-        /// <param name="name">Name</param>
-        /// <returns>The element</returns>
-        public T GetElementByName<T>(string name) where T : GameObject
-        {
-            return GetElementsByType<T>().FirstOrDefault(x => x.Name == name);
-        }
-
-        /// <summary>
-        /// Gets all elements with the type T.
-        /// </summary>
-        /// <typeparam name="T">Type</typeparam>
-        /// <returns>The elements</returns>
-        public IEnumerable<T> GetElementsByType<T>() where T : GameObject
-        {
-            return Elements.Where(x => x is T).Cast<T>();
-        }
-
-        /// <summary>
-        /// Gets the first element with the type T.
-        /// </summary>
-        /// <typeparam name="T">Type</typeparam>
-        /// <returns>The elements</returns>
-        public T GetElementByType<T>() where T : GameObject
-        {
-            return (T)Elements.FirstOrDefault(x => x is T);
-        }
-
-        public T GetElementByComponentRef<T>(IComponent component) where T : GameObject
-        {
-            foreach (GameObject element in Elements)
-            {
-                if (element.Components.Contains(component))
-                {
-                    return element as T;
-                }
-            }
-
-            return null;
-        }
-
-        public T GetElementByCollidableReference<T>(CollidableReference reference) where T : GameObject
-        {
-            foreach (IBodyComponent component in Elements.ColliderComponents)
-            {
-                if (component is IDynamicBodyComponent dynamic)
-                {
-                    if (Simulation.Bodies[dynamic.Handle].CollidableReference == reference)
-                    {
-                        return GetElementByComponentRef<T>(dynamic);
-                    }
-                }
-
-                if (component is IStaticBodyComponent staticBody)
-                {
-                    if (Simulation.Statics[staticBody.Handle].CollidableReference == reference)
-                    {
-                        return GetElementByComponentRef<T>(staticBody);
-                    }
-                }
-            }
-            return null;
-        }
-
-        public T GetElementByBodyHandle<T>(BodyHandle handle) where T : GameObject
-        {
-            foreach (IBodyComponent component in Elements.ColliderComponents)
-            {
-                if (component is IDynamicBodyComponent dynamic)
-                {
-                    if (dynamic.Handle == handle)
-                    {
-                        return GetElementByComponentRef<T>(dynamic);
-                    }
-                }
-            }
-
-            return null;
-        }
-
-        public T GetElementByStaticHandle<T>(StaticHandle handle) where T : GameObject
-        {
-            foreach (IBodyComponent component in Elements.ColliderComponents)
-            {
-                if (component is IStaticBodyComponent staticBody)
-                {
-                    if (staticBody.Handle == handle)
-                    {
-                        return GetElementByComponentRef<T>(staticBody);
-                    }
-                }
-            }
-
-            return null;
         }
 
         /// <summary>
         /// Adds an scene element.<br/>
-        /// Calls <see cref="GameObject.Initialize"/> if <see cref="initialized"/> == <see langword="true" />
+        /// Calls <see cref="GameObject.Awake"/> if <see cref="initialized"/> == <see langword="true" />
         /// </summary>
-        /// <param name="sceneElement">The scene element.</param>
-        public void Add(GameObject sceneElement)
+        /// <param name="node">The scene element.</param>
+        public void Add(GameObject node)
         {
-            if (initialized)
+            if (semaphore.CurrentCount == 0)
             {
-                dispatcher.Invoke(() =>
-                {
-                    Elements.Add(sceneElement);
-                    sceneElement.Initialize();
-                });
+                Dispatcher.Invoke(node, root.AddChild);
+                return;
             }
-            else
-            {
-                Elements.Add(sceneElement);
-            }
+            semaphore.Wait();
+            root.AddChild(node);
+            semaphore.Release();
+        }
+
+        public void AddChildUnsafe(GameObject node)
+        {
+            semaphore.Wait();
+            root.AddChild(node);
+            semaphore.Release();
         }
 
         /// <summary>
         /// Removes an scene element.<br/>
-        /// Calls <see cref="GameObject.Uninitialize"/> if <see cref="initialized"/> == <see langword="true" />
+        /// Calls <see cref="GameObject.Destroy"/> if <see cref="initialized"/> == <see langword="true" />
         /// </summary>
-        /// <param name="sceneElement">The scene element.</param>
-        public void Remove(GameObject sceneElement)
+        /// <param name="node">The scene element.</param>
+        public void Remove(GameObject node)
         {
-            if (initialized)
+            if (semaphore.CurrentCount == 0)
             {
-                dispatcher.Invoke(() =>
-                {
-                    Elements.Remove(sceneElement);
-                    sceneElement.Uninitialize();
-                });
+                Dispatcher.Invoke(node, node => root.RemoveChild(node));
+                return;
             }
-            else
-            {
-                Elements.Remove(sceneElement);
-            }
+            semaphore.Wait();
+            root.RemoveChild(node);
+            semaphore.Release();
         }
 
         /// <summary>
@@ -343,15 +279,20 @@
         {
             if (!disposedValue)
             {
-                Elements.ForEach(x => x.Uninitialize());
-                Elements.Dispose();
+                Time.FixedUpdate -= FixedUpdate;
+                root.Destroy();
+
+                foreach (var system in systems[SystemFlags.Destroy])
+                {
+                    system.Destroy();
+                }
+
                 Simulation.Clear();
                 Simulation.Dispose();
                 Simulation = null;
                 BufferPool.Clear();
                 BufferPool = null;
                 Renderer.Uninitialize();
-                Elements = null;
                 dispatcher = null;
                 Camera = null;
                 Simulation = null;
@@ -360,15 +301,6 @@
                 initialized = false;
                 disposedValue = true;
             }
-        }
-
-        /// <summary>
-        /// Finalizes an instance of the <see cref="Scene"/> class.
-        /// </summary>
-        ~Scene()
-        {
-            // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
-            Dispose(disposing: false);
         }
 
         /// <summary>
@@ -383,12 +315,26 @@
 
         internal void Register(GameObject gameObject)
         {
-            flatList.Add(gameObject);
+            gameObjects.Add(gameObject);
+            GameObjectAdded?.Invoke(this, gameObject);
         }
 
         internal void Unregister(GameObject gameObject)
         {
-            flatList.Remove(gameObject);
+            gameObjects.Remove(gameObject);
+            GameObjectRemoved?.Invoke(this, gameObject);
+        }
+
+        public T? Find<T>()
+        {
+            foreach (var gameObject in gameObjects)
+            {
+                if (gameObject is T t)
+                {
+                    return t;
+                }
+            }
+            return default;
         }
     }
 }

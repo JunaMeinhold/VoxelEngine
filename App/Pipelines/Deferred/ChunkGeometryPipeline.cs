@@ -15,7 +15,7 @@
     {
         private readonly Texture2D textures;
         private readonly SamplerState samplerState;
-        private readonly ConstantBuffer<ModelViewProjBuffer> mvpBuffer;
+        private readonly ConstantBuffer<Matrix4x4> mvpBuffer;
         private readonly ConstantBuffer<WorldData> worldDataBuffer;
         private readonly ConstantBuffer<BlockDescriptionPacked> blockBuffer;
 
@@ -37,7 +37,7 @@
 
             state.Bindings.SetSRV("shaderTexture", textures);
             state.Bindings.SetSampler("Sampler", samplerState);
-            state.Bindings.SetCBV("MatrixBuffer", mvpBuffer);
+            state.Bindings.SetCBV("ModelBuffer", mvpBuffer);
             state.Bindings.SetCBV("WorldData", worldDataBuffer);
             state.Bindings.SetCBV("TexData", blockBuffer);
         }
@@ -52,9 +52,9 @@
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Update(ComPtr<ID3D11DeviceContext> context, IView view)
+        public void Update(ComPtr<ID3D11DeviceContext> context)
         {
-            mvpBuffer.Update(context, new ModelViewProjBuffer(view, Matrix4x4.Identity));
+            mvpBuffer.Update(context, Matrix4x4.Transpose(Matrix4x4.Identity));
             worldDataBuffer.Update(context, new WorldData() { chunkOffset = Vector3.Zero });
             blockBuffer.Update(context, BlockRegistry.GetDescriptionPackeds().ToArray());
         }

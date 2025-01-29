@@ -11,7 +11,7 @@ PixelInput main(VertexInput input)
 	PixelInput output;
 
 	output.pos = mul(float4(input.pos, 1), model);
-	output.pos = mul(output.pos, mvp.viewProj);
+	output.pos = mul(output.pos, viewProj);
 	output.tex = input.tex;
 	return output;
 }

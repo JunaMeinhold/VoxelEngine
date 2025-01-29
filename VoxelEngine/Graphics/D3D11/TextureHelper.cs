@@ -39,7 +39,7 @@
                 0,
                 0,
                 CreateTexFlags.Default,
-                &res);
+                &res).ThrowIf();
 
             scratchImage.Release();
             ComPtr<ID3D11Texture1D> texture = default;
@@ -64,7 +64,7 @@
                 desc.CPUAccessFlags,
                 desc.MiscFlags,
                 CreateTexFlags.Default,
-                &res);
+                &res).ThrowIf();
 
             scratchImage.Release();
             ComPtr<ID3D11Texture2D> texture = default;
@@ -89,7 +89,7 @@
                 desc.CPUAccessFlags,
                 desc.MiscFlags,
                 CreateTexFlags.Default,
-                &res);
+                &res).ThrowIf();
 
             scratchImage.Release();
             ComPtr<ID3D11Texture3D> texture = default;
@@ -163,7 +163,7 @@
                 }
             }
 
-            device.CreateTexture2D(ref desc, ref subresources[0], out ComPtr<ID3D11Texture2D> texture);
+            device.CreateTexture2D(ref desc, ref subresources[0], out ComPtr<ID3D11Texture2D> texture).ThrowIf();
 
             for (int i = 0; i < textures.Length; i++)
             {

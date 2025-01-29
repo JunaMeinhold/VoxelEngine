@@ -1,6 +1,6 @@
 ﻿namespace App.Objects
 {
-    using App.Renderers.Forward;
+    using App.Renderers;
     using VoxelEngine.Scenes;
 
     public class Skybox : GameObject

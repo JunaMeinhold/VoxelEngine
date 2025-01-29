@@ -22,8 +22,11 @@
 
         public Format[] Formats => formats;
 
+        public Hexa.NET.Mathematics.Viewport Viewport { get; private set; }
+
         public GBuffer(int width, int height, params Format[] formats)
         {
+            Viewport = new(width, height);
             var device = D3D11DeviceManager.Device;
             Count = formats.Length;
             Width = width;
@@ -49,9 +52,9 @@
                     MiscFlags = 0
                 };
 
-                device.CreateTexture2D(ref textureDesc, null, out ComPtr<ID3D11Texture2D> texture);
-                device.CreateShaderResourceView(texture.As<ID3D11Resource>(), null, out ComPtr<ID3D11ShaderResourceView> srv);
-                device.CreateRenderTargetView(texture.As<ID3D11Resource>(), null, out ComPtr<ID3D11RenderTargetView> rtv);
+                device.CreateTexture2D(ref textureDesc, null, out ComPtr<ID3D11Texture2D> texture).ThrowIf();
+                device.CreateShaderResourceView(texture.As<ID3D11Resource>(), null, out ComPtr<ID3D11ShaderResourceView> srv).ThrowIf();
+                device.CreateRenderTargetView(texture.As<ID3D11Resource>(), null, out ComPtr<ID3D11RenderTargetView> rtv).ThrowIf();
 
                 textures[i] = texture;
                 srvs[i] = srv;
@@ -71,6 +74,7 @@
                 formats = this.formats;
             }
 
+            Viewport = new(width, height);
             Width = width;
             Height = height;
             this.formats = formats;

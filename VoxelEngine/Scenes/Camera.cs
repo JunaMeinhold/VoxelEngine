@@ -37,22 +37,24 @@
 
         CameraTransform IView.Transform => Transform;
 
-        public override void Initialize()
+        public static Camera Current => SceneManager.Current.Camera;
+
+        public override void Awake()
         {
             Application.MainWindow.Resized += Resized;
             if (Application.MainWindow != null)
                 Application.MainWindow.Resized += Resized;
-            base.Initialize();
+            base.Awake();
             if (!autoSize || Application.MainWindow == null) return;
             Transform.Width = Application.MainWindow.Width;
             Transform.Height = Application.MainWindow.Height;
         }
 
-        public override void Uninitialize()
+        public override void Destroy()
         {
             if (Application.MainWindow != null)
                 Application.MainWindow.Resized -= Resized;
-            base.Uninitialize();
+            base.Destroy();
         }
 
         private void Resized(object? sender, ResizedEventArgs e)

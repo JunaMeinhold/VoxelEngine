@@ -85,16 +85,13 @@
             {
                 desc.Usage = Usage.Staging;
             }
-            if (cpuAccessFlags == 0)
-            {
-                throw new InvalidOperationException("If cpu access flags are none initial data must be provided");
-            }
 
             fixed (T* pData = indices)
             {
                 SubresourceData subresourceData = new(pData);
                 device.CreateBuffer(ref desc, ref subresourceData, out buffer);
             }
+            indexCount = indices.Length;
         }
 
         public int Count => indexCount;

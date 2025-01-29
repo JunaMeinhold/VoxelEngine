@@ -1,0 +1,107 @@
+﻿namespace App.Renderers
+{
+    using App.Pipelines.Deferred;
+    using App.Pipelines.Forward;
+    using Hexa.NET.D3D11;
+    using HexaGen.Runtime.COM;
+    using System;
+    using System.Numerics;
+    using VoxelEngine.Debugging;
+    using VoxelEngine.Graphics;
+    using VoxelEngine.Graphics.D3D11.Interfaces;
+    using VoxelEngine.Lightning;
+    using VoxelEngine.Scenes;
+    using VoxelEngine.Voxel;
+
+    public unsafe class WorldRenderer : BaseRenderComponent
+    {
+        private ChunkGeometryPass geometryPass;
+        private CSMChunkPipeline chunkDepthPrepassCSM;
+        private World? world;
+        private bool debugChunksRegion;
+
+        public override int QueueIndex { get; } = (int)RenderQueueIndex.Geometry;
+
+        public bool DebugChunksRegion { get => debugChunksRegion; set => debugChunksRegion = value; }
+
+        public override void Awake()
+        {
+            if (GameObject is not World world)
+            {
+                throw new InvalidOperationException("WorldRenderer only works on World");
+            }
+
+            geometryPass = new();
+            chunkDepthPrepassCSM = new();
+
+            this.world = world;
+        }
+
+        public override void Destroy()
+        {
+        }
+
+        public override void Draw(ComPtr<ID3D11DeviceContext> context, PassIdentifer pass, Camera camera, object? parameter)
+        {
+            if (pass == PassIdentifer.DirectionalLightShadowPass && parameter is DirectionalLight light)
+            {
+                DirectionalLightShadowPass(context, camera, light);
+            }
+            else if (pass == PassIdentifer.DeferredPass)
+            {
+                DeferredPass(context, camera);
+            }
+        }
+
+        private void DeferredPass(ComPtr<ID3D11DeviceContext> context, Camera camera)
+        {
+            if (world == null) return;
+            geometryPass.Begin(context);
+            var frustum = camera.Transform.Frustum;
+            for (int j = 0; j < world.LoadedRenderRegions.Count; j++)
+            {
+                RenderRegion region = world.LoadedRenderRegions[j];
+                if (region.VertexBuffer is not null && region.VertexBuffer.VertexCount != 0 && frustum.Intersects(region.BoundingBox))
+                {
+                    geometryPass.Update(context);
+                    region.Bind(context);
+                    context.Draw((uint)region.VertexBuffer.VertexCount, 0);
+                }
+                if (debugChunksRegion)
+                {
+                    DebugDraw.DrawBoundingBox(region.Name, region.BoundingBox, new(1, 1, 0, 0.8f));
+                }
+            }
+            if (debugChunksRegion)
+            {
+                for (int j = 0; j < world.LoadedChunkSegments.Count; j++)
+                {
+                    ChunkSegment chunk = world.LoadedChunkSegments[j];
+                    Vector3 min = new Vector3(chunk.Position.X, 0, chunk.Position.Y) * Chunk.CHUNK_SIZE;
+                    Vector3 max = min + new Vector3(Chunk.CHUNK_SIZE) * new Vector3(1, WorldMap.CHUNK_AMOUNT_Y, 1);
+                    DebugDraw.DrawBoundingBox($"{chunk.Position}+0", new(min, max), new(1, 1, 1, 0.4f));
+                }
+            }
+            geometryPass.End(context);
+        }
+
+        private void DirectionalLightShadowPass(ComPtr<ID3D11DeviceContext> context, Camera camera, DirectionalLight light)
+        {
+            if (world == null) return;
+
+            chunkDepthPrepassCSM.Begin(context);
+            var frustum = camera.Transform.Frustum;
+            for (int j = 0; j < world.LoadedRenderRegions.Count; j++)
+            {
+                RenderRegion region = world.LoadedRenderRegions[j];
+                if (region.VertexBuffer is not null && region.VertexBuffer.VertexCount != 0 && frustum.Intersects(region.BoundingBox))
+                {
+                    chunkDepthPrepassCSM.Update(context);
+                    region.Bind(context);
+                    context.Draw((uint)region.VertexBuffer.VertexCount, 0);
+                }
+            }
+            chunkDepthPrepassCSM.End(context);
+        }
+    }
+}

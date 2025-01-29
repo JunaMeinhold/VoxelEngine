@@ -16,7 +16,7 @@
         private readonly SamplerState sampler;
 
         private Texture2D[] textures;
-        private Viewport[] viewports;
+        private Hexa.NET.Mathematics.Viewport[] viewports;
 
         private readonly float radius = 0.003f;
         private int width;
@@ -46,14 +46,14 @@
             }, GraphicsPipelineStateDesc.DefaultFullscreen);
 
             upsample.Bindings.SetCBV("Params", upsampleCB);
-            downsample.Bindings.SetSampler("samplerState", sampler);
+            upsample.Bindings.SetSampler("samplerState", sampler);
 
             int currentWidth = width / 2;
             int currentHeight = height / 2;
             int levels = Math.Min(TextureHelper.ComputeMipLevels(currentWidth, currentHeight), 8);
 
             textures = new Texture2D[levels];
-            viewports = new Viewport[levels];
+            viewports = new Hexa.NET.Mathematics.Viewport[levels];
             for (int i = 0; i < levels; i++)
             {
                 textures[i] = new(Format.R16G16B16A16Float, currentWidth, currentHeight, 1, 1, gpuAccessFlags: GpuAccessFlags.RW);
@@ -105,7 +105,7 @@
             int levels = Math.Min(TextureHelper.ComputeMipLevels(currentWidth, currentHeight), 8);
 
             textures = new Texture2D[levels];
-            viewports = new Viewport[levels];
+            viewports = new Hexa.NET.Mathematics.Viewport[levels];
 
             for (int i = 0; i < levels; i++)
             {
@@ -123,7 +123,8 @@
         {
             if (dirty)
             {
-                context.ClearRenderTargetView(textures[0].RTV, default);
+                Vector4 col = default;
+                context.ClearRenderTargetView(textures[0].RTV, (float*)&col);
                 downsampleCB.Update(context, new ParamsDownsample(new(width, height)));
                 upsampleCB.Update(context, new ParamsUpsample(radius));
                 dirty = false;
@@ -134,6 +135,7 @@
         {
             for (int i = 0; i < textures.Length; i++)
             {
+                context.SetRenderTarget(textures[i], null);
                 if (i > 0)
                 {
                     downsample.Bindings.SetSRV("srcTexture", textures[i - 1]);
@@ -144,7 +146,6 @@
                 }
 
                 downsample.Begin(context);
-                context.SetRenderTarget(textures[i], null);
                 context.RSSetViewport(viewports[i]);
                 context.DrawInstanced(4, 1, 0, 0);
                 downsample.End(context);

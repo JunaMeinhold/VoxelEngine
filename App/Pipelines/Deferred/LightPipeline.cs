@@ -31,6 +31,7 @@
             }, new()
             {
                 Blend = BlendDescription.Additive,
+                DepthStencil = DepthStencilDescription.None,
                 Topology = PrimitiveTopology.Trianglestrip
             });
         }

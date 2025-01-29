@@ -20,7 +20,7 @@
         private int height;
         private int arraySize;
 
-        public Viewport Viewport => new(width, height);
+        public Hexa.NET.Mathematics.Viewport Viewport => new(width, height);
 
         public DepthStencil(int width, int height) : this(Format.D32Float, width, height, 1)
         {
@@ -52,15 +52,57 @@
                 MiscFlags = 0
             };
 
-            device.CreateTexture2D(ref depthBufferDesc, null, out texture);
+            device.CreateTexture2D(ref depthBufferDesc, null, out texture).ThrowIf();
             //texture.DebugName = nameof(DepthStencil) + "." + nameof(texture);
 
-            DepthStencilViewDesc dsvdesc = new(format, arraySize > 1 ? DsvDimension.Texture2Darray : DsvDimension.Texture2D);
-            device.CreateDepthStencilView(texture.As<ID3D11Resource>(), ref dsvdesc, out depthStencilView);
+            DepthStencilViewDesc dsvdesc = new(format);
+
+            if (arraySize > 1)
+            {
+                dsvdesc.ViewDimension = DsvDimension.Texture2Darray;
+                dsvdesc.Union.Texture2DArray.ArraySize = (uint)arraySize;
+                dsvdesc.Union.Texture2DArray = new()
+                {
+                    ArraySize = (uint)arraySize,
+                    FirstArraySlice = 0,
+                };
+            }
+            else
+            {
+                dsvdesc.ViewDimension = DsvDimension.Texture2D;
+                dsvdesc.Union.Texture2D = new()
+                {
+                    MipSlice = 0,
+                };
+            }
+
+            device.CreateDepthStencilView(texture.As<ID3D11Resource>(), ref dsvdesc, out depthStencilView).ThrowIf();
             //depthStencilView.DebugName = nameof(DepthStencil) + "." + nameof(DSV);
 
-            ShaderResourceViewDesc srvdesc = new(GetDepthSRVFormat(format), arraySize > 1 ? SrvDimension.Texture2Darray : SrvDimension.Texture2D);
-            device.CreateShaderResourceView(texture.As<ID3D11Resource>(), ref srvdesc, out shaderResourceView);
+            ShaderResourceViewDesc srvdesc = new(GetDepthSRVFormat(format));
+
+            if (arraySize > 1)
+            {
+                srvdesc.ViewDimension = SrvDimension.Texture2Darray;
+                srvdesc.Union.Texture2DArray = new()
+                {
+                    ArraySize = (uint)arraySize,
+                    MipLevels = 1,
+                    FirstArraySlice = 0,
+                    MostDetailedMip = 0
+                };
+            }
+            else
+            {
+                srvdesc.ViewDimension = SrvDimension.Texture2D;
+                srvdesc.Union.Texture2D = new()
+                {
+                    MipLevels = 1,
+                    MostDetailedMip = 0
+                };
+            }
+
+            device.CreateShaderResourceView(texture.As<ID3D11Resource>(), ref srvdesc, out shaderResourceView).ThrowIf();
             //shaderResourceView.DebugName = nameof(DepthStencil) + "." + nameof(SRV);
         }
 

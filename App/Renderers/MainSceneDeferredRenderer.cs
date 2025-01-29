@@ -3,7 +3,6 @@
     using App.Pipelines.Deferred;
     using App.Pipelines.Effects;
     using App.Pipelines.Forward;
-    using App.Renderers.Forward;
     using Hexa.NET.D3D11;
     using Hexa.NET.DXGI;
     using Hexa.NET.ImGui;
@@ -11,9 +10,11 @@
     using HexaGen.Runtime.COM;
     using System.Numerics;
     using System.Runtime.CompilerServices;
+    using System.Xml.Linq;
     using VoxelEngine.Core;
     using VoxelEngine.Core.Input;
     using VoxelEngine.Debugging;
+    using VoxelEngine.Graphics;
     using VoxelEngine.Graphics.Buffers;
     using VoxelEngine.Graphics.D3D11;
     using VoxelEngine.Lightning;
@@ -23,11 +24,10 @@
 
     public class MainSceneDeferredRenderer : ISceneRenderer
     {
-        private ConstantBuffer<CBCamera> camera;
+        private ConstantBuffer<CBCamera> cameraBuffer;
+        private ConstantBuffer<Matrix4x4> csmMatrixBuffer;
 
         private SwapChain swapChain;
-        private ChunkGeometryPass chunkPrepass;
-        private CSMChunkPipeline chunkDepthPrepassCSM;
         private DeferredLightPass lightPipeline;
         private ComposeEffect compose;
         private FXAAEffect fxaa;
@@ -49,10 +49,7 @@
 
         private PerlinNoiseWidget perlinNoiseWidget;
 
-        public BoundingFrustum[] ShadowFrustra = new BoundingFrustum[16];
-
         private DirectionalLight directionalLight;
-        private CBDirectionalLightSD directionalLightCB = new();
         private int width;
         private int height;
 
@@ -61,10 +58,6 @@
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Initialize(GameWindow window)
         {
-            for (int i = 0; i < 16; i++)
-            {
-                ShadowFrustra[i] = new();
-            }
             swapChain = window.SwapChain;
             width = window.Width;
             height = window.Height;
@@ -73,9 +66,9 @@
             pointClamp = new(SamplerDescription.PointClamp);
             linearClamp = new(SamplerDescription.LinearClamp);
 
-            camera = new(CpuAccessFlag.Write);
+            cameraBuffer = new(CpuAccessFlag.Write);
 
-            D3D11GlobalResourceList.SetCBV("CameraBuffer", camera);
+            D3D11GlobalResourceList.SetCBV("CameraBuffer", cameraBuffer);
             D3D11GlobalResourceList.SetSampler("linearClampSampler", linearClamp);
 
             depthStencil = new(window.Width, window.Height);
@@ -83,6 +76,8 @@
             lightBuffer = new(Format.R16G16B16A16Float, width, height, 1, 1, 0, GpuAccessFlags.RW);
             fxaaBuffer = new(Format.R16G16B16A16Float, window.Width, window.Height, 1, 1, 0, GpuAccessFlags.RW);
             csmBuffer = new(Format.D32Float, Nucleus.Settings.ShadowMapSize, Nucleus.Settings.ShadowMapSize, 5);
+            csmMatrixBuffer = new(CpuAccessFlag.Write, 16);
+            D3D11GlobalResourceList.SetCBV("CSMCascadeBuffer", csmMatrixBuffer);
             hbaoBuffer = new(Format.R32Float, width, height, 1, 1, 0, GpuAccessFlags.RW);
 
             lightPipeline = new();
@@ -102,7 +97,7 @@
             compose.Input = lightBuffer;
             compose.Bloom = bloom.Output;
             compose.Depth = depthStencil;
-            compose.Camera = camera;
+            compose.Camera = cameraBuffer;
 
             fxaa = new();
             fxaa.Input = fxaaBuffer;
@@ -112,9 +107,6 @@
             hbao.Normal = gbuffer.SRVs[1];
 
             godRays = new(width, height);
-
-            chunkPrepass = new();
-            chunkDepthPrepassCSM = new();
 
             directionalLight = new();
             directionalLight.Color = new Vector4(196 / 255f, 220 / 255f, 1, 1) * 1.4f;
@@ -180,7 +172,7 @@
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe void Render(ComPtr<ID3D11DeviceContext> context, Camera view, SceneElementCollection elements)
+        public unsafe void Render(ComPtr<ID3D11DeviceContext> context, Camera camera, Scene scene)
         {
             perlinNoiseWidget.Draw(context);
 
@@ -204,7 +196,7 @@
                 compose.FogEnd = fogEnd;
             }
 
-            DebugDraw.SetCamera(view.Transform.ViewProjection);
+            DebugDraw.SetCamera(camera.Transform.ViewProjection);
             Vector3 rot = directionalLight.Transform.Rotation;
             rot.Y = 360 * Time.GameTimeNormalized - 90;
             float ro = rot.Y - 180F;
@@ -228,9 +220,7 @@
             directionalLight.Color *= 5;
             directionalLight.Transform.Recalculate();
 
-            BoundingFrustum cameraFrustum = view.Transform.Frustum;
-
-            camera.Update(context, new CBCamera(view, new Vector2(width, height)));
+            cameraBuffer.Update(context, new CBCamera(camera, new Vector2(width, height)));
 
             // Depth light pass.
             csmBuffer.Clear(context, ClearFlag.Depth, 1, 0);
@@ -239,101 +229,44 @@
 
             context.ClearState();
 
-            for (int i = 0; i < elements.Count; i++)
-            {
-                GameObject element = elements[i];
-                if (element is World world)
-                {
-                    CBDirectionalLightSD d = directionalLightCB;
-                    Matrix4x4* views = CBDirectionalLightSD.GetViews(&d);
-                    float* cascades = CBDirectionalLightSD.GetCascades(&d);
-                    CSMHelper.GetLightSpaceMatrices(view, directionalLight.Transform, views, cascades, ShadowFrustra, 5);
-                    directionalLightCB = d;
-                    directionalLightCB.Color = directionalLight.Color;
-                    SkyboxRenderer.SunDir = directionalLightCB.Direction = directionalLight.Transform.Forward;
-                    directionalLightCB.CastShadows = directionalLight.CastShadows ? 1 : 0;
-                    chunkDepthPrepassCSM.Update(context, views);
-                    chunkDepthPrepassCSM.Begin(context);
-                    context.RSSetViewport(csmBuffer.Viewport);
-                    context.SetRenderTarget(null, csmBuffer);
+            directionalLight.Update(context, camera, csmMatrixBuffer);
 
-                    for (int j = 0; j < world.LoadedRenderRegions.Count; j++)
-                    {
-                        RenderRegion region = world.LoadedRenderRegions[j];
-                        if (region.VertexBuffer is not null && region.VertexBuffer.VertexCount != 0 && cameraFrustum.Intersects(region.BoundingBox))
-                        {
-                            chunkDepthPrepassCSM.Update(context);
-                            region.Bind(context);
-                            context.Draw((uint)region.VertexBuffer.VertexCount, 0);
-                        }
-                    }
-                }
-            }
+            SkyboxRenderer.SunDir = directionalLight.Transform.Forward;
+
+            context.RSSetViewport(csmBuffer.Viewport);
+            context.SetRenderTarget(null, csmBuffer);
+
+            scene.RenderSystem.Draw(context, RenderQueueIndex.Geometry, PassIdentifer.DirectionalLightShadowPass, camera, directionalLight);
+            scene.RenderSystem.Draw(context, RenderQueueIndex.GeometryLast, PassIdentifer.DirectionalLightShadowPass, camera, directionalLight);
 
             context.ClearState();
 
-            // Deferred fill GBuffers pass.
-            for (int i = 0; i < elements.Count; i++)
-            {
-                GameObject element = elements[i];
-                if (element is World world)
-                {
-                    chunkPrepass.Begin(context);
-                    gbuffer.SetTarget(context, depthStencil);
+            gbuffer.SetTarget(context, depthStencil);
+            context.RSSetViewport(gbuffer.Viewport);
 
-                    for (int j = 0; j < world.LoadedRenderRegions.Count; j++)
-                    {
-                        RenderRegion region = world.LoadedRenderRegions[j];
-                        if (region.VertexBuffer is not null && region.VertexBuffer.VertexCount != 0 && cameraFrustum.Intersects(region.BoundingBox))
-                        {
-                            chunkPrepass.Update(context, view);
-                            region.Bind(context);
-                            context.Draw((uint)region.VertexBuffer.VertexCount, 0);
-                        }
-                        if (debugChunksRegion)
-                        {
-                            DebugDraw.DrawBoundingBox(region.Name, region.BoundingBox, new(1, 1, 0, 0.8f));
-                        }
-                    }
-                    if (debugChunksRegion)
-                    {
-                        for (int j = 0; j < world.LoadedChunkSegments.Count; j++)
-                        {
-                            ChunkSegment chunk = world.LoadedChunkSegments[j];
-                            Vector3 min = new Vector3(chunk.Position.X, 0, chunk.Position.Y) * Chunk.CHUNK_SIZE;
-                            Vector3 max = min + new Vector3(Chunk.CHUNK_SIZE) * new Vector3(1, WorldMap.CHUNK_AMOUNT_Y, 1);
-                            DebugDraw.DrawBoundingBox($"{chunk.Position}+0", new(min, max), new(1, 1, 1, 0.4f));
-                        }
-                    }
-                }
-            }
+            scene.RenderSystem.Draw(context, RenderQueueIndex.Geometry, PassIdentifer.DeferredPass, camera);
 
-            hbao.Update(context, view, hbaoBuffer.Viewport);
+            hbao.Update(context, camera, hbaoBuffer.Viewport);
             context.SetRenderTarget(hbaoBuffer);
             context.RSSetViewport(hbaoBuffer.Viewport);
             hbao.Pass(context);
 
-            godRays.Update(context, view, directionalLight);
+            godRays.Update(context, camera, directionalLight);
             godRays.PrePass(context, depthStencil);
 
             context.ClearState();
-            context.ClearRenderTargetView(lightBuffer, default);
+            Vector4 col = default;
+            context.ClearRenderTargetView(lightBuffer, (float*)&col);
+            context.SetRenderTarget(lightBuffer, depthStencil);
+            context.RSSetViewport(lightBuffer.Viewport);
 
-            // Forward pass.
-            for (int i = 0; i < elements.ForwardComponents.Count; i++)
-            {
-                context.SetRenderTarget(lightBuffer, depthStencil);
-                context.RSSetViewport(lightBuffer.Viewport);
-                IForwardRenderComponent element = elements.ForwardComponents[i];
-
-                element.DrawForward(context, view);
-            }
+            scene.RenderSystem.Draw(context, RenderQueueIndex.Background, PassIdentifer.ForwardPass, camera);
 
             // light pass
-            lightPipeline.Update(context, new(view, new Vector2(width, height)), directionalLightCB);
-            context.SetRenderTarget(lightBuffer);
-            context.RSSetViewport(lightBuffer.Viewport);
+            lightPipeline.Update(context, new(camera, new Vector2(width, height)), directionalLight.DirectionalLightShadowData);
             lightPipeline.Pass(context);
+
+            scene.RenderSystem.Draw(context, RenderQueueIndex.Transparent, PassIdentifer.ForwardPass, camera);
 
             bloom.Update(context);
             bloom.Pass(context, lightBuffer);
@@ -342,7 +275,7 @@
             context.RSSetViewport(lightBuffer.Viewport);
             godRays.Pass(context);
 
-            context.ClearRenderTargetView(fxaaBuffer, default);
+            context.ClearRenderTargetView(fxaaBuffer, (float*)&col);
             context.SetRenderTarget(fxaaBuffer);
             context.RSSetViewport(fxaaBuffer.Viewport);
             compose.Pass(context);
@@ -351,15 +284,17 @@
             swapChain.SetTarget(context, false);
             fxaa.Pass(context);
 
+            swapChain.SetTarget(context, depthStencil);
+
+            scene.RenderSystem.Draw(context, RenderQueueIndex.Overlay, PassIdentifer.ForwardPass, camera);
+
             context.ClearState();
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Uninitialize()
         {
-            camera.Dispose();
-            chunkPrepass.Dispose();
-            chunkDepthPrepassCSM.Dispose();
+            cameraBuffer.Dispose();
             lightPipeline.Dispose();
             fxaa.Dispose();
             hbao.Dispose();

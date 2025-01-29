@@ -134,7 +134,7 @@
         public static unsafe void GetShaderOrCompileFile(string entry, string path, string profile, ShaderMacro[] macros, Shader** shader, bool bypassCache = false)
         {
             string fullPath = Paths.CurrentShaderPath + path;
-            string basePath = Path.GetDirectoryName(fullPath)!;
+            string basePath = Path.GetDirectoryName(path)!;
             byte[] data = FileSystem.ReadAllBytes(fullPath);
             uint hash = CRC32.Crc32(data);
             Shader* pShader;
@@ -158,7 +158,7 @@
         public static unsafe void GetShaderOrCompileFileWithInputSignature(string entry, string path, string profile, ShaderMacro[] macros, Shader** shader, out InputElementDescription[]? inputElements, out Blob signature, bool bypassCache = false)
         {
             string fullPath = Paths.CurrentShaderPath + path;
-            string basePath = Path.GetDirectoryName(fullPath)!;
+            string basePath = Path.GetDirectoryName(path)!;
             byte[] data = FileSystem.ReadAllBytes(fullPath);
             uint hash = CRC32.Crc32(data);
             Shader* pShader;

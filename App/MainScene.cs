@@ -9,33 +9,39 @@
     using VoxelEngine.Voxel.Blocks;
     using VoxelEngine.Voxel.WorldGen;
 
-    public class MainScene : Scene
+    public class MainScene
     {
-        public override void Initialize()
+        public static Scene Create()
         {
-            // Render callbacks for the scene
-            Renderer = new MainSceneDeferredRenderer();
-            Camera = new Camera();
-            Camera.Far = 1000;
-            Camera.Transform.Position = new(0, 100, 0);
-            Camera.Transform.Rotation = new(0, 0, 0);
-            Add(Camera);
+            Camera camera = new();
+            camera.Far = 1000;
+            camera.Transform.Position = new(0, 100, 0);
+            camera.Transform.Rotation = new(0, 0, 0);
+
+            Scene scene = new()
+            {
+                Renderer = new MainSceneDeferredRenderer(),
+                Camera = camera
+            };
+
+            scene.Add(camera);
             // Creates the skybox.
-            Add(new Skybox());
+            scene.Add(new Skybox());
 
             // Creates the crosshair.
-            Add(new Crosshair());
+            scene.Add(new Crosshair());
 
             // Creates the world.
             World world = new("world");
             world.Generator = new DefaultChunkGenerator(68458);
             world.AddComponent(new WorldController());
             world.AddComponent(new BlockHighlightRenderer());
-            Add(world);
+            world.AddComponent(new WorldRenderer());
+            scene.Add(world);
 
             // Creates the player.
             CPlayer player = new(new(0, 74, 0));
-            Add(player);
+            scene.Add(player);
 
             // Registers the block types.
             BlockRegistry.Reset();
@@ -50,7 +56,7 @@
             BlockRegistry.RegisterBlock(new("Oak Planks", new("blocks/planks_oak.dds")));
             BlockRegistry.RegisterBlock(new("Quartz Block", new("blocks/quartz_block.dds")));
 
-            base.Initialize();
+            return scene;
         }
     }
 }

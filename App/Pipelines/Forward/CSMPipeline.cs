@@ -13,7 +13,6 @@
     {
         private readonly ConstantBuffer<Matrix4x4> mvpBuffer;
         private readonly ConstantBuffer<WorldData> worldDataBuffer;
-        private readonly ConstantBuffer<Matrix4x4> cascadeBuffer;
 
         [StructLayout(LayoutKind.Sequential)]
         private struct WorldData
@@ -26,10 +25,8 @@
         {
             mvpBuffer = new(CpuAccessFlag.Write);
             worldDataBuffer = new(CpuAccessFlag.Write);
-            cascadeBuffer = new(CpuAccessFlag.Write, 16);
             state.Bindings.SetCBV("MatrixBuffer", mvpBuffer);
             state.Bindings.SetCBV("WorldData", worldDataBuffer);
-            state.Bindings.SetCBV("CascadeBuffer", cascadeBuffer);
         }
 
         protected override GraphicsPipelineState CreatePipelineState()
@@ -42,12 +39,6 @@
             {
                 Rasterizer = RasterizerDescription.CullFront,
             });
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe void Update(ComPtr<ID3D11DeviceContext> context, Matrix4x4* views)
-        {
-            cascadeBuffer.Update(context, views, 8);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -69,7 +60,6 @@
             base.DisposeCore();
             mvpBuffer.Dispose();
             worldDataBuffer.Dispose();
-            cascadeBuffer.Dispose();
         }
     }
 }
