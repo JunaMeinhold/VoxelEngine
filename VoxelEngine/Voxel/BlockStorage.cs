@@ -1,15 +1,13 @@
 ﻿namespace VoxelEngine.Voxel
 {
-    using System.Runtime.InteropServices;
-
-    public unsafe class BlockStorage
+    public unsafe struct BlockStorage
     {
         private readonly int blockCount;
         private int maxBlockId;
         private int bitsPerBlock;
 
         private readonly Dictionary<ushort, ushort> blockPalette = new() { { 0, 0 } };
-        private readonly List<ushort> reversePalette = new() { 0 };
+        private readonly List<ushort> reversePalette = [0];
 
         private byte* data;
 

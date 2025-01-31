@@ -29,11 +29,11 @@
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Texture3D(string path, CpuAccessFlag cpuAccessFlag = 0, GpuAccessFlags gpuAccessFlags = GpuAccessFlags.Read)
+        public Texture3D(string path, CpuAccessFlags cpuAccessFlags = 0, GpuAccessFlags gpuAccessFlags = GpuAccessFlags.Read)
         {
             this.gpuAccessFlags = gpuAccessFlags;
             ComPtr<ID3D11Device> device = D3D11DeviceManager.Device.As<ID3D11Device>();
-            (description.Usage, description.BindFlags) = TextureHelper.ConvertToUB(cpuAccessFlag, gpuAccessFlags);
+            (description.Usage, description.BindFlags) = TextureHelper.ConvertToUB(cpuAccessFlags, gpuAccessFlags);
             texture = TextureHelper.LoadTexture3DFile(device, Paths.CurrentTexturePath + path, description);
             texture.GetDesc(ref description);
             //texture.DebugName = nameof(Texture3D);
@@ -41,12 +41,12 @@
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Texture3D(Format format, int width, int height, int arraySize = 1, int mipLevels = 0, CpuAccessFlag cpuAccessFlag = 0, GpuAccessFlags gpuAccessFlags = GpuAccessFlags.None, ResourceMiscFlag miscFlags = 0)
+        public Texture3D(Format format, int width, int height, int arraySize = 1, int mipLevels = 0, CpuAccessFlags cpuAccessFlags = 0, GpuAccessFlags gpuAccessFlags = GpuAccessFlags.None, ResourceMiscFlag miscFlags = 0)
         {
             this.gpuAccessFlags = gpuAccessFlags;
             ComPtr<ID3D11Device> device = D3D11DeviceManager.Device.As<ID3D11Device>();
-            Texture3DDesc description = new((uint)width, (uint)height, (uint)arraySize, (uint)mipLevels, format, 0, (uint)Usage.Default, (uint)cpuAccessFlag, (uint)miscFlags);
-            (description.Usage, description.BindFlags) = TextureHelper.ConvertToUB(cpuAccessFlag, gpuAccessFlags);
+            Texture3DDesc description = new((uint)width, (uint)height, (uint)arraySize, (uint)mipLevels, format, 0, (uint)Usage.Default, (uint)cpuAccessFlags, (uint)miscFlags);
+            (description.Usage, description.BindFlags) = TextureHelper.ConvertToUB(cpuAccessFlags, gpuAccessFlags);
 
             device.CreateTexture3D(ref description, null, out texture).ThrowIf();
             //texture.DebugName = nameof(Texture3D);
@@ -55,12 +55,12 @@
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Texture3D(SubresourceData subresourceData, Format format, int width, int height, int arraySize = 1, int mipLevels = 0, CpuAccessFlag cpuAccessFlag = 0, GpuAccessFlags gpuAccessFlags = GpuAccessFlags.None, ResourceMiscFlag miscFlags = 0)
+        public Texture3D(SubresourceData subresourceData, Format format, int width, int height, int arraySize = 1, int mipLevels = 0, CpuAccessFlags cpuAccessFlags = 0, GpuAccessFlags gpuAccessFlags = GpuAccessFlags.None, ResourceMiscFlag miscFlags = 0)
         {
             this.gpuAccessFlags = gpuAccessFlags;
             ComPtr<ID3D11Device> device = D3D11DeviceManager.Device.As<ID3D11Device>();
-            Texture3DDesc description = new((uint)width, (uint)height, (uint)arraySize, (uint)mipLevels, format, 0, (uint)Usage.Default, (uint)cpuAccessFlag, (uint)miscFlags);
-            (description.Usage, description.BindFlags) = TextureHelper.ConvertToUB(cpuAccessFlag, gpuAccessFlags);
+            Texture3DDesc description = new((uint)width, (uint)height, (uint)arraySize, (uint)mipLevels, format, 0, (uint)Usage.Default, (uint)cpuAccessFlags, (uint)miscFlags);
+            (description.Usage, description.BindFlags) = TextureHelper.ConvertToUB(cpuAccessFlags, gpuAccessFlags);
 
             device.CreateTexture3D(ref description, &subresourceData, out texture).ThrowIf();
             //texture.DebugName = nameof(Texture3D);
@@ -69,12 +69,12 @@
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Texture3D(SubresourceData[] subresourceData, Format format, int width, int height, int arraySize = 1, int mipLevels = 0, CpuAccessFlag cpuAccessFlag = 0, GpuAccessFlags gpuAccessFlags = GpuAccessFlags.None, ResourceMiscFlag miscFlags = 0)
+        public Texture3D(SubresourceData[] subresourceData, Format format, int width, int height, int arraySize = 1, int mipLevels = 0, CpuAccessFlags cpuAccessFlags = 0, GpuAccessFlags gpuAccessFlags = GpuAccessFlags.None, ResourceMiscFlag miscFlags = 0)
         {
             this.gpuAccessFlags = gpuAccessFlags;
             ComPtr<ID3D11Device> device = D3D11DeviceManager.Device.As<ID3D11Device>();
-            Texture3DDesc description = new((uint)width, (uint)height, (uint)arraySize, (uint)mipLevels, format, 0, (uint)Usage.Default, (uint)cpuAccessFlag, (uint)miscFlags);
-            (description.Usage, description.BindFlags) = TextureHelper.ConvertToUB(cpuAccessFlag, gpuAccessFlags);
+            Texture3DDesc description = new((uint)width, (uint)height, (uint)arraySize, (uint)mipLevels, format, 0, (uint)Usage.Default, (uint)cpuAccessFlags, (uint)miscFlags);
+            (description.Usage, description.BindFlags) = TextureHelper.ConvertToUB(cpuAccessFlags, gpuAccessFlags);
 
             device.CreateTexture3D(ref description, ref subresourceData[0], out texture).ThrowIf();
             //texture.DebugName = nameof(Texture3D);
@@ -113,14 +113,14 @@
 
         public nint NativePointer => (nint)texture.Handle;
 
-        public void Resize(Format format, int width, int height, int arraySize, int mipLevels, CpuAccessFlag cpuAccessFlag, GpuAccessFlags gpuAccessFlags = GpuAccessFlags.Read, ResourceMiscFlag miscFlag = 0)
+        public void Resize(Format format, int width, int height, int arraySize, int mipLevels, CpuAccessFlags cpuAccessFlags, GpuAccessFlags gpuAccessFlags = GpuAccessFlags.Read, ResourceMiscFlag miscFlag = 0)
         {
             this.gpuAccessFlags = gpuAccessFlags;
             ComPtr<ID3D11Device> device = D3D11DeviceManager.Device.As<ID3D11Device>();
-            description = new((uint)width, (uint)height, (uint)arraySize, (uint)mipLevels, format, Usage.Default, 0, (uint)cpuAccessFlag, (uint)miscFlag);
-            (description.Usage, description.BindFlags) = TextureHelper.ConvertToUB(cpuAccessFlag, gpuAccessFlags);
+            description = new((uint)width, (uint)height, (uint)arraySize, (uint)mipLevels, format, Usage.Default, 0, (uint)cpuAccessFlags, (uint)miscFlag);
+            (description.Usage, description.BindFlags) = TextureHelper.ConvertToUB(cpuAccessFlags, gpuAccessFlags);
 
-            if (cpuAccessFlag != 0)
+            if (cpuAccessFlags != 0)
             {
                 local = (byte*)Alloc(rowPitch * height);
                 ZeroMemory(local, rowPitch * height);

@@ -2,7 +2,7 @@
 {
     using System.Numerics;
     using System.Runtime.CompilerServices;
-    using VoxelEngine.Voxel;
+    using VoxelEngine.Voxel.Blocks;
 
     public static unsafe class VoxelMeshFactory
     {
@@ -18,7 +18,7 @@
             chunk.cXN = chunk.Map.Chunks[(int)(position.X - 1), (int)position.Y, (int)position.Z];
             if (chunk.cXN is not null)
             {
-                if (chunk.cXN.Data is null)
+                if (!chunk.cXN.InMemory)
                 {
                     chunk.cXN = null;
                 }
@@ -28,7 +28,7 @@
             chunk.cXP = chunk.Map.Chunks[(int)(position.X + 1), (int)position.Y, (int)position.Z];
             if (chunk.cXP is not null)
             {
-                if (chunk.cXP.Data is null)
+                if (!chunk.cXP.InMemory)
                 {
                     chunk.cXP = null;
                 }
@@ -38,7 +38,7 @@
             chunk.cYN = chunk.Position.Y > 0 ? chunk.Map.Chunks[(int)position.X, (int)(position.Y - 1), (int)position.Z] : null;
             if (chunk.cYN is not null)
             {
-                if (chunk.cYN.Data is null)
+                if (!chunk.cYN.InMemory)
                 {
                     chunk.cYN = null;
                 }
@@ -48,7 +48,7 @@
             chunk.cYP = chunk.Position.Y < WorldMap.CHUNK_AMOUNT_Y - 1 ? chunk.Map.Chunks[(int)position.X, (int)(position.Y + 1), (int)position.Z] : null;
             if (chunk.cYP is not null)
             {
-                if (chunk.cYP.Data is null)
+                if (!chunk.cYP.InMemory)
                 {
                     chunk.cYP = null;
                 }
@@ -58,7 +58,7 @@
             chunk.cZN = chunk.Map.Chunks[(int)position.X, (int)position.Y, (int)(position.Z - 1)];
             if (chunk.cZN is not null)
             {
-                if (chunk.cZN.Data is null)
+                if (!chunk.cZN.InMemory)
                 {
                     chunk.cZN = null;
                 }
@@ -68,7 +68,7 @@
             chunk.cZP = chunk.Map.Chunks[(int)position.X, (int)position.Y, (int)(position.Z + 1)];
             if (chunk.cZP is not null)
             {
-                if (chunk.cZP.Data is null)
+                if (!chunk.cZP.InMemory)
                 {
                     chunk.cZP = null;
                 }
@@ -114,7 +114,7 @@
                     minX = i == 0;
                     maxX = i == Chunk.CHUNK_SIZE_MINUS_ONE;
 
-                    // X and Z runs search upwards to create runs, so start at the bottom.
+                    // X and Z runs search upwards to create runs, so start at the botto
                     for (; j < topJ; j++, access++)
                     {
                         Block b = chunk.Data[access];
@@ -276,7 +276,7 @@
         {
             if (min)
             {
-                if (chunk.cXN == null || chunk.cXN.Data == null)
+                if (chunk.cXN == null || !chunk.cXN.InMemory)
                 {
                     return true;
                 }
@@ -293,7 +293,7 @@
         {
             if (max)
             {
-                if (chunk.cXP == null || chunk.cXP.Data == null)
+                if (chunk.cXP == null || !chunk.cXP.InMemory)
                 {
                     return true;
                 }
@@ -315,7 +315,7 @@
                     return true;
                 }
 
-                if (chunk.cYN == null || chunk.cYN.Data == null)
+                if (chunk.cYN == null || !chunk.cYN.InMemory)
                 {
                     return true;
                 }
@@ -333,7 +333,7 @@
             if (max)
             {
                 // Don't check chunkYPos here as players can move above the map
-                if (chunk.cYP == null || chunk.cYP.Data == null)
+                if (chunk.cYP == null || !chunk.cYP.InMemory)
                 {
                     return true;
                 }
@@ -353,7 +353,7 @@
         {
             if (min)
             {
-                if (chunk.cZN == null || chunk.cZN.Data == null)
+                if (chunk.cZN == null || chunk.cZN.InMemory)
                 {
                     return true;
                 }
@@ -369,7 +369,7 @@
         {
             if (max)
             {
-                if (chunk.cZP == null || chunk.cZP.Data == null)
+                if (chunk.cZP == null || !chunk.cZP.InMemory)
                 {
                     return true;
                 }
@@ -384,6 +384,7 @@
         private static bool DifferentBlock(Chunk chunk, int chunkAccess, Block compare)
         {
             Block b = chunk.Data[chunkAccess];
+            if (BlockRegistry.AlphaTest.Contains(b)) return true;
             return b.Type != compare.Type;
         }
     }

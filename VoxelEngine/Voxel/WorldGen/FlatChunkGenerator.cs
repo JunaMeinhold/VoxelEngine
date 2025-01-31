@@ -1,5 +1,6 @@
 ﻿namespace VoxelEngine.Voxel.WorldGen
 {
+    using Hexa.NET.Mathematics;
     using System.Numerics;
     using VoxelEngine.Voxel;
     using static VoxelEngine.Voxel.Blocks.BlockRegistry;
@@ -34,7 +35,7 @@
 
                     for (int h = 0; h < (int)he & h < Chunk.CHUNK_SIZE_SQUARED; h++)
                     {
-                        MapToChunks(ref chunks, new Vector3(x, h, z), GetBlock(h, (int)he));
+                        MapToChunks(ref chunks, new Point3(x, h, z), GetBlock(h, (int)he));
                     }
                 }
             }
@@ -45,18 +46,13 @@
             return (float)((value + 1.0) / 2.0);
         }
 
-        public static unsafe void MapToChunks(ref ChunkSegment.ChunkArray chunks, Vector3 pos, Block block)
+        public static unsafe void MapToChunks(ref ChunkSegment.ChunkArray chunks, Point3 pos, Block block)
         {
-            int cheight = 0;
-            int height = (int)pos.Y;
-            while (height >= Chunk.CHUNK_SIZE)
-            {
-                height -= Chunk.CHUNK_SIZE;
-                cheight++;
-            }
-            chunks[cheight].MinY[new Vector2(pos.X, pos.Z).MapToIndex(Chunk.CHUNK_SIZE)] = 0;
-            chunks[cheight].MaxY[new Vector2(pos.X, pos.Z).MapToIndex(Chunk.CHUNK_SIZE)] = (byte)(height + 1);
-            chunks[cheight].Data[new Vector3(pos.X, height, pos.Z).MapToIndex(Chunk.CHUNK_SIZE, Chunk.CHUNK_SIZE)] = block;
+            int index = pos.Y >> 4;
+            int height = pos.Y & 15;
+            chunks[index].MinY[new Point2(pos.X, pos.Z).MapToIndex()] = 0;
+            chunks[index].MaxY[new Point2(pos.X, pos.Z).MapToIndex()] = (byte)(height + 1);
+            chunks[index].Data[new Point3(pos.X, height, pos.Z).MapToIndex()] = block;
         }
 
         public static Block GetBlock(int height, int maxheight)

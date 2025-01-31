@@ -1,8 +1,5 @@
 ﻿namespace VoxelEngine.Graphics.D3D11
 {
-    using Hexa.NET.D3D11;
-    using HexaGen.Runtime.COM;
-
     public abstract class RenderPass : DisposableRefBase
     {
         protected GraphicsPipelineState state;
@@ -16,14 +13,14 @@
 
         protected abstract GraphicsPipelineState CreatePipelineState();
 
-        public void Begin(ComPtr<ID3D11DeviceContext> context)
+        public void Begin(GraphicsContext context)
         {
-            state.Begin(context);
+            context.SetGraphicsPipelineState(state);
         }
 
-        public void End(ComPtr<ID3D11DeviceContext> context)
+        public void End(GraphicsContext context)
         {
-            state.End(context);
+            context.SetGraphicsPipelineState(null);
         }
 
         protected override void DisposeCore()

@@ -9,6 +9,7 @@
         private readonly ComponentTypeQuery<ScriptComponent> components = new();
 
         public SystemFlags Flags { get; } = SystemFlags.Update | SystemFlags.FixedUpdate | SystemFlags.Awake | SystemFlags.Destroy;
+        public string Name { get; } = "Script System";
 
         public void Awake(Scene scene)
         {

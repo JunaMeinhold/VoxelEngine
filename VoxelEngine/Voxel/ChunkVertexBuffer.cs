@@ -1,7 +1,6 @@
 ﻿namespace VoxelEngine.Voxel
 {
     using System.Runtime.CompilerServices;
-    using System.Runtime.InteropServices;
 
     public unsafe class ChunkVertexBuffer : IDisposable, IVoxelVertexBuffer
     {
@@ -16,7 +15,7 @@
         {
             stride = sizeof(int);
             capacity = DefaultCapacity;
-            Data = (int*)Marshal.AllocHGlobal(capacity * stride);
+            Data = AllocT<int>(capacity);
         }
 
         public int this[int index]
@@ -32,12 +31,12 @@
             {
                 if (Data == null)
                 {
-                    Data = (int*)Marshal.AllocHGlobal(value * stride);
+                    Data = AllocT(value);
                     capacity = value;
                     return;
                 }
 
-                Data = (int*)Marshal.ReAllocHGlobal((nint)Data, value * stride);
+                Data = ReAllocT(Data, value);
                 capacity = value;
                 count = capacity < count ? capacity : count;
             }
@@ -79,6 +78,14 @@
             count++;
         }
 
+        public void AppendRange(int* values, int count)
+        {
+            int newSize = this.count + count;
+            EnsureCapacity(newSize);
+            MemcpyT(values, Data + this.count, count);
+            this.count = newSize;
+        }
+
         public void Increase(int count)
         {
             EnsureCapacity(this.count + count);
@@ -87,7 +94,7 @@
 
         public void Dispose()
         {
-            Marshal.FreeHGlobal((nint)Data);
+            Free(Data);
             Data = null;
             capacity = 0;
             count = 0;

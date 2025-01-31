@@ -1,7 +1,6 @@
 ﻿namespace App.Scripts
 {
     using App.Objects;
-    using BepuPhysics.Collidables;
     using Hexa.NET.ImGui;
     using Hexa.NET.Mathematics;
     using System.Numerics;
@@ -9,7 +8,6 @@
     using VoxelEngine.Core;
     using VoxelEngine.Core.Input;
     using VoxelEngine.Physics;
-    using VoxelEngine.Physics.Characters;
     using VoxelEngine.Scenes;
     using VoxelEngine.Scripting;
     using VoxelEngine.Voxel;
@@ -24,8 +22,7 @@
         private bool midDown;
         private Camera camera;
         private CPlayer player;
-        public CharacterInput character;
-        private RayHitHandler rayHitHandler;
+        private World? world;
 
         public override void Awake()
         {
@@ -33,9 +30,8 @@
             player.Respawned += Player_Respawned;
             camera = Scene.Camera;
 
-            character = new(GameObject.Scene.CharacterControllers, GameObject.Transform.Position, new Capsule(0.25f, 1.5f), 0.1f, 1.25f, 100, 100, 5, 4, MathF.PI * 0.4f);
-            rayHitHandler = new(GameObject.Scene.Simulation, CollidableMobility.Static);
             Keyboard.KeyUp += Keyboard_OnKeyUp;
+            world = Scene.Find<World>();
         }
 
         private void Keyboard_OnKeyUp(object sender, VoxelEngine.Core.Input.Events.KeyboardEventArgs e)
@@ -58,7 +54,6 @@
 
         private void Player_Respawned(object sender, EventArgs e)
         {
-            GameObject.Scene.Simulation.Bodies[character.BodyHandle].Pose.Position = player.Spawnpoint;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveOptimization)]
@@ -79,10 +74,11 @@
             HandleFreeCamera();
             GameObject.Transform.Position = transform.Position - new Vector3(0, 1f, 0);
 
-            RaycastResult result = rayHitHandler.Raycast(transform.Position, transform.Forward, 10);
+            var result = PhysicsSystem.CastRay(transform.Position, transform.Forward, 20, player.World);
+
             if (result.Hit)
             {
-                Vector3 hitLocation = transform.Position + transform.Forward * result.T + transform.Forward * 0.01f;
+                Vector3 hitLocation = result.Position; //transform.Position + transform.Forward * result.T + transform.Forward * 0.01f;
                 player.IsLookingAtBlock = true;
                 player.LookAtBlock = new((int)Math.Floor(hitLocation.X), (int)Math.Floor(hitLocation.Y), (int)Math.Floor(hitLocation.Z));
             }
@@ -120,9 +116,10 @@
             if (Mouse.IsDown(MouseButton.Right) & !rightDown)
             {
                 rightDown = true;
+
                 if (player.IsLookingAtBlock)
                 {
-                    Vector3 hitLocation = transform.Position + transform.Forward * result.T + transform.Forward * 0.01f;
+                    Vector3 hitLocation = result.Position;
                     Vector3? index = CalculateAddIndex(hitLocation, player.LookAtBlock);
                     if (index.HasValue)
                     {

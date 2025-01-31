@@ -119,24 +119,16 @@
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void SetTarget(ComPtr<ID3D11DeviceContext> context, IDepthStencilView? depthStencilView = null)
+        public void SetTarget(GraphicsContext context, IDepthStencilView? depthStencilView = null)
         {
-            ID3D11RenderTargetView** ppRtv = stackalloc ID3D11RenderTargetView*[D3D11.D3D11_SIMULTANEOUS_RENDER_TARGET_COUNT];
-            ID3D11DepthStencilView* pDsv = (ID3D11DepthStencilView*)(depthStencilView?.NativePointer ?? 0);
-            for (int i = 0; i < rtvs.Length; i++)
-            {
-                ppRtv[i] = rtvs[i].RTV.Handle;
-            }
-
-            context.OMSetRenderTargets((uint)rtvs.Length, ppRtv, pDsv);
+            context.SetRenderTargets(rtvs.AsSpan(), depthStencilView);
         }
 
-        public void Clear(ComPtr<ID3D11DeviceContext> context, Vector4 color)
+        public void Clear(GraphicsContext context, Vector4 color)
         {
-            float* pColor = (float*)&color;
             for (int i = 0; i < rtvs.Length; i++)
             {
-                context.ClearRenderTargetView(rtvs[i], pColor);
+                context.ClearRenderTargetView(rtvs[i], color);
             }
         }
 

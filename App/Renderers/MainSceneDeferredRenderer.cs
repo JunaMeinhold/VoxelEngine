@@ -3,15 +3,21 @@
     using App.Pipelines.Deferred;
     using App.Pipelines.Effects;
     using Hexa.NET.D3D11;
+    using Hexa.NET.D3DCommon;
     using Hexa.NET.DXGI;
     using Hexa.NET.ImGui;
+    using Hexa.NET.ImPlot;
     using Hexa.NET.Mathematics;
+    using HexaEngine.Graphics.Effects.Blur;
     using HexaGen.Runtime.COM;
+    using Newtonsoft.Json.Linq;
     using System.Numerics;
     using System.Runtime.CompilerServices;
     using VoxelEngine.Core;
     using VoxelEngine.Core.Input;
+    using VoxelEngine.Core.Unsafes;
     using VoxelEngine.Debugging;
+    using VoxelEngine.Graphics;
     using VoxelEngine.Graphics.Buffers;
     using VoxelEngine.Graphics.D3D11;
     using VoxelEngine.Lightning;
@@ -19,10 +25,81 @@
     using VoxelEngine.Windows;
     using Viewport = Hexa.NET.Mathematics.Viewport;
 
+    [Flags]
+    public enum PostFxFlags
+    {
+        None = 0,
+        NoInput = 1 << 0,
+        NoOutput = 1 << 1,
+        PreDraw = 1 << 2,
+    }
+
+    public interface IPostFx
+    {
+        public string Name { get; }
+
+        public bool Enabled { get; set; }
+
+        public PostFxFlags Flags { get; }
+
+        public void SetInput(IShaderResourceView srv, Viewport viewport);
+
+        public void SetOutput(IRenderTargetView rtv, Viewport viewport);
+
+        public void Update(ComPtr<ID3D11DeviceContext> context);
+
+        public void PreDraw(ComPtr<ID3D11DeviceContext> context);
+
+        public void Draw(ComPtr<ID3D11DeviceContext> context);
+    }
+
+    public abstract class PostFxBase : IPostFx
+    {
+        public abstract string Name { get; }
+
+        public bool Enabled { get; set; }
+
+        public abstract PostFxFlags Flags { get; }
+
+        public virtual void Update(ComPtr<ID3D11DeviceContext> context)
+        {
+        }
+
+        public virtual void Draw(ComPtr<ID3D11DeviceContext> context)
+        {
+        }
+
+        public virtual void PreDraw(ComPtr<ID3D11DeviceContext> context)
+        {
+        }
+
+        public virtual void SetInput(IShaderResourceView srv, Viewport viewport)
+        {
+        }
+
+        public virtual void SetOutput(IRenderTargetView rtv, Viewport viewport)
+        {
+        }
+    }
+
+    public interface IPass
+    {
+        public void Execute(ComPtr<ID3D11DeviceContext> context);
+    }
+
+    public class PostProcessingPass : IPass
+    {
+        private readonly List<IPostFx> effects = [];
+
+        public void Execute(ComPtr<ID3D11DeviceContext> context)
+        {
+        }
+    }
+
     public class MainSceneDeferredRenderer : ISceneRenderer
     {
         private ConstantBuffer<CBCamera> cameraBuffer;
-        private ConstantBuffer<Matrix4x4> csmMatrixBuffer;
+        private ConstantBuffer<CSMBuffer> csmBuffer;
 
         private SwapChain swapChain;
         private DeferredLightPass lightPipeline;
@@ -32,19 +109,22 @@
         private GodRaysEffect godRays;
         private BloomEffect bloom;
 
+        private GaussianBlur blurFilter;
+
         private SamplerState anisotropicClamp;
         private SamplerState pointClamp;
         private SamplerState linearClamp;
 
         private DepthStencil depthStencil;
+
         private GBuffer gbuffer;
         private Texture2D lightBuffer;
         private Texture2D fxaaBuffer;
 
         private Texture2D hbaoBuffer;
-        private DepthStencil csmBuffer;
 
         private PerlinNoiseWidget perlinNoiseWidget;
+        private WorldProfilerWidget profilerWidget = new();
 
         private DirectionalLight directionalLight;
         private int rendererWidth;
@@ -63,29 +143,38 @@
             pointClamp = new(SamplerDescription.PointClamp);
             linearClamp = new(SamplerDescription.LinearClamp);
 
-            cameraBuffer = new(CpuAccessFlag.Write);
+            cameraBuffer = new(CpuAccessFlags.Write);
+
+            blurFilter = new(Format.R32G32Float, Nucleus.Settings.ShadowMapSize, Nucleus.Settings.ShadowMapSize);
+
+            directionalLight = new();
+            directionalLight.Color = new Vector4(196 / 255f, 220 / 255f, 1, 1) * 1.4f;
+            directionalLight.Transform.Far = 100;
+            directionalLight.Transform.Rotation = new(0, 100, 0);
+            directionalLight.CastShadows = true;
+            directionalLight.Create();
 
             D3D11GlobalResourceList.SetCBV("CameraBuffer", cameraBuffer);
             D3D11GlobalResourceList.SetSampler("linearClampSampler", linearClamp);
 
-            depthStencil = new(window.Width, window.Height);
-            gbuffer = new(window.Width, window.Height, Format.R16G16B16A16Float, Format.R8G8B8A8Unorm, Format.R16G16B16A16Float, Format.R16G16B16A16Float);
+            depthStencil = new(rendererWidth, rendererHeight);
+            gbuffer = new(rendererWidth, rendererHeight, Format.R16G16B16A16Float, Format.R8G8B8A8Unorm, Format.R16G16B16A16Float, Format.R16G16B16A16Float);
+            D3D11GlobalResourceList.SetSRV("GBufferA", gbuffer.SRVs[0]);
+            D3D11GlobalResourceList.SetSRV("GBufferB", gbuffer.SRVs[1]);
+            D3D11GlobalResourceList.SetSRV("GBufferC", gbuffer.SRVs[2]);
+            D3D11GlobalResourceList.SetSRV("GBufferD", gbuffer.SRVs[3]);
+            D3D11GlobalResourceList.SetSRV("DepthTex", depthStencil);
+
             lightBuffer = new(Format.R16G16B16A16Float, rendererWidth, rendererHeight, 1, 1, 0, GpuAccessFlags.RW);
-            fxaaBuffer = new(Format.R16G16B16A16Float, window.Width, window.Height, 1, 1, 0, GpuAccessFlags.RW);
-            csmBuffer = new(Format.D32Float, Nucleus.Settings.ShadowMapSize, Nucleus.Settings.ShadowMapSize, 5);
-            csmMatrixBuffer = new(CpuAccessFlag.Write, 16);
-            D3D11GlobalResourceList.SetCBV("CSMCascadeBuffer", csmMatrixBuffer);
+            fxaaBuffer = new(Format.R16G16B16A16Float, rendererWidth, rendererHeight, 1, 1, 0, GpuAccessFlags.RW);
+
+            csmBuffer = new(CpuAccessFlags.Write);
+            D3D11GlobalResourceList.SetCBV("CSMCascadeBuffer", csmBuffer);
             hbaoBuffer = new(Format.R32Float, rendererWidth, rendererHeight, 1, 1, 0, GpuAccessFlags.RW);
 
             lightPipeline = new();
 
-            lightPipeline.Bindings.SetSRV("GBufferA", gbuffer.SRVs[0]);
-            lightPipeline.Bindings.SetSRV("GBufferB", gbuffer.SRVs[1]);
-            lightPipeline.Bindings.SetSRV("GBufferC", gbuffer.SRVs[2]);
-            lightPipeline.Bindings.SetSRV("GBufferD", gbuffer.SRVs[3]);
-
-            lightPipeline.Bindings.SetSRV("depthTexture", depthStencil);
-            lightPipeline.Bindings.SetSRV("lightDepthMap", csmBuffer);
+            lightPipeline.Bindings.SetSRV("lightDepthMap", directionalLight.ShadowMap);
             lightPipeline.Bindings.SetSRV("aoTexture", hbaoBuffer);
 
             bloom = new(rendererWidth, rendererHeight);
@@ -93,29 +182,21 @@
             compose = new();
             compose.Input = lightBuffer;
             compose.Bloom = bloom.Output;
-            compose.Depth = depthStencil;
             compose.Camera = cameraBuffer;
 
             fxaa = new();
             fxaa.Input = fxaaBuffer;
 
             hbao = new();
-            hbao.Depth = depthStencil;
-            hbao.Normal = gbuffer.SRVs[1];
 
             godRays = new(rendererWidth, rendererHeight);
 
-            directionalLight = new();
-            directionalLight.Color = new Vector4(196 / 255f, 220 / 255f, 1, 1) * 1.4f;
-            directionalLight.Transform.Far = 100;
-            directionalLight.Transform.Rotation = new(0, 100, 0);
-            directionalLight.CastShadows = true;
             Keyboard.KeyUp += Keyboard_OnKeyUp;
 
             perlinNoiseWidget = new();
         }
 
-        private void Keyboard_OnKeyUp(object sender, VoxelEngine.Core.Input.Events.KeyboardEventArgs e)
+        private void Keyboard_OnKeyUp(object? sender, VoxelEngine.Core.Input.Events.KeyboardEventArgs e)
         {
             if (e.KeyCode == Key.F1)
             {
@@ -147,17 +228,15 @@
             hbaoBuffer.Resize(rendererWidth, rendererHeight);
 
             hbao.Depth = depthStencil;
-            hbao.Normal = gbuffer.SRVs[1];
 
             godRays.Resize(rendererWidth, rendererHeight);
 
-            lightPipeline.Bindings.SetSRV("GBufferA", gbuffer.SRVs[0]);
-            lightPipeline.Bindings.SetSRV("GBufferB", gbuffer.SRVs[1]);
-            lightPipeline.Bindings.SetSRV("GBufferC", gbuffer.SRVs[2]);
-            lightPipeline.Bindings.SetSRV("GBufferD", gbuffer.SRVs[3]);
+            D3D11GlobalResourceList.SetSRV("GBufferA", gbuffer.SRVs[0]);
+            D3D11GlobalResourceList.SetSRV("GBufferB", gbuffer.SRVs[1]);
+            D3D11GlobalResourceList.SetSRV("GBufferC", gbuffer.SRVs[2]);
+            D3D11GlobalResourceList.SetSRV("GBufferD", gbuffer.SRVs[3]);
+            D3D11GlobalResourceList.SetSRV("DepthTex", depthStencil);
 
-            lightPipeline.Bindings.SetSRV("depthTexture", depthStencil);
-            lightPipeline.Bindings.SetSRV("lightDepthMap", csmBuffer);
             lightPipeline.Bindings.SetSRV("aoTexture", hbaoBuffer);
 
             bloom.Resize(rendererWidth, rendererHeight);
@@ -169,10 +248,41 @@
             fxaa.Input = fxaaBuffer;
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe void Render(ComPtr<ID3D11DeviceContext> context, Camera camera, Scene scene)
+        private void FilterArray(GraphicsContext context, Texture2D source)
         {
+            if (source.Width != blurFilter.Width || source.Height != blurFilter.Height || source.Format != blurFilter.Format)
+            {
+                blurFilter.Resize(source.Format, source.Width, source.Height);
+            }
+
+            for (int i = 0; i < source.ArraySize; i++)
+            {
+                blurFilter.Blur(context, source.SRVArraySlices![i], source.RTVArraySlices![i], source.Width, source.Height);
+            }
+        }
+
+        private UnsafeRingBuffer<float> frames = new(512);
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public unsafe void Render(GraphicsContext context, Camera camera, Scene scene)
+        {
+            const int shade_mode = 2;
+            const float fill_ref = 0;
+            double fill = shade_mode == 0 ? -double.PositiveInfinity : shade_mode == 1 ? double.PositiveInfinity : fill_ref;
+
+            frames.Add(Time.Delta * 1000);
             perlinNoiseWidget.Draw(context);
+            profilerWidget.Draw();
+            ImPlot.SetNextAxesToFit();
+            if (ImPlot.BeginPlot("Frames"))
+            {
+                ImPlot.PushStyleVar(ImPlotStyleVar.FillAlpha, 0.25f);
+                ImPlot.PlotShaded("Frames", ref frames.Values[0], frames.Length, fill, 1, 0, ImPlotShadedFlags.None, frames.Head);
+                ImPlot.PopStyleVar();
+
+                ImPlot.PlotLine("Frames", ref frames.Values[0], frames.Length, 1, 0, ImPlotLineFlags.None, frames.Head);
+                ImPlot.EndPlot();
+            }
 
             ImGui.Text($"{1 / Time.Delta} FPS / {Time.Delta * 1000}ms");
             ImGui.InputFloat("TimeScale", ref Time.TimeScale);
@@ -221,26 +331,27 @@
             cameraBuffer.Update(context, new CBCamera(camera, new Vector2(rendererWidth, rendererHeight)));
 
             // Depth light pass.
-            csmBuffer.Clear(context, ClearFlag.Depth, 1, 0);
+
             gbuffer.Clear(context, default);
             depthStencil.Clear(context, ClearFlag.Depth | ClearFlag.Stencil, 1, 0);
 
             context.ClearState();
 
-            directionalLight.Update(context, camera, csmMatrixBuffer);
+            directionalLight.Update(context, camera, csmBuffer);
 
             SkyboxRenderer.SunDir = directionalLight.Transform.Forward;
 
-            context.RSSetViewport(csmBuffer.Viewport);
-            context.SetRenderTarget(null, csmBuffer);
+            directionalLight.PrepareDraw(context);
 
             scene.RenderSystem.Draw(context, RenderQueueIndex.Geometry, PassIdentifer.DirectionalLightShadowPass, camera, directionalLight);
             scene.RenderSystem.Draw(context, RenderQueueIndex.GeometryLast, PassIdentifer.DirectionalLightShadowPass, camera, directionalLight);
 
+            FilterArray(context, directionalLight.ShadowMap);
+
             context.ClearState();
 
             gbuffer.SetTarget(context, depthStencil);
-            context.RSSetViewport(gbuffer.Viewport);
+            context.SetViewport(gbuffer.Viewport);
 
             scene.RenderSystem.Draw(context, RenderQueueIndex.Geometry, PassIdentifer.DeferredPass, camera);
 
@@ -248,17 +359,16 @@
 
             hbao.Update(context, camera, hbaoBuffer.Viewport);
             context.SetRenderTarget(hbaoBuffer);
-            context.RSSetViewport(hbaoBuffer.Viewport);
+            context.SetViewport(hbaoBuffer.Viewport);
             hbao.Pass(context);
 
             godRays.Update(context, camera, directionalLight);
             godRays.PrePass(context, depthStencil);
 
             context.ClearState();
-            Vector4 col = default;
-            context.ClearRenderTargetView(lightBuffer, (float*)&col);
+            context.ClearRenderTargetView(lightBuffer, default);
             context.SetRenderTarget(lightBuffer, depthStencil);
-            context.RSSetViewport(lightBuffer.Viewport);
+            context.SetViewport(lightBuffer.Viewport);
 
             scene.RenderSystem.Draw(context, RenderQueueIndex.Background, PassIdentifer.ForwardPass, camera);
 
@@ -268,6 +378,7 @@
             lightPipeline.Update(context, directionalLight.DirectionalLightShadowData);
             lightPipeline.Pass(context);
 
+            scene.RenderSystem.Draw(context, RenderQueueIndex.GeometryLast, PassIdentifer.ForwardPass, camera);
             scene.RenderSystem.Draw(context, RenderQueueIndex.Transparent, PassIdentifer.ForwardPass, camera);
 
             context.ClearState();
@@ -276,17 +387,17 @@
             bloom.Pass(context, lightBuffer);
 
             context.SetRenderTarget(lightBuffer);
-            context.RSSetViewport(lightBuffer.Viewport);
+            context.SetViewport(lightBuffer.Viewport);
             godRays.Pass(context);
 
-            context.ClearRenderTargetView(fxaaBuffer, (float*)&col);
+            context.ClearRenderTargetView(fxaaBuffer, default);
             context.SetRenderTarget(fxaaBuffer);
-            context.RSSetViewport(fxaaBuffer.Viewport);
+            context.SetViewport(fxaaBuffer.Viewport);
             compose.Pass(context);
 
             swapChain.ClearTarget(context, default);
             swapChain.SetTarget(context, false);
-            context.RSSetViewport(swapChain.Viewport);
+            context.SetViewport(swapChain.Viewport);
             fxaa.Pass(context);
 
             swapChain.SetTarget(context, depthStencil);
@@ -300,7 +411,7 @@
         public void Uninitialize()
         {
             cameraBuffer.Dispose();
-            csmMatrixBuffer.Dispose();
+            csmBuffer.Dispose();
 
             lightPipeline.Dispose();
             compose.Dispose();
@@ -319,7 +430,7 @@
             fxaaBuffer.Dispose();
 
             hbaoBuffer.Dispose();
-            csmBuffer.Dispose();
+            directionalLight.Dispose();
 
             perlinNoiseWidget.Release();
         }

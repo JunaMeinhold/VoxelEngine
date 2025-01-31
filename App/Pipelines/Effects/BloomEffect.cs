@@ -4,6 +4,7 @@
     using Hexa.NET.DXGI;
     using HexaGen.Runtime.COM;
     using System.Numerics;
+    using VoxelEngine.Graphics;
     using VoxelEngine.Graphics.Buffers;
     using VoxelEngine.Graphics.D3D11;
 
@@ -25,8 +26,8 @@
 
         public BloomEffect(int width, int height)
         {
-            downsampleCB = new(CpuAccessFlag.Write);
-            upsampleCB = new(CpuAccessFlag.Write);
+            downsampleCB = new(CpuAccessFlags.Write);
+            upsampleCB = new(CpuAccessFlags.Write);
 
             sampler = new(SamplerDescription.LinearClamp);
 
@@ -119,19 +120,18 @@
             dirty = true;
         }
 
-        public void Update(ComPtr<ID3D11DeviceContext> context)
+        public void Update(GraphicsContext context)
         {
             if (dirty)
             {
-                Vector4 col = default;
-                context.ClearRenderTargetView(textures[0].RTV, (float*)&col);
+                context.ClearRenderTargetView(textures[0], default);
                 downsampleCB.Update(context, new ParamsDownsample(new(width, height)));
                 upsampleCB.Update(context, new ParamsUpsample(radius));
                 dirty = false;
             }
         }
 
-        public void Pass(ComPtr<ID3D11DeviceContext> context, IShaderResourceView input)
+        public void Pass(GraphicsContext context, IShaderResourceView input)
         {
             for (int i = 0; i < textures.Length; i++)
             {
@@ -144,11 +144,10 @@
                 {
                     downsample.Bindings.SetSRV("srcTexture", input);
                 }
-
-                downsample.Begin(context);
-                context.RSSetViewport(viewports[i]);
+                context.SetGraphicsPipelineState(downsample);
+                context.SetViewport(viewports[i]);
                 context.DrawInstanced(4, 1, 0, 0);
-                downsample.End(context);
+                context.SetGraphicsPipelineState(null);
                 context.SetRenderTarget(null, null);
             }
 
@@ -156,10 +155,10 @@
             {
                 context.SetRenderTarget(textures[i - 1], null);
                 upsample.Bindings.SetSRV("srcTexture", textures[i]);
-                upsample.Begin(context);
-                context.RSSetViewport(viewports[i - 1]);
+                context.SetGraphicsPipelineState(upsample);
+                context.SetViewport(viewports[i - 1]);
                 context.DrawInstanced(4, 1, 0, 0);
-                upsample.End(context);
+                context.SetGraphicsPipelineState(null);
                 context.SetRenderTarget(null, null);
             }
         }

@@ -3,6 +3,7 @@
     using Hexa.NET.D3D11;
     using HexaGen.Runtime.COM;
     using System.Runtime.CompilerServices;
+    using VoxelEngine.Graphics;
     using VoxelEngine.Graphics.Buffers;
     using VoxelEngine.Graphics.D3D11;
     using VoxelEngine.Resources;
@@ -32,7 +33,7 @@
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public BindType Bind(ComPtr<ID3D11DeviceContext> context)
+        public BindType Bind(GraphicsContext context)
         {
             if (HasIndexBuffer)
             {
@@ -48,7 +49,7 @@
             return BindType.None;
         }
 
-        public BindType Bind(ComPtr<ID3D11DeviceContext> context, int slot)
+        public BindType Bind(GraphicsContext context, int slot)
         {
             if (HasIndexBuffer)
             {
@@ -64,21 +65,21 @@
             return BindType.None;
         }
 
-        public void DrawAuto(ComPtr<ID3D11DeviceContext> context, GraphicsPipelineState pso)
+        public void DrawAuto(GraphicsContext context, GraphicsPipelineState pso)
         {
             if (HasIndexBuffer)
             {
                 VertexBuffer.Bind(context, 0);
                 IndexBuffer.Bind(context);
-                pso.Begin(context);
-                context.DrawIndexed((uint)IndexBuffer.Count, 0, 0);
+                context.SetGraphicsPipelineState(pso);
+                context.DrawIndexedInstanced((uint)IndexBuffer.Count, 1, 0, 0, 0);
                 return;
             }
             if (HasVertexBuffer)
             {
                 VertexBuffer.Bind(context, 0);
-                pso.Begin(context);
-                context.Draw((uint)VertexBuffer.Count, 0);
+                context.SetGraphicsPipelineState(pso);
+                context.DrawIndexedInstanced((uint)VertexBuffer.Count, 1, 0, 0, 0);
                 return;
             }
         }

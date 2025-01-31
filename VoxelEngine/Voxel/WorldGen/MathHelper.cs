@@ -1,7 +1,24 @@
 ﻿namespace VoxelEngine.Voxel.WorldGen
 {
+    using Hexa.NET.Mathematics;
+
     public static class MathHelper
     {
+        public static Point3 Abs(Point3 a)
+        {
+            return new(Math.Abs(a.X), Math.Abs(a.Y), Math.Abs(a.Z));
+        }
+
+        public static Point3 Min(Point3 a, Point3 b)
+        {
+            return new(Math.Min(a.X, b.X), Math.Min(a.Y, b.Y), Math.Min(a.Z, b.Z));
+        }
+
+        public static Point3 Max(Point3 a, Point3 b)
+        {
+            return new(Math.Max(a.X, b.X), Math.Max(a.Y, b.Y), Math.Max(a.Z, b.Z));
+        }
+
         public static float Frac(float f)
         {
             return f - float.Truncate(f);

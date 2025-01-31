@@ -1,4 +1,4 @@
-#include "../../../camera.hlsl"
+#include "../../camera.hlsl"
 #include "defs.hlsl"
 
 cbuffer ModelBuffer
@@ -17,9 +17,6 @@ cbuffer TexData
 	BlockDescription descs[256];
 };
 
-////////////////////////////////////////////////////////////////////////////////
-// Vertex Shader
-////////////////////////////////////////////////////////////////////////////////
 PixelInputType main(int aData : POSITION, float3 offset : POSITION1)
 {
 	PixelInputType output;

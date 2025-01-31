@@ -10,7 +10,7 @@
     using VoxelEngine.Graphics.D3D11;
     using VoxelEngine.Resources;
 
-    public unsafe class IndexBuffer<T> : Resource where T : unmanaged
+    public unsafe class IndexBuffer<T> : Resource, IBuffer where T : unmanaged
     {
         private BufferDesc desc;
         private bool isDirty;
@@ -22,7 +22,7 @@
         private readonly IndexFormat indexFormat;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public IndexBuffer(CpuAccessFlag cpuAccessFlags, int capacity)
+        public IndexBuffer(CpuAccessFlags cpuAccessFlags, int capacity)
         {
             if (typeof(T) == typeof(uint))
             {
@@ -41,11 +41,11 @@
             var device = D3D11DeviceManager.Device;
             desc = new((uint)(sizeof(T) * capacity), Usage.Default, (uint)BindFlag.IndexBuffer, (uint)cpuAccessFlags);
             indexCapacity = capacity;
-            if ((cpuAccessFlags & CpuAccessFlag.Write) != 0)
+            if ((cpuAccessFlags & CpuAccessFlags.Write) != 0)
             {
                 desc.Usage = Usage.Dynamic;
             }
-            if ((cpuAccessFlags & CpuAccessFlag.Read) != 0)
+            if ((cpuAccessFlags & CpuAccessFlags.Read) != 0)
             {
                 desc.Usage = Usage.Staging;
             }
@@ -58,7 +58,7 @@
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public IndexBuffer(CpuAccessFlag cpuAccessFlags, Span<T> indices)
+        public IndexBuffer(CpuAccessFlags cpuAccessFlags, Span<T> indices)
         {
             if (typeof(T) == typeof(uint))
             {
@@ -77,11 +77,11 @@
             var device = D3D11DeviceManager.Device;
             desc = new((uint)(sizeof(T) * indices.Length), Usage.Default, (uint)BindFlag.IndexBuffer, (uint)cpuAccessFlags);
             indexCapacity = indices.Length;
-            if ((cpuAccessFlags & CpuAccessFlag.Write) != 0)
+            if ((cpuAccessFlags & CpuAccessFlags.Write) != 0)
             {
                 desc.Usage = Usage.Dynamic;
             }
-            if ((cpuAccessFlags & CpuAccessFlag.Read) != 0)
+            if ((cpuAccessFlags & CpuAccessFlags.Read) != 0)
             {
                 desc.Usage = Usage.Staging;
             }
@@ -97,6 +97,8 @@
         public int Count => indexCount;
 
         public int IndexCapacity => indexCapacity;
+
+        public nint NativePointer => (nint)buffer.Handle;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private unsafe void ResizeBuffers()
@@ -121,9 +123,9 @@
             indexCapacity = indices.Count;
         }
 
-        private unsafe void UpdateBuffers(ComPtr<ID3D11DeviceContext> context)
+        private unsafe void UpdateBuffers(GraphicsContext context)
         {
-            DeviceHelper.Write(context, buffer, indices.Data, indices.Size);
+            context.Write(this, indices.Data, indices.Size);
             indexCount = indices.Count;
         }
 
@@ -155,7 +157,7 @@
             isDirty = true;
         }
 
-        public void Bind(ComPtr<ID3D11DeviceContext> context)
+        public void Bind(GraphicsContext context)
         {
             if (isDirty)
             {
@@ -165,7 +167,7 @@
                 isDirty = false;
             }
 
-            context.IASetIndexBuffer(buffer, format, 0);
+            context.SetIndexBuffer(this, format, 0);
         }
 
         public static implicit operator ComPtr<ID3D11Buffer>(IndexBuffer<T> buffer) => buffer.buffer;

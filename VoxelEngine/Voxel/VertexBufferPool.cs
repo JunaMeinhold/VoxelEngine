@@ -1,37 +1,35 @@
 ﻿namespace VoxelEngine.Voxel
 {
-    using Hexa.NET.D3D11;
-    using HexaGen.Runtime.COM;
-    using VoxelEngine.Graphics.D3D11;
+    using VoxelEngine.Graphics;
+    using VoxelEngine.Graphics.Buffers;
 
     public unsafe class VertexBufferPool<T> where T : unmanaged
     {
-        private readonly ComPtr<ID3D11Device> device;
-        private readonly List<ComPtr<ID3D11Buffer>> buffers = [];
-        private readonly List<ComPtr<ID3D11Buffer>> freeBuffers = [];
+        private readonly List<VertexBuffer<T>> buffers = [];
+        private readonly List<VertexBuffer<T>> freeBuffers = [];
         private readonly SemaphoreSlim semaphore = new(1);
 
         public VertexBufferPool()
         {
-            device = D3D11DeviceManager.Device.As<ID3D11Device>();
         }
+
+        public static VertexBufferPool<T> Shared { get; } = new();
 
         public const int MaxFreeBuffers = 64;
         public const int ResizeSmallerAt = 32;
+        public const int MinCapacity = 4096;
 
-        public ComPtr<ID3D11Buffer> Rent(int minCapacity)
+        public VertexBuffer<T> Rent(int minCapacity)
         {
-            int size = minCapacity * sizeof(T);
-            BufferDesc desc;
+            minCapacity = Math.Max(minCapacity, MinCapacity);
 
             semaphore.Wait();
             try
             {
                 for (int i = 0; i < freeBuffers.Count; i++)
                 {
-                    ComPtr<ID3D11Buffer> buffer = freeBuffers[i];
-                    buffer.GetDesc(&desc);
-                    if (desc.ByteWidth >= size)
+                    VertexBuffer<T> buffer = freeBuffers[i];
+                    if (buffer.Count >= minCapacity)
                     {
                         freeBuffers.RemoveAt(i);
                         return buffer;
@@ -40,22 +38,14 @@
 
                 if (freeBuffers.Count > ResizeSmallerAt)
                 {
-                    ComPtr<ID3D11Buffer> buffer = freeBuffers[0];
+                    VertexBuffer<T> buffer = freeBuffers[0];
                     freeBuffers.RemoveAt(0);
-                    Resize(ref buffer, minCapacity);
+                    buffer.Resize(minCapacity);
                     return buffer;
                 }
 
-                desc = new()
-                {
-                    BindFlags = (uint)BindFlag.VertexBuffer,
-                    CPUAccessFlags = (uint)CpuAccessFlag.Write,
-                    MiscFlags = 0,
-                    ByteWidth = (uint)size,
-                    Usage = Usage.Dynamic
-                };
+                VertexBuffer<T> newBuffer = new(CpuAccessFlags.Write, minCapacity);
 
-                device.CreateBuffer(&desc, null, out var newBuffer);
                 buffers.Add(newBuffer);
 
                 return newBuffer;
@@ -66,7 +56,7 @@
             }
         }
 
-        public void Return(ComPtr<ID3D11Buffer> buffer)
+        public void Return(VertexBuffer<T> buffer)
         {
             semaphore.Wait();
             try
@@ -74,42 +64,10 @@
                 freeBuffers.Add(buffer);
                 if (freeBuffers.Count > MaxFreeBuffers)
                 {
-                    ComPtr<ID3D11Buffer> freeBuffer = freeBuffers[0];
+                    VertexBuffer<T> freeBuffer = freeBuffers[0];
                     freeBuffers.RemoveAt(0);
-                    freeBuffer.Release();
+                    freeBuffer.Dispose();
                 }
-            }
-            finally
-            {
-                semaphore.Release();
-            }
-        }
-
-        public void Resize(ref ComPtr<ID3D11Buffer> buffer, int capacity)
-        {
-            int size = capacity * sizeof(T);
-            BufferDesc desc;
-            buffer.GetDesc(&desc);
-            if (desc.ByteWidth > size)
-            {
-                return;
-            }
-
-            semaphore.Wait();
-            try
-            {
-                buffers.Remove(buffer);
-                buffer.Dispose();
-                desc = new()
-                {
-                    BindFlags = (uint)BindFlag.VertexBuffer,
-                    CPUAccessFlags = (uint)CpuAccessFlag.Write,
-                    MiscFlags = 0,
-                    ByteWidth = (uint)size,
-                    Usage = Usage.Dynamic
-                };
-                device.CreateBuffer(&desc, null, out buffer);
-                buffers.Add(buffer);
             }
             finally
             {

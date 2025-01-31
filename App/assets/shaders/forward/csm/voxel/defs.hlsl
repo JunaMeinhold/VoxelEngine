@@ -1,17 +1,17 @@
 struct GeometryInput
 {
-    float4 position : POSITION;
+	float3 position : POSITION;
 };
 
 struct PixelInput
 {
-    float4 position : SV_POSITION;
-    float2 shadowCoord : TEXCOORD0;
-    uint rtIndex : SV_RenderTargetArrayIndex;
+	float4 position : SV_POSITION;
+	uint rtvIndex : SV_RenderTargetArrayIndex;
+	float depth : DEPTH;
 };
 
 struct PatchTess
 {
-    float EdgeTess[3] : SV_TessFactor;
-    float InsideTess : SV_InsideTessFactor;
+	float EdgeTess[3] : SV_TessFactor;
+	float InsideTess : SV_InsideTessFactor;
 };

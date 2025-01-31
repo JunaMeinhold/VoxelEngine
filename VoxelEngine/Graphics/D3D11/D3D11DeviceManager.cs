@@ -19,10 +19,13 @@
         private static ComPtr<ID3D11Device5> iD3D11Device;
         private static ComPtr<ID3D11DeviceContext4> iD3D11DeviceContext;
         private static ComPtr<ID3D11Debug> debugDevice;
+        private static GraphicsContext context;
 
         public static ComPtr<ID3D11Device5> Device => iD3D11Device;
 
         public static ComPtr<ID3D11DeviceContext4> Context => iD3D11DeviceContext;
+
+        public static GraphicsContext GraphicsContext => context;
 
         public static FeatureLevel FeatureLevel => _featureLevel;
 
@@ -55,6 +58,8 @@
 #if D3D_DEBUG
             Device.QueryInterface(out debugDevice);
 #endif
+
+            context = new(iD3D11DeviceContext.As<ID3D11DeviceContext3>());
         }
 
         public static void ResizeBegin()

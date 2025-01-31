@@ -1,17 +1,19 @@
 ﻿namespace VoxelEngine.Voxel
 {
+    using Hexa.NET.D3D11;
+    using Hexa.NET.Utilities;
+    using HexaGen.Runtime.COM;
     using System.Collections.Generic;
+    using System.Diagnostics;
     using System.Diagnostics.CodeAnalysis;
     using System.Linq;
     using System.Numerics;
     using System.Runtime.CompilerServices;
     using System.Threading;
-    using BepuUtilities.Memory;
-    using Hexa.NET.Utilities;
-    using Hexa.NET.D3D11;
     using VoxelEngine.Core;
+    using VoxelEngine.Debugging;
+    using VoxelEngine.Graphics;
     using VoxelEngine.Threading;
-    using HexaGen.Runtime.COM;
 
     public readonly struct SpatialSorter : IComparer<Vector2>
     {
@@ -107,8 +109,18 @@
             {
                 count--;
             }
-
             ReleaseLock();
+            return item;
+        }
+
+        public bool TryDequeueUnsafe([MaybeNullWhen(false)] out T result)
+        {
+            bool item = queue.TryDequeue(out result);
+            if (item)
+            {
+                count--;
+            }
+
             return item;
         }
     }
@@ -159,12 +171,13 @@
 
         private readonly SemaphoreSlim semaphore = new(1);
 
+        public static readonly WorldLoaderProfiler Profiler = new();
+
         public class Worker
         {
             public int Id;
             public Thread Thread;
             public AutoResetEvent Handle;
-            public BufferPool Pool;
         }
 
         public WorldLoader(World world, int threads = 4, int ioThreads = 2)
@@ -183,7 +196,6 @@
                     {
                         Name = $"ChunkLoader Worker {i}"
                     },
-                    Pool = new()
                 };
 
                 workers[i].Thread.Start(i);
@@ -341,9 +353,8 @@
         {
             lastPos = pos;
 
-            MiniProfiler.Instance.Clear();
-            MiniProfiler.Instance.Begin("Dispatch.Total");
-            MiniProfiler.Instance.Begin("Dispatch.Load");
+            Profiler.Begin("Dispatch.Total");
+            Profiler.Begin("Dispatch.Load");
             loadedChunksIndices.Clear();
 
             for (int i = 0; i < indicesRenderCache.Length; i++)
@@ -366,15 +377,13 @@
                 loadIOQueue.Enqueue(chunkVGlobal);
             }
 
-            MiniProfiler.Instance.EndDebug("Dispatch.Load");
+            Profiler.End("Dispatch.Load");
 
-            MiniProfiler.Instance.Begin("Dispatch.Unload");
+            Profiler.Begin("Dispatch.Unload");
 
-            MiniProfiler.Instance.Begin("Dispatch.Unload.Lock");
             // Unload chunks
             lock (loadedInternal.SyncRoot)
             {
-                MiniProfiler.Instance.EndDebug("Dispatch.Unload.Lock");
                 unloadIOQueue.Lock();
                 for (int i = 0; i < loadedInternal.Count; i++)
                 {
@@ -388,11 +397,11 @@
                 unloadIOQueue.ReleaseLock();
             }
 
-            MiniProfiler.Instance.EndDebug("Dispatch.Unload");
+            Profiler.End("Dispatch.Unload");
 
             SignalIOWorkers();
 
-            MiniProfiler.Instance.EndDebug("Dispatch.Total");
+            Profiler.End("Dispatch.Total");
         }
 
         public enum Direction
@@ -410,9 +419,8 @@
                 DispatchInitial(pos);
                 return;
             }
-            MiniProfiler.Instance.Clear();
-            MiniProfiler.Instance.Begin("Dispatch.Total");
-            MiniProfiler.Instance.Begin("Dispatch.Load");
+            Profiler.Begin("Dispatch.Total");
+            Profiler.Begin("Dispatch.Load");
             loadedChunksIndices.Clear();
             unloadChunksIndices.Clear();
 
@@ -481,16 +489,15 @@
             }
             loadIOQueue.ReleaseLock();
 
-            MiniProfiler.Instance.EndDebug("Dispatch.Load");
+            Profiler.End("Dispatch.Load");
 
-            MiniProfiler.Instance.Begin("Dispatch.Unload");
+            Profiler.Begin("Dispatch.Unload");
 
-            MiniProfiler.Instance.Begin("Dispatch.Unload.Lock");
             // Unload chunks
             lock (loadedInternal.SyncRoot)
             {
                 unloadIOQueue.Lock();
-                MiniProfiler.Instance.EndDebug("Dispatch.Unload.Lock");
+
                 for (int i = 0; i < loadedInternal.Count; i++)
                 {
                     ChunkSegment segment = loadedInternal[i];
@@ -503,11 +510,11 @@
                 unloadIOQueue.ReleaseLock();
             }
 
-            MiniProfiler.Instance.EndDebug("Dispatch.Unload");
+            Profiler.End("Dispatch.Unload");
 
             SignalIOWorkers();
 
-            MiniProfiler.Instance.EndDebug("Dispatch.Total");
+            Profiler.End("Dispatch.Total");
 
             lastPos = pos;
         }
@@ -515,7 +522,6 @@
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Dispatch(Chunk chunk)
         {
-            chunk.UnloadFormSimulation();
             ChunkSegment segment = World.GetSegment(chunk.Position);
             if (updateQueue.Contains(segment))
             {
@@ -524,36 +530,50 @@
             updateQueue.Enqueue(segment);
             saveIOQueue.Enqueue(segment);
             SignalIOWorkers();
+            SignalWorkers();
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Upload(ComPtr<ID3D11DeviceContext> context)
+        public void Upload(GraphicsContext context)
         {
             if (uploadQueue.IsEmpty & unloadQueue.IsEmpty)
             {
                 return;
             }
 
-            while (uploadQueue.TryDequeue(out var region))
+            Profiler.Begin("Upload.Total");
+
+            Profiler.Begin("Upload.Load");
+            long start = Stopwatch.GetTimestamp();
+            uploadQueue.Lock();
+            double timeBudgetMs = uploadQueue.Count > 100 ? 3.0 : 2.0;
+            while (uploadQueue.TryDequeueUnsafe(out var region))
             {
                 region.Update(context);
+                long end = Stopwatch.GetTimestamp();
+                double delta = ((end - start) / (double)Stopwatch.Frequency) * 1000;
+                if (delta >= timeBudgetMs) break;
             }
+            uploadQueue.ReleaseLock();
+            Profiler.End("Upload.Load");
 
             while (integrationQueue.TryDequeue(out ChunkSegment segment))
             {
                 loadedChunks.AddRange(segment.Chunks);
             }
 
+            Profiler.Begin("Upload.Unload");
             while (unloadQueue.TryDequeue(out ChunkSegment segment))
             {
                 for (int i = 0; i < ChunkSegment.CHUNK_SEGMENT_SIZE; i++)
                 {
                     Chunk chunk = segment.Chunks[i];
                     chunk.UnloadFromGPU();
-                    chunk.UnloadFormSimulation();
                     _ = loadedChunks.Remove(chunk);
                 }
             }
+            Profiler.End("Upload.Unload");
+            Profiler.End("Upload.Total");
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -587,14 +607,14 @@
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void LoadRegion(ChunkSegment segment, BufferPool pool)
+        private void LoadRegion(ChunkSegment segment)
         {
             if (!segment.InMemory)
             {
                 return;
             }
 
-            segment.Load(pool, true);
+            segment.Load(true);
 
             loadedInternal.Add(segment);
             integrationQueue.Enqueue(segment);
@@ -608,14 +628,14 @@
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void UpdateRegion(ChunkSegment segment, BufferPool pool)
+        private void UpdateRegion(ChunkSegment segment)
         {
             if (!segment.InMemory)
             {
                 return;
             }
 
-            segment.Load(pool, true);
+            segment.Load(true);
 
             RenderRegion renderRegion = FindRenderRegion(segment.Position);
             if (!uploadQueue.Contains(renderRegion))
@@ -663,7 +683,7 @@
                 {
                     if (updateQueue.TryDequeue(out ChunkSegment segment) && running)
                     {
-                        UpdateRegion(segment, worker.Pool);
+                        UpdateRegion(segment);
                     }
                 }
 
@@ -684,7 +704,7 @@
                 {
                     if (loadQueue.TryDequeue(out ChunkSegment segment) && running)
                     {
-                        LoadRegion(segment, worker.Pool);
+                        LoadRegion(segment);
                     }
                 }
 

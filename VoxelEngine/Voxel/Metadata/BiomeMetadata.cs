@@ -1,5 +1,6 @@
 ﻿namespace VoxelEngine.Voxel.Metadata
 {
+    using Hexa.NET.Mathematics;
     using System.Numerics;
 
     public class BiomeMetadata
@@ -16,10 +17,10 @@
             set => Data[index] = value;
         }
 
-        public byte this[Vector2 position]
+        public byte this[Point2 position]
         {
-            get => Data[position.MapToIndex(Chunk.CHUNK_SIZE)];
-            set => Data[position.MapToIndex(Chunk.CHUNK_SIZE)] = value;
+            get => Data[position.MapToIndex()];
+            set => Data[position.MapToIndex()] = value;
         }
 
         public void Serialize(Stream stream)

@@ -6,25 +6,28 @@
     using System.Runtime.CompilerServices;
     using System.Runtime.InteropServices;
     using VoxelEngine.Graphics.D3D11;
+    using VoxelEngine.Mathematics;
     using VoxelEngine.Resources;
+    using static Hexa.NET.Utilities.IO.FileUtils.Win;
 
     public unsafe class ConstantBuffer<T> : Resource, IConstantBuffer<T> where T : unmanaged
     {
+        private readonly string dbgName;
         private BufferDesc description;
         public ComPtr<ID3D11Buffer> Buffer;
-        private readonly bool isDynamic;
 
         private T* data;
         private int count;
 
-        public ConstantBuffer(CpuAccessFlag accessFlags, T* value, int count)
+        public ConstantBuffer(CpuAccessFlags accessFlags, T* value, int count, [CallerFilePath] string file = "", [CallerLineNumber] int line = 0)
         {
+            dbgName = $"ConstantBuffer: {Path.GetFileNameWithoutExtension(file)}, Line:{line}";
             var device = D3D11DeviceManager.Device;
             Usage usage = accessFlags switch
             {
-                CpuAccessFlag.Write => Usage.Dynamic,
-                CpuAccessFlag.Read => Usage.Staging,
-                0 => Usage.Immutable,
+                CpuAccessFlags.Write => Usage.Dynamic,
+                CpuAccessFlags.Read => Usage.Staging,
+                CpuAccessFlags.None => Usage.Immutable,
                 _ => throw new NotImplementedException(),
             };
 
@@ -41,14 +44,15 @@
             //Buffer.DebugName = nameof(ConstantBuffer<T>);
         }
 
-        public ConstantBuffer(CpuAccessFlag accessFlags, T value)
+        public ConstantBuffer(CpuAccessFlags accessFlags, T value, [CallerFilePath] string file = "", [CallerLineNumber] int line = 0)
         {
+            dbgName = $"ConstantBuffer: {Path.GetFileNameWithoutExtension(file)}, Line:{line}";
             var device = D3D11DeviceManager.Device;
             Usage usage = accessFlags switch
             {
-                CpuAccessFlag.Write => Usage.Dynamic,
-                CpuAccessFlag.Read => Usage.Staging,
-                0 => Usage.Immutable,
+                CpuAccessFlags.Write => Usage.Dynamic,
+                CpuAccessFlags.Read => Usage.Staging,
+                CpuAccessFlags.None => Usage.Immutable,
                 _ => throw new NotImplementedException(),
             };
 
@@ -63,13 +67,14 @@
             //Buffer.DebugName = nameof(ConstantBuffer<T>);
         }
 
-        public ConstantBuffer(CpuAccessFlag accessFlags, int count)
+        public ConstantBuffer(CpuAccessFlags accessFlags, int count, [CallerFilePath] string file = "", [CallerLineNumber] int line = 0)
         {
+            dbgName = $"ConstantBuffer: {Path.GetFileNameWithoutExtension(file)}, Line:{line}";
             var device = D3D11DeviceManager.Device;
             Usage usage = accessFlags switch
             {
-                CpuAccessFlag.Write => Usage.Dynamic,
-                CpuAccessFlag.Read => Usage.Staging,
+                CpuAccessFlags.Write => Usage.Dynamic,
+                CpuAccessFlags.Read => Usage.Staging,
                 0 => throw new NotSupportedException("Immutable buffers need initial data"),
                 _ => throw new NotImplementedException(),
             };
@@ -81,13 +86,14 @@
             //Buffer.DebugName = nameof(ConstantBuffer<T>);
         }
 
-        public ConstantBuffer(CpuAccessFlag accessFlags)
+        public ConstantBuffer(CpuAccessFlags accessFlags, [CallerFilePath] string file = "", [CallerLineNumber] int line = 0)
         {
+            dbgName = $"ConstantBuffer: {Path.GetFileNameWithoutExtension(file)}, Line:{line}";
             var device = D3D11DeviceManager.Device;
             Usage usage = accessFlags switch
             {
-                CpuAccessFlag.Write => Usage.Dynamic,
-                CpuAccessFlag.Read => Usage.Staging,
+                CpuAccessFlags.Write => Usage.Dynamic,
+                CpuAccessFlags.Read => Usage.Staging,
                 0 => throw new NotSupportedException("Immutable buffers need initial data"),
                 _ => throw new NotImplementedException(),
             };
@@ -101,27 +107,30 @@
 
         public nint NativePointer => (nint)Buffer.Handle;
 
-        public void Update(ComPtr<ID3D11DeviceContext> context)
+        public void Update(GraphicsContext context)
         {
-            DeviceHelper.Write(context, Buffer, data, count);
+            context.Write(this, data, count);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Update(ComPtr<ID3D11DeviceContext> context, T value)
+        public void Update(GraphicsContext context, T value)
         {
-            DeviceHelper.Write(context, Buffer, value);
+            context.Write(this, value);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe void Update(ComPtr<ID3D11DeviceContext> context, T* value, int length)
+        public unsafe void Update(GraphicsContext context, T* value, int length)
         {
-            DeviceHelper.Write(context, Buffer, value, length);
+            context.Write(this, value, length);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Update(ComPtr<ID3D11DeviceContext> context, T[] value)
+        public void Update(GraphicsContext context, T[] value)
         {
-            DeviceHelper.Write(context, Buffer, value);
+            fixed (T* values = value)
+            {
+                context.Write(this, values, value.Length);
+            }
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

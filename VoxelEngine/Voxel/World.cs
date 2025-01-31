@@ -4,6 +4,7 @@
     using System.IO;
     using System.Linq;
     using System.Numerics;
+    using System.Runtime.CompilerServices;
     using Hexa.NET.D3D11;
     using VoxelEngine.Voxel.WorldGen;
 
@@ -41,20 +42,22 @@
 
         public WorldLoader WorldLoader;
 
-        public static int Mod(int x, int m)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static int Mod(int x)
         {
-            int r = x % m;
-            return r < 0 ? r + m : r;
+            return x & 15;
         }
 
         public void SetBlock(int x, int y, int z, Block block)
         {
-            int xglobal = (int)Math.Floor((float)x / Chunk.CHUNK_SIZE);
-            int xlocal = Mod(x, Chunk.CHUNK_SIZE);
-            int yglobal = (int)Math.Floor((float)y / Chunk.CHUNK_SIZE);
-            int ylocal = Mod(y, Chunk.CHUNK_SIZE);
-            int zglobal = (int)Math.Floor((float)z / Chunk.CHUNK_SIZE);
-            int zlocal = Mod(z, Chunk.CHUNK_SIZE);
+            int xglobal = x >> 4;
+            int yglobal = y >> 4;
+            int zglobal = z >> 4;
+
+            int xlocal = x & 15;
+            int ylocal = y & 15;
+            int zlocal = z & 15;
+
             // If it is at the edge of the map, return true
             if (xglobal < CHUNK_AMOUNT_X_MIN || xglobal >= CHUNK_AMOUNT_X ||
                 yglobal < CHUNK_AMOUNT_Y_MIN || yglobal >= CHUNK_AMOUNT_Y ||
@@ -92,12 +95,14 @@
 
         public Block GetBlock(int x, int y, int z)
         {
-            int xglobal = (int)Math.Floor((float)x / Chunk.CHUNK_SIZE);
-            int xlocal = Mod(x, Chunk.CHUNK_SIZE);
-            int yglobal = (int)Math.Floor((float)y / Chunk.CHUNK_SIZE);
-            int ylocal = Mod(y, Chunk.CHUNK_SIZE);
-            int zglobal = (int)Math.Floor((float)z / Chunk.CHUNK_SIZE);
-            int zlocal = Mod(z, Chunk.CHUNK_SIZE);
+            int xglobal = x >> 4;
+            int yglobal = y >> 4;
+            int zglobal = z >> 4;
+
+            int xlocal = x & 15;
+            int ylocal = y & 15;
+            int zlocal = z & 15;
+
             // If it is at the edge of the map, return true
             if (xglobal < CHUNK_AMOUNT_X_MIN || xglobal >= CHUNK_AMOUNT_X ||
                 yglobal < CHUNK_AMOUNT_Y_MIN || yglobal >= CHUNK_AMOUNT_Y ||

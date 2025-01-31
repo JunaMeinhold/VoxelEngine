@@ -7,63 +7,62 @@
     using VoxelEngine.Graphics.D3D11;
     using VoxelEngine.Resources;
 
-    public unsafe class VertexBuffer<T> : Resource where T : unmanaged
+    public unsafe class VertexBuffer<T> : Resource, IBuffer where T : unmanaged
     {
         private BufferDesc desc;
         private bool isDirty;
-        private UnsafeList<T> vertices;
         private int vertexCount;
-        private int capacity;
         private ComPtr<ID3D11Buffer> vertexBuffer;
         private readonly uint stride;
-        private readonly CpuAccessFlag cpuAccessFlags;
+        private readonly CpuAccessFlags cpuAccessFlags;
         private readonly bool canWrite;
         private readonly bool canRead;
 
-        public VertexBuffer(CpuAccessFlag cpuAccessFlags, int capacity)
+        public VertexBuffer(CpuAccessFlags cpuAccessFlags, int capacity)
         {
             var device = D3D11DeviceManager.Device;
             this.cpuAccessFlags = cpuAccessFlags;
-            this.capacity = capacity;
+            vertexCount = capacity;
             stride = (uint)sizeof(T);
             if (cpuAccessFlags == 0) throw new ArgumentException("Vertex Buffer cannot be immutable", nameof(cpuAccessFlags));
             isDirty = true;
 
             Usage usage = Usage.Immutable;
-            if ((cpuAccessFlags & CpuAccessFlag.Write) != 0)
+            if ((cpuAccessFlags & CpuAccessFlags.Write) != 0)
             {
                 usage = Usage.Dynamic;
                 canWrite = true;
             }
-            if ((cpuAccessFlags & CpuAccessFlag.Read) != 0)
+            if ((cpuAccessFlags & CpuAccessFlags.Read) != 0)
             {
                 usage = Usage.Staging;
                 canRead = true;
             }
 
-            desc = new((uint)(capacity * sizeof(T)), usage, (uint)BindFlag.VertexBuffer, (uint)cpuAccessFlags);
+            desc = new((uint)(capacity * sizeof(T)), usage, (uint)BindFlag.VertexBuffer, (uint)cpuAccessFlags, structureByteStride: (uint)sizeof(T));
             device.CreateBuffer(ref desc, null, out vertexBuffer);
         }
 
-        public VertexBuffer(CpuAccessFlag cpuAccessFlags, Span<T> vertices)
+        public VertexBuffer(CpuAccessFlags cpuAccessFlags, Span<T> vertices)
         {
             var device = D3D11DeviceManager.Device;
             this.cpuAccessFlags = cpuAccessFlags;
             stride = (uint)sizeof(T);
 
             Usage usage = Usage.Immutable;
-            if ((cpuAccessFlags & CpuAccessFlag.Write) != 0)
+            if ((cpuAccessFlags & CpuAccessFlags.Write) != 0)
             {
                 usage = Usage.Dynamic;
                 canWrite = true;
             }
-            if ((cpuAccessFlags & CpuAccessFlag.Read) != 0)
+            if ((cpuAccessFlags & CpuAccessFlags.Read) != 0)
             {
                 usage = Usage.Staging;
                 canRead = true;
             }
 
-            desc = new((uint)(vertices.Length * sizeof(T)), usage, (uint)BindFlag.VertexBuffer, (uint)cpuAccessFlags);
+            desc = new((uint)(vertices.Length * sizeof(T)), usage, (uint)BindFlag.VertexBuffer, (uint)cpuAccessFlags, structureByteStride: (uint)sizeof(T));
+
             fixed (T* pVertices = vertices)
             {
                 SubresourceData subresource = new(pVertices);
@@ -74,93 +73,36 @@
 
         public int Count => vertexCount;
 
-        public int VertexCapacity => capacity;
-
         public unsafe int Stride { get; } = sizeof(T);
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private unsafe void ResizeBuffers()
+        public nint NativePointer => (nint)vertexBuffer.Handle;
+
+        public void Resize(int size)
         {
             var device = D3D11DeviceManager.Device;
-            if (vertices.Count <= VertexCapacity)
-            {
-                return;
-            }
-
             if (vertexBuffer.Handle != null)
             {
                 vertexBuffer.Release();
+                vertexBuffer = default;
             }
-
-            desc.ByteWidth = (uint)(vertices.Count * sizeof(T));
-            SubresourceData data = new(vertices.Data);
-            device.CreateBuffer(ref desc, ref data, out vertexBuffer);
-            capacity = vertices.Count;
-            //vertexBuffer.DebugName = debugName;
+            desc.ByteWidth = (uint)(size * sizeof(T));
+            device.CreateBuffer(ref desc, null, out vertexBuffer);
+            vertexCount = size;
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private unsafe void UpdateBuffers(ComPtr<ID3D11DeviceContext> context)
+        public void Write(GraphicsContext context, T* verts, int count)
         {
-            DeviceHelper.Write(context, vertexBuffer, vertices.ToArray());
-            vertexCount = vertices.Count;
+            context.Write(this, verts, count);
         }
 
-        public void FreeMemory(ComPtr<ID3D11DeviceContext> context)
-        {
-            ResizeBuffers();
-            UpdateBuffers(context);
-            isDirty = false;
-            vertices.Clear();
-            vertices.Release();
-        }
-
-        public void Append(T vertex)
-        {
-            vertices.Add(vertex);
-            isDirty = true;
-        }
-
-        public void Append(IEnumerable<T> vertices)
-        {
-            foreach (var vert in vertices)
-            {
-                this.vertices.PushBack(vert);
-            }
-
-            isDirty = true;
-        }
-
-        public void Append(T[] vertices)
-        {
-            this.vertices.AppendRange(vertices);
-            isDirty = true;
-        }
-
-        public void Clear()
-        {
-            vertices.Clear();
-            isDirty = true;
-        }
-
-        public void Bind(ComPtr<ID3D11DeviceContext> context)
+        public void Bind(GraphicsContext context)
         {
             Bind(context, 0);
         }
 
-        public void Bind(ComPtr<ID3D11DeviceContext> context, int slot)
+        public void Bind(GraphicsContext context, int slot)
         {
-            if (isDirty)
-            {
-                ResizeBuffers();
-                UpdateBuffers(context);
-
-                isDirty = false;
-            }
-
-            uint stride = this.stride;
-            uint offset = 0;
-            context.IASetVertexBuffers((uint)slot, 1, vertexBuffer.GetAddressOf(), &stride, &offset);
+            context.SetVertexBuffer((uint)slot, this, stride);
         }
 
         public static implicit operator ComPtr<ID3D11Buffer>(VertexBuffer<T> buffer) => buffer.vertexBuffer;

@@ -17,7 +17,7 @@
         private ConstantBuffer<Matrix4x4> mvpBuffer;
         private ConstantBuffer<Vector4> colorBuffer;
         private LineBox lineBox;
-        private World world;
+        private Player player;
 
         public Vector4 Color;
 
@@ -25,12 +25,12 @@
 
         public override void Awake()
         {
-            if (GameObject is World world)
+            if (GameObject is Player player)
             {
-                this.world = world;
+                this.player = player;
             }
-            mvpBuffer = new(CpuAccessFlag.Write);
-            colorBuffer = new(CpuAccessFlag.Write);
+            mvpBuffer = new(CpuAccessFlags.Write);
+            colorBuffer = new(CpuAccessFlags.Write);
             linePipeline = new();
             linePipeline.Bindings.SetCBV("ModelBuffer", mvpBuffer);
             linePipeline.Bindings.SetCBV("ColorBuffer", colorBuffer);
@@ -38,7 +38,7 @@
             lineBox = new();
         }
 
-        public override void Draw(ComPtr<ID3D11DeviceContext> context, PassIdentifer pass, Camera camera, object? parameter)
+        public override void Draw(GraphicsContext context, PassIdentifer pass, Camera camera, object? parameter)
         {
             if (pass == PassIdentifer.ForwardPass)
             {
@@ -46,16 +46,17 @@
             }
         }
 
-        public void DrawForward(ComPtr<ID3D11DeviceContext> context)
+        public void DrawForward(GraphicsContext context)
         {
-            if (world.Player.IsLookingAtBlock)
+            if (player == null) return;
+            if (player.IsLookingAtBlock)
             {
-                mvpBuffer.Update(context, Matrix4x4.Transpose(Matrix4x4.CreateScale(0.5f) * Matrix4x4.CreateTranslation(world.Player.LookAtBlock + new Vector3(0.5f))));
+                mvpBuffer.Update(context, Matrix4x4.Transpose(Matrix4x4.CreateScale(0.5f) * Matrix4x4.CreateTranslation(player.LookAtBlock + new Vector3(0.5f))));
                 colorBuffer.Update(context, Color);
 
                 lineBox.Bind(context);
                 linePipeline.Begin(context);
-                context.DrawIndexed((uint)lineBox.IndexBuffer.Count, 0, 0);
+                context.DrawIndexedInstanced((uint)lineBox.IndexBuffer.Count, 1, 0, 0, 0);
                 linePipeline.End(context);
             }
         }

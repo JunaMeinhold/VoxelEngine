@@ -1,10 +1,9 @@
 ﻿namespace VoxelEngine.Voxel
 {
+    using Hexa.NET.Mathematics;
     using System.Collections.Generic;
     using System.Numerics;
-    using Hexa.NET.Mathematics;
-    using Hexa.NET.D3D11;
-    using HexaGen.Runtime.COM;
+    using VoxelEngine.Graphics;
 
     public class RenderRegion
     {
@@ -71,7 +70,7 @@
             return false;
         }
 
-        public void Update(ComPtr<ID3D11DeviceContext> context)
+        public void Update(GraphicsContext context)
         {
             vertexBuffer.Reset();
             var max = Offset + Size;
@@ -82,10 +81,7 @@
                 for (int j = 0; j < ChunkSegment.CHUNK_SEGMENT_SIZE; j++)
                 {
                     Chunk chunk = region.Chunks[j];
-
-#if !USE_LEGACY_LOADER
                     vertexBuffer.BufferData(chunk.VertexBuffer, chunk.Position * Chunk.CHUNK_SIZE);
-#endif
                 }
             }
 
@@ -97,7 +93,7 @@
             vertexBuffer?.Dispose();
         }
 
-        public void Bind(ComPtr<ID3D11DeviceContext> context)
+        public void Bind(GraphicsContext context)
         {
             vertexBuffer.Bind(context);
         }

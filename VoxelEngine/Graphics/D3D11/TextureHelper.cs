@@ -225,19 +225,19 @@
             return image;
         }
 
-        public static (Usage Usage, uint BindFlag) ConvertToUB(CpuAccessFlag CpuAccessFlag, GpuAccessFlags gpuAccessFlags)
+        public static (Usage Usage, uint BindFlag) ConvertToUB(CpuAccessFlags CpuAccessFlags, GpuAccessFlags gpuAccessFlags)
         {
-            if ((CpuAccessFlag & CpuAccessFlag.Read) != 0 && (gpuAccessFlags & GpuAccessFlags.Read) != 0)
+            if ((CpuAccessFlags & CpuAccessFlags.Read) != 0 && (gpuAccessFlags & GpuAccessFlags.Read) != 0)
             {
                 throw new ArgumentException("Cpu and Gpu cannot read at the same time");
             }
 
-            if ((CpuAccessFlag & CpuAccessFlag.Write) != 0 && (gpuAccessFlags & GpuAccessFlags.Write) != 0)
+            if ((CpuAccessFlags & CpuAccessFlags.Write) != 0 && (gpuAccessFlags & GpuAccessFlags.Write) != 0)
             {
                 throw new ArgumentException("Cpu and Gpu cannot write at the same time");
             }
 
-            if (CpuAccessFlag != 0 && (gpuAccessFlags & GpuAccessFlags.UA) != 0)
+            if (CpuAccessFlags != 0 && (gpuAccessFlags & GpuAccessFlags.UA) != 0)
             {
                 throw new ArgumentException("Cpu and Gpu cannot use rw with uva at the same time");
             }
@@ -262,13 +262,13 @@
                 result.BindFlag |= (uint)BindFlag.UnorderedAccess;
             }
 
-            if ((CpuAccessFlag & CpuAccessFlag.Write) != 0)
+            if ((CpuAccessFlags & CpuAccessFlags.Write) != 0)
             {
                 result.Usage = Usage.Dynamic;
                 result.BindFlag = (uint)BindFlag.ShaderResource;
             }
 
-            if ((CpuAccessFlag & CpuAccessFlag.Read) != 0)
+            if ((CpuAccessFlags & CpuAccessFlags.Read) != 0)
             {
                 result.Usage = Usage.Staging;
                 result.BindFlag = 0;

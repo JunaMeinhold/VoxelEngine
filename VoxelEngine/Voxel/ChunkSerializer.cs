@@ -17,7 +17,7 @@
             chunk.BiomeMetadata.Serialize(stream);
 
             int runsWritten = 0;
-            if (chunk.Data != null)
+            if (chunk.InMemory)
             {
                 for (int k = 0; k < Chunk.CHUNK_SIZE; k++)
                 {
@@ -86,9 +86,9 @@
 
         public static unsafe void Deserialize(Chunk chunk, Stream stream)
         {
-            if (chunk.Data is null)
+            if (!chunk.Data.IsAllocated)
             {
-                chunk.Data = new(0, Chunk.CHUNK_SIZE_CUBED);
+                chunk.Data = new(Chunk.CHUNK_SIZE_CUBED);
                 chunk.MinY = AllocT<byte>(Chunk.CHUNK_SIZE_SQUARED);
                 ZeroMemoryT(chunk.MinY, Chunk.CHUNK_SIZE_SQUARED);
                 chunk.MaxY = AllocT<byte>(Chunk.CHUNK_SIZE_SQUARED);

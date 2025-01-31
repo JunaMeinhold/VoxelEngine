@@ -1,24 +1,17 @@
 ﻿namespace VoxelEngine.Scenes
 {
-    using BepuPhysics;
-    using BepuPhysics.Trees;
-    using BepuUtilities;
-    using BepuUtilities.Memory;
     using Hexa.NET.D3D11;
     using HexaEngine.Queries;
     using System;
-    using System.Numerics;
     using System.Runtime.CompilerServices;
     using System.Threading;
-    using System.Xml.Linq;
     using VoxelEngine.Collections;
     using VoxelEngine.Core;
     using VoxelEngine.Graphics;
     using VoxelEngine.Graphics.D3D11;
     using VoxelEngine.Physics;
-    using VoxelEngine.Physics.Characters;
-    using VoxelEngine.Physics.Collidables;
     using VoxelEngine.Scripting;
+    using VoxelEngine.Voxel;
     using VoxelEngine.Windows;
 
     public delegate void SceneEventHandler<T>(Scene scene, T args);
@@ -58,6 +51,7 @@
             systems.Add(new TransformSystem());
             systems.Add(RenderSystem = new RenderSystem());
             systems.Add(new ScriptSystem());
+            systems.Add(new PhysicsSystem());
         }
 
         public IReadOnlyList<GameObject> GameObjects => gameObjects;
@@ -95,46 +89,6 @@
         public ISceneRenderer Renderer { get; set; }
 
         /// <summary>
-        /// Gets or sets the buffer pool.
-        /// </summary>
-        /// <value>
-        /// The buffer pool.
-        /// </value>
-        public BufferPool BufferPool { get; set; }
-
-        /// <summary>
-        /// Gets the thread dispatcher.
-        /// </summary>
-        /// <value>
-        /// The thread dispatcher.
-        /// </value>
-        public ThreadDispatcher ThreadDispatcher { get; private set; }
-
-        /// <summary>
-        /// Gets or sets the simulation.
-        /// </summary>
-        /// <value>
-        /// The simulation.
-        /// </value>
-        public Simulation Simulation { get; private set; }
-
-        /// <summary>
-        /// Gets the character controllers.
-        /// </summary>
-        /// <value>
-        /// The character controllers.
-        /// </value>
-        public CharacterControllers CharacterControllers { get; private set; }
-
-        /// <summary>
-        /// Gets the contact events.
-        /// </summary>
-        /// <value>
-        /// The contact events.
-        /// </value>
-        public ContactEvents ContactEvents { get; private set; }
-
-        /// <summary>
         /// Gets or sets a value indicating whether this instance is simulating.
         /// </summary>
         /// <value>
@@ -152,16 +106,10 @@
 
         public RenderSystem RenderSystem { get; }
 
+        public MiniProfiler SceneProfiler { get; } = new();
+
         public virtual void Initialize()
         {
-            BufferPool = new BufferPool();
-
-            int targetThreadCount = Math.Max(1, Environment.ProcessorCount > 4 ? Environment.ProcessorCount - 2 : Environment.ProcessorCount - 1);
-            ThreadDispatcher = new ThreadDispatcher(targetThreadCount);
-            CharacterControllers = new(BufferPool);
-            ContactEvents = new ContactEvents(ThreadDispatcher, BufferPool);
-            Simulation = Simulation.Create(BufferPool, new NarrowphaseCallbacks(CharacterControllers, ContactEvents), new PoseIntegratorCallbacks(new Vector3(0, -10, 0)), new SolveDescription(8, 1));
-            Voxels.Register(Simulation);
             Window = (GameWindow)Application.MainWindow;
             Renderer.Initialize(Window);
 
@@ -180,17 +128,9 @@
         {
             if (IsSimulating)
             {
-                lock (Simulation)
+                foreach (var system in systems[SystemFlags.PhysicsUpdate])
                 {
-                    float delta = Time.FixedDelta;
-                    Simulation.Timestep(delta, ThreadDispatcher);
-
-                    ContactEvents.Flush();
-
-                    foreach (var system in systems[SystemFlags.PhysicsUpdate])
-                    {
-                        system.FixedUpdate();
-                    }
+                    system.FixedUpdate();
                 }
             }
 
@@ -223,7 +163,7 @@
 
             profiler.ProfileUpdate();
             Camera.Transform.Recalculate();
-            Renderer.Render(D3D11DeviceManager.Context.As<ID3D11DeviceContext>(), Camera, this);
+            Renderer.Render(D3D11DeviceManager.GraphicsContext, Camera, this);
             profiler.ProfileRender();
 
             Dispatcher.ExecuteInvokes();
@@ -286,15 +226,9 @@
                     system.Destroy();
                 }
 
-                Simulation.Clear();
-                Simulation.Dispose();
-                Simulation = null;
-                BufferPool.Clear();
-                BufferPool = null;
                 Renderer.Uninitialize();
                 dispatcher = null;
                 Camera = null;
-                Simulation = null;
                 Renderer = null;
                 Window = null;
                 initialized = false;

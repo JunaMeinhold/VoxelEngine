@@ -1,10 +1,11 @@
 ﻿namespace App.Pipelines.Forward
 {
     using Hexa.NET.D3D11;
-    using HexaGen.Runtime.COM;
+    using Hexa.NET.D3DCommon;
     using System.Numerics;
     using System.Runtime.CompilerServices;
     using System.Runtime.InteropServices;
+    using VoxelEngine.Graphics;
     using VoxelEngine.Graphics.Buffers;
     using VoxelEngine.Graphics.D3D11;
     using VoxelEngine.Voxel;
@@ -23,8 +24,8 @@
 
         public CSMChunkPipeline()
         {
-            mvpBuffer = new(CpuAccessFlag.Write);
-            worldDataBuffer = new(CpuAccessFlag.Write);
+            mvpBuffer = new(CpuAccessFlags.Write);
+            worldDataBuffer = new(CpuAccessFlags.Write);
             state.Bindings.SetCBV("MatrixBuffer", mvpBuffer);
             state.Bindings.SetCBV("WorldData", worldDataBuffer);
         }
@@ -35,21 +36,25 @@
             {
                 VertexShader = "forward/csm/voxel/vs.hlsl",
                 GeometryShader = "forward/csm/voxel/gs.hlsl",
-            }, new GraphicsPipelineStateDesc()
+                PixelShader = "forward/csm/voxel/ps.hlsl",
+            }, new()
             {
-                Rasterizer = RasterizerDescription.CullFront,
+                DepthStencil = DepthStencilDescription.Default,
+                Rasterizer = RasterizerDescription.CullNone,
+                Blend = BlendDescription.Opaque,
+                Topology = PrimitiveTopology.Trianglelist,
             });
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Update(ComPtr<ID3D11DeviceContext> context, Chunk chunk)
+        public void Update(GraphicsContext context, Chunk chunk)
         {
             mvpBuffer.Update(context, Matrix4x4.Transpose(Matrix4x4.CreateTranslation(chunk.Position * Chunk.CHUNK_SIZE)));
             worldDataBuffer.Update(context, new WorldData() { chunkOffset = chunk.Position });
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Update(ComPtr<ID3D11DeviceContext> context)
+        public void Update(GraphicsContext context)
         {
             mvpBuffer.Update(context, Matrix4x4.Transpose(Matrix4x4.Identity));
             worldDataBuffer.Update(context, new WorldData() { chunkOffset = Vector3.Zero });

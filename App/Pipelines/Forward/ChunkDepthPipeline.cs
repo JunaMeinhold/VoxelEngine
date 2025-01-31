@@ -5,6 +5,7 @@
     using System.Numerics;
     using System.Runtime.CompilerServices;
     using System.Runtime.InteropServices;
+    using VoxelEngine.Graphics;
     using VoxelEngine.Graphics.Buffers;
     using VoxelEngine.Graphics.D3D11;
     using VoxelEngine.Voxel;
@@ -30,14 +31,14 @@
                 PixelShader = "forward/depth/voxel/ps.hlsl",
             }, GraphicsPipelineStateDesc.Default);
 
-            mvpBuffer = new(CpuAccessFlag.Write);
-            worldDataBuffer = new(CpuAccessFlag.Write);
+            mvpBuffer = new(CpuAccessFlags.Write);
+            worldDataBuffer = new(CpuAccessFlags.Write);
             pipeline.Bindings.SetCBV("MatrixBuffer", mvpBuffer);
             pipeline.Bindings.SetCBV("WorldData", worldDataBuffer);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Update(ComPtr<ID3D11DeviceContext> context, Chunk chunk)
+        public void Update(GraphicsContext context, Chunk chunk)
         {
             mvpBuffer.Update(context, Matrix4x4.Transpose(Matrix4x4.CreateTranslation(chunk.Position * Chunk.CHUNK_SIZE)));
             worldDataBuffer.Update(context, new WorldData() { ChunkOffset = chunk.Position });

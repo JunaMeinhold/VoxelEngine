@@ -4,10 +4,10 @@
     using Hexa.NET.D3DCommon;
     using HexaGen.Runtime.COM;
     using System.Runtime.CompilerServices;
+    using VoxelEngine.Graphics;
     using VoxelEngine.Graphics.Buffers;
     using VoxelEngine.Graphics.D3D11;
     using VoxelEngine.Lightning;
-    using VoxelEngine.Scenes;
 
     public class DeferredLightPass : RenderPass
     {
@@ -15,7 +15,7 @@
 
         public DeferredLightPass()
         {
-            directionalLightBuffer = new(CpuAccessFlag.Write);
+            directionalLightBuffer = new(CpuAccessFlags.Write);
             state.Bindings.SetCBV("directionalLightBuffer", directionalLightBuffer);
         }
 
@@ -34,12 +34,12 @@
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Update(ComPtr<ID3D11DeviceContext> context, CBDirectionalLightSD light)
+        public void Update(GraphicsContext context, CBDirectionalLightSD light)
         {
             directionalLightBuffer.Update(context, light);
         }
 
-        public void Pass(ComPtr<ID3D11DeviceContext> context)
+        public void Pass(GraphicsContext context)
         {
             Begin(context);
             context.DrawInstanced(4, 1, 0, 0);

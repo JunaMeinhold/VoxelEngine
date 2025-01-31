@@ -31,17 +31,21 @@
             // Creates the crosshair.
             scene.Add(new Crosshair());
 
+            // Creates the player.
+
             // Creates the world.
             World world = new("world");
+
             world.Generator = new DefaultChunkGenerator(68458);
             world.AddComponent(new WorldController());
-            world.AddComponent(new BlockHighlightRenderer());
             world.AddComponent(new WorldRenderer());
             scene.Add(world);
 
-            // Creates the player.
             CPlayer player = new(new(0, 74, 0));
+            player.AddComponent(new BlockHighlightRenderer());
             scene.Add(player);
+
+            world.Player = player;
 
             // Registers the block types.
             BlockRegistry.Reset();
@@ -54,6 +58,7 @@
             BlockRegistry.RegisterBlock(new("Iron Block", new("blocks/iron_block.dds")));
             BlockRegistry.RegisterBlock(new("Oak Log", new("blocks/log_oak_top.dds", "blocks/log_oak_top.dds", "blocks/log_oak.dds")));
             BlockRegistry.RegisterBlock(new("Oak Planks", new("blocks/planks_oak.dds")));
+            BlockRegistry.RegisterBlock(new("Oak Leaves", new("blocks/oak_leaves.dds"), true));
             BlockRegistry.RegisterBlock(new("Quartz Block", new("blocks/quartz_block.dds")));
 
             return scene;

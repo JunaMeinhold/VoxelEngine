@@ -13,6 +13,8 @@
 
         public SystemFlags Flags { get; } = SystemFlags.Awake | SystemFlags.Destroy;
 
+        public string Name { get; } = "Render System";
+
         public void Awake(Scene scene)
         {
             components.OnAdded += OnAdded;
@@ -51,7 +53,7 @@
             initialized = false;
         }
 
-        public void Draw(ComPtr<ID3D11DeviceContext> context, RenderQueueIndex index, PassIdentifer pass, Camera camera, object? parameter = null)
+        public void Draw(GraphicsContext context, RenderQueueIndex index, PassIdentifer pass, Camera camera, object? parameter = null)
         {
             foreach (var component in queues[index])
             {

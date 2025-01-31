@@ -1,7 +1,6 @@
 ﻿namespace App.Pipelines.Effects
 {
-    using Hexa.NET.D3D11;
-    using HexaGen.Runtime.COM;
+    using VoxelEngine.Graphics;
     using VoxelEngine.Graphics.D3D11;
 
     public class FXAAEffect : DisposableBase
@@ -22,11 +21,11 @@
 
         public IShaderResourceView Input { set => pso.Bindings.SetSRV("g_txProcessed", value); }
 
-        public void Pass(ComPtr<ID3D11DeviceContext> context)
+        public void Pass(GraphicsContext context)
         {
-            pso.Begin(context);
+            context.SetGraphicsPipelineState(pso);
             context.DrawInstanced(4, 1, 0, 0);
-            pso.End(context);
+            context.SetGraphicsPipelineState(null);
         }
 
         protected override void DisposeCore()

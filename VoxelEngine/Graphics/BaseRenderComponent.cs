@@ -30,6 +30,6 @@
 
         public abstract void Destroy();
 
-        public abstract void Draw(ComPtr<ID3D11DeviceContext> context, PassIdentifer pass, Camera camera, object? parameter);
+        public abstract void Draw(GraphicsContext context, PassIdentifer pass, Camera camera, object? parameter);
     }
 }

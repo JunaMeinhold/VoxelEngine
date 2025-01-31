@@ -204,9 +204,9 @@
             CreateViews(device, format, arraySize);
         }
 
-        public void Clear(ComPtr<ID3D11DeviceContext> context, ClearFlag clearFlags, float depth, byte stencil)
+        public void Clear(GraphicsContext context, ClearFlag clearFlags, float depth, byte stencil)
         {
-            context.ClearDepthStencilView(depthStencilView, (uint)clearFlags, depth, stencil);
+            context.ClearDepthStencilView(this, clearFlags, depth, stencil);
         }
 
         public static implicit operator ComPtr<ID3D11ShaderResourceView>(DepthStencil texture) => texture.shaderResourceView;

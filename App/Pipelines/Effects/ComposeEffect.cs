@@ -3,6 +3,7 @@
     using Hexa.NET.D3D11;
     using HexaGen.Runtime.COM;
     using System.Numerics;
+    using VoxelEngine.Graphics;
     using VoxelEngine.Graphics.Buffers;
     using VoxelEngine.Graphics.D3D11;
 
@@ -23,7 +24,7 @@
                 PixelShader = "compose/ps.hlsl",
             }, GraphicsPipelineStateDesc.DefaultFullscreen);
 
-            cbOptions = new(CpuAccessFlag.Write);
+            cbOptions = new(CpuAccessFlags.Write);
             pso.Bindings.SetCBV("Params", cbOptions);
         }
 
@@ -85,7 +86,7 @@
             }
         }
 
-        public void Pass(ComPtr<ID3D11DeviceContext> context)
+        public void Pass(GraphicsContext context)
         {
             if (isDirty)
             {
@@ -93,9 +94,9 @@
                 cbOptions.Update(context, composeParams);
                 isDirty = false;
             }
-            pso.Begin(context);
+            context.SetGraphicsPipelineState(pso);
             context.DrawInstanced(4, 1, 0, 0);
-            pso.End(context);
+            context.SetGraphicsPipelineState(null);
         }
 
         protected override void DisposeCore()

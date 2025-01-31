@@ -42,7 +42,7 @@
             csmPass.Dispose();
         }
 
-        public override void Draw(ComPtr<ID3D11DeviceContext> context, PassIdentifer pass, Camera camera, object? parameter)
+        public override void Draw(GraphicsContext context, PassIdentifer pass, Camera camera, object? parameter)
         {
             if (pass == PassIdentifer.DirectionalLightShadowPass && parameter is DirectionalLight light)
             {
@@ -54,7 +54,7 @@
             }
         }
 
-        private void DeferredPass(ComPtr<ID3D11DeviceContext> context, Camera camera)
+        private void DeferredPass(GraphicsContext context, Camera camera)
         {
             if (world == null) return;
             geometryPass.Begin(context);
@@ -66,7 +66,7 @@
                 {
                     geometryPass.Update(context);
                     region.Bind(context);
-                    context.Draw((uint)region.VertexBuffer.VertexCount, 0);
+                    context.DrawInstanced((uint)region.VertexBuffer.VertexCount, 1, 0, 0);
                 }
                 if (debugChunksRegion)
                 {
@@ -86,20 +86,25 @@
             geometryPass.End(context);
         }
 
-        private void DirectionalLightShadowPass(ComPtr<ID3D11DeviceContext> context, Camera camera, DirectionalLight light)
+        private void DirectionalLightShadowPass(GraphicsContext context, Camera camera, DirectionalLight light)
         {
             if (world == null) return;
 
             csmPass.Begin(context);
-            var frustum = camera.Transform.Frustum;
-            for (int j = 0; j < world.LoadedRenderRegions.Count; j++)
+            var frustra = light.ShadowFrustra;
+            for (int i = 0; i < world.LoadedRenderRegions.Count; i++)
             {
-                RenderRegion region = world.LoadedRenderRegions[j];
-                if (region.VertexBuffer is not null && region.VertexBuffer.VertexCount != 0 && frustum.Intersects(region.BoundingBox))
+                RenderRegion region = world.LoadedRenderRegions[i];
+                for (int j = 0; j < light.CascadeCount; j++)
                 {
-                    csmPass.Update(context);
-                    region.Bind(context);
-                    context.Draw((uint)region.VertexBuffer.VertexCount, 0);
+                    var frustum = frustra[j];
+                    if (region.VertexBuffer is not null && region.VertexBuffer.VertexCount != 0 && frustum.Intersects(region.BoundingBox))
+                    {
+                        csmPass.Update(context);
+                        region.Bind(context);
+                        context.DrawInstanced((uint)region.VertexBuffer.VertexCount, 1, 0, 0);
+                        break;
+                    }
                 }
             }
             csmPass.End(context);

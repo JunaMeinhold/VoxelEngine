@@ -64,6 +64,24 @@
 		<None Update="assets\shaders\bloom\upsample\ps.hlsl">
 		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
 		</None>
+		<None Update="assets\shaders\effects\blur\box.hlsl">
+		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</None>
+		<None Update="assets\shaders\effects\blur\gaussian3x3.hlsl">
+		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</None>
+		<None Update="assets\shaders\effects\blur\gaussian5x5.hlsl">
+		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</None>
+		<None Update="assets\shaders\effects\blur\gaussian7x7.hlsl">
+		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</None>
+		<None Update="assets\shaders\effects\blur\horizontal.hlsl">
+		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</None>
+		<None Update="assets\shaders\effects\blur\vertical.hlsl">
+		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</None>
 		<None Update="assets\shaders\camera.hlsl">
 			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
 		</None>
@@ -97,13 +115,13 @@
 		<None Update="assets\shaders\material.hlsl">
 			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
 		</None>
-		<None Update="assets\shaders\deferred\prepass\voxel\defs.hlsl">
+		<None Update="assets\shaders\deferred\voxel\defs.hlsl">
 			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
 		</None>
-		<None Update="assets\shaders\deferred\prepass\voxel\ps.hlsl">
+		<None Update="assets\shaders\deferred\voxel\ps.hlsl">
 			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
 		</None>
-		<None Update="assets\shaders\deferred\prepass\voxel\vs.hlsl">
+		<None Update="assets\shaders\deferred\voxel\vs.hlsl">
 			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
 		</None>
 		<None Update="assets\shaders\deferred\light\ps.hlsl">
@@ -193,6 +211,9 @@
 		<None Update="assets\shaders\quad.hlsl">
 		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
 		</None>
+		<None Update="assets\shaders\shadows.hlsl">
+		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</None>
 		<None Update="assets\shaders\sun\ps.hlsl">
 		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
 		</None>
@@ -240,6 +261,12 @@
 		</None>
 		<None Update="assets\textures\blocks\log_oak_top.png">
 			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</None>
+		<None Update="assets\textures\blocks\oak_leaves.dds">
+		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</None>
+		<None Update="assets\textures\blocks\oak_leaves.png">
+		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
 		</None>
 		<None Update="assets\textures\blocks\planks_oak.dds">
 			<CopyToOutputDirectory>Always</CopyToOutputDirectory>

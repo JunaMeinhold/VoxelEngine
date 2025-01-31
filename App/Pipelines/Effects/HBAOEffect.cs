@@ -5,6 +5,7 @@
     using Hexa.NET.Mathematics;
     using HexaGen.Runtime.COM;
     using System.Numerics;
+    using VoxelEngine.Graphics;
     using VoxelEngine.Graphics.Buffers;
     using VoxelEngine.Graphics.D3D11;
     using VoxelEngine.Scenes;
@@ -24,7 +25,6 @@
         private readonly float samplingStep = 0.004f;
         private readonly uint numSamplingSteps = 4;
         private readonly float power = 1;
-        private readonly int priority;
         private bool isDirty = true;
         private const int NoiseSize = 4;
         private const int NoiseStride = 4;
@@ -58,8 +58,8 @@
                 VertexShader = "quad.hlsl",
                 PixelShader = "hbao/ps.hlsl",
             }, GraphicsPipelineStateDesc.DefaultFullscreen);
-            paramsBuffer = new(CpuAccessFlag.Write);
-            cameraBuffer = new(CpuAccessFlag.Write);
+            paramsBuffer = new(CpuAccessFlags.Write);
+            cameraBuffer = new(CpuAccessFlags.Write);
             unsafe
             {
                 float* pixelData = AllocT<float>(NoiseSize * NoiseSize * NoiseStride);
@@ -94,7 +94,7 @@
 
         public IShaderResourceView Normal { set => pipeline.Bindings.SetSRV("normalTex", value); }
 
-        public void Update(ComPtr<ID3D11DeviceContext> context, Camera camera, Viewport viewport)
+        public void Update(GraphicsContext context, Camera camera, Viewport viewport)
         {
             cameraBuffer.Update(context, new CBCamera(camera, viewport));
             if (isDirty)
@@ -113,11 +113,11 @@
             }
         }
 
-        public void Pass(ComPtr<ID3D11DeviceContext> context)
+        public void Pass(GraphicsContext context)
         {
-            pipeline.Begin(context);
+            context.SetGraphicsPipelineState(pipeline);
             context.DrawInstanced(4, 1, 0, 0);
-            pipeline.End(context);
+            context.SetGraphicsPipelineState(null);
         }
 
         protected override void DisposeCore()

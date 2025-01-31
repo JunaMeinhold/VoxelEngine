@@ -3,6 +3,7 @@
     using Hexa.NET.D3D11;
     using HexaGen.Runtime.COM;
     using VoxelEngine.Core.Windows;
+    using VoxelEngine.Graphics;
     using VoxelEngine.Windows;
 
     /// <summary>
@@ -20,7 +21,7 @@
         /// </summary>
         /// <param name="camera">The view.</param>
         /// <param name="scene">The scene.</param>
-        void Render(ComPtr<ID3D11DeviceContext> context, Camera camera, Scene scene);
+        void Render(GraphicsContext context, Camera camera, Scene scene);
 
         void Resize(GameWindow window);
 

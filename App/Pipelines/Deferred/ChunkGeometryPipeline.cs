@@ -6,6 +6,7 @@
     using System.Numerics;
     using System.Runtime.CompilerServices;
     using System.Runtime.InteropServices;
+    using VoxelEngine.Graphics;
     using VoxelEngine.Graphics.Buffers;
     using VoxelEngine.Graphics.D3D11;
     using VoxelEngine.Voxel.Blocks;
@@ -30,9 +31,9 @@
             textures = new([.. BlockRegistry.Textures]);
             samplerState = new SamplerState(SamplerDescription.PointWrap);
 
-            mvpBuffer = new(CpuAccessFlag.Write);
-            worldDataBuffer = new(CpuAccessFlag.Write);
-            blockBuffer = new(CpuAccessFlag.Write, 256);
+            mvpBuffer = new(CpuAccessFlags.Write);
+            worldDataBuffer = new(CpuAccessFlags.Write);
+            blockBuffer = new(CpuAccessFlags.Write, 256);
 
             state.Bindings.SetSRV("shaderTexture", textures);
             state.Bindings.SetSampler("Sampler", samplerState);
@@ -45,13 +46,13 @@
         {
             return GraphicsPipelineState.Create(new()
             {
-                VertexShader = "deferred/prepass/voxel/vs.hlsl",
-                PixelShader = "deferred/prepass/voxel/ps.hlsl",
+                VertexShader = "deferred/voxel/vs.hlsl",
+                PixelShader = "deferred/voxel/ps.hlsl",
             }, GraphicsPipelineStateDesc.Default);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Update(ComPtr<ID3D11DeviceContext> context)
+        public void Update(GraphicsContext context)
         {
             mvpBuffer.Update(context, Matrix4x4.Transpose(Matrix4x4.Identity));
             worldDataBuffer.Update(context, new WorldData() { chunkOffset = Vector3.Zero });

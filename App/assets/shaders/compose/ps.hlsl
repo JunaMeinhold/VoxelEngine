@@ -3,7 +3,7 @@
 Texture2D hdrTexture : register(t0);
 Texture2D bloomTexture : register(t1);
 Texture2D lensDirt : register(t2);
-Texture2D<float> depthTexture : register(t3);
+Texture2D<float> DepthTex : register(t3);
 Texture2D<float> lumaTexture : register(t4);
 Texture2D lutTexture : register(t5);
 
@@ -110,7 +110,7 @@ inline float ComputeFogFactor(float d)
 
 inline float3 Fog(float2 texCoord, float3 color)
 {
-	float depth = depthTexture.SampleLevel(linearClampSampler, texCoord, 0);
+	float depth = DepthTex.SampleLevel(linearClampSampler, texCoord, 0);
 	if (depth == 1)
 		return color;
 	float3 position = GetPositionWS(texCoord, depth);

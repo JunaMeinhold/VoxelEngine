@@ -6,12 +6,12 @@
 
     public interface IPrimitive : IDisposable
     {
-        void DrawAuto(ComPtr<ID3D11DeviceContext> context, GraphicsPipelineState pso);
+        void DrawAuto(GraphicsContext context, GraphicsPipelineState pso);
 
-        void DrawAuto(ComPtr<ID3D11DeviceContext> context);
+        void DrawAuto(GraphicsContext context);
 
-        void Bind(ComPtr<ID3D11DeviceContext> context, out int vertexCount, out int indexCount, out int instanceCount);
+        void Bind(GraphicsContext context, out int vertexCount, out int indexCount, out int instanceCount);
 
-        void Unbind(ComPtr<ID3D11DeviceContext> context);
+        void Unbind(GraphicsContext context);
     }
 }

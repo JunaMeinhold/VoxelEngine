@@ -5,6 +5,7 @@
     using Hexa.NET.DXGI;
     using HexaGen.Runtime.COM;
     using System.Numerics;
+    using VoxelEngine.Graphics;
     using VoxelEngine.Graphics.Buffers;
     using VoxelEngine.Graphics.D3D11;
     using VoxelEngine.Lightning;
@@ -52,12 +53,12 @@
         {
             plane = new(5);
 
-            paramsSunBuffer = new(CpuAccessFlag.Write);
-            paramsWorldBuffer = new(CpuAccessFlag.Write);
+            paramsSunBuffer = new(CpuAccessFlags.Write);
+            paramsWorldBuffer = new(CpuAccessFlags.Write);
             sunSampler = new(SamplerDescription.LinearWrap);
 
             sampler = new(SamplerDescription.LinearClamp);
-            paramsBuffer = new(CpuAccessFlag.Write);
+            paramsBuffer = new(CpuAccessFlags.Write);
             sunsprite = new("sun/sunsprite.png");
             sunBuffer = new(Format.R16G16B16A16Float, width, height, 1, 1, 0, GpuAccessFlags.RW);
             noiseTex = new(Format.R32Float, 1024, 1024, 1, 1, 0, GpuAccessFlags.RW);
@@ -110,7 +111,7 @@
             viewport = new(width, height);
         }
 
-        public void Update(ComPtr<ID3D11DeviceContext> context, Camera camera, DirectionalLight light)
+        public void Update(GraphicsContext context, Camera camera, DirectionalLight light)
         {
             GodRaysParams raysParams = default;
 
@@ -151,21 +152,20 @@
             paramsSunBuffer.Update(context, sunParams);
         }
 
-        public void PrePass(ComPtr<ID3D11DeviceContext> context, DepthStencil depth)
+        public void PrePass(GraphicsContext context, DepthStencil depth)
         {
-            Vector4 col = default;
-            context.ClearRenderTargetView(sunBuffer.RTV, (float*)&col);
+            context.ClearRenderTargetView(sunBuffer, default);
             context.SetRenderTarget(sunBuffer, depth);
-            context.RSSetViewport(viewport);
+            context.SetViewport(viewport);
             plane.DrawAuto(context, sun);
             context.ClearState();
         }
 
-        public void Pass(ComPtr<ID3D11DeviceContext> context)
+        public void Pass(GraphicsContext context)
         {
-            godrays.Begin(context);
+            context.SetGraphicsPipelineState(godrays);
             context.DrawInstanced(4, 1, 0, 0);
-            godrays.End(context);
+            context.SetGraphicsPipelineState(null);
         }
 
         protected override void DisposeCore()

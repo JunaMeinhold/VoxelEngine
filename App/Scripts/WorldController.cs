@@ -27,7 +27,7 @@
 
         public override void FixedUpdate()
         {
-            var context = D3D11DeviceManager.Context.As<ID3D11DeviceContext>();
+            var context = D3D11DeviceManager.GraphicsContext;
             world.WorldLoader.Upload(context);
             Vector3 pos = Scene.Camera.Transform.Position;
 

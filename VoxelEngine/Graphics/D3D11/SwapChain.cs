@@ -88,27 +88,30 @@
             GC.SuppressFinalize(this);
         }
 
-        public void SetTarget(ComPtr<ID3D11DeviceContext> context, bool depth)
+        public void SetTarget(GraphicsContext context, bool depth)
         {
+            var contextD = context.NativeContext;
             if (depth)
             {
-                context.OMSetRenderTargets(1, rtv.GetAddressOf(), depthStencil.DSV);
+                contextD.OMSetRenderTargets(1, rtv.GetAddressOf(), depthStencil.DSV);
             }
             else
             {
-                context.OMSetRenderTargets(1, rtv.GetAddressOf(), (ID3D11DepthStencilView*)null);
+                contextD.OMSetRenderTargets(1, rtv.GetAddressOf(), (ID3D11DepthStencilView*)null);
             }
         }
 
-        public void SetTarget(ComPtr<ID3D11DeviceContext> context, IDepthStencilView depthStencilView)
+        public void SetTarget(GraphicsContext context, IDepthStencilView depthStencilView)
         {
-            context.OMSetRenderTargets(1, rtv.GetAddressOf(), (ID3D11DepthStencilView*)depthStencilView.NativePointer);
+            var contextD = context.NativeContext;
+            contextD.OMSetRenderTargets(1, rtv.GetAddressOf(), (ID3D11DepthStencilView*)depthStencilView.NativePointer);
         }
 
-        public void ClearTarget(ComPtr<ID3D11DeviceContext> context, Vector4 color, ClearFlag flag = ClearFlag.Depth | ClearFlag.Stencil, float depth = 1, byte stencil = 0)
+        public void ClearTarget(GraphicsContext context, Vector4 color, ClearFlag flag = ClearFlag.Depth | ClearFlag.Stencil, float depth = 1, byte stencil = 0)
         {
-            context.ClearRenderTargetView(rtv, (float*)&color);
-            context.ClearDepthStencilView(depthStencil, (uint)flag, depth, stencil);
+            var contextD = context.NativeContext;
+            contextD.ClearRenderTargetView(rtv, (float*)&color);
+            contextD.ClearDepthStencilView(depthStencil, (uint)flag, depth, stencil);
         }
     }
 }

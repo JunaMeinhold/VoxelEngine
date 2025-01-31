@@ -10,6 +10,7 @@
         private static readonly List<BlockDescription> _descriptions = new();
         private static readonly ConcurrentDictionary<string, int> blockNameToIndex = new();
         private static readonly ConcurrentDictionary<int, string> indexToBlockName = new();
+        private static HashSet<ushort> alphaTest = [];
 
         private static readonly object _lock = new();
 
@@ -24,6 +25,8 @@
         public static IReadOnlyList<string> Textures => _textures;
 
         public static IReadOnlyList<BlockDescription> Description => _descriptions;
+
+        public static IReadOnlySet<ushort> AlphaTest => alphaTest;
 
         public static int Count
         {
@@ -55,7 +58,7 @@
             lock (_lock)
             {
                 int blockIndex = _blocks.Count;
-                entry.Id = (byte)(blockIndex + 1);
+                entry.Id = (ushort)(blockIndex + 1);
                 blockNameToIndex.TryAdd(entry.Name, blockIndex);
                 indexToBlockName.TryAdd(blockIndex, entry.Name);
                 _blocks.Add(entry);
@@ -70,6 +73,10 @@
                     int index = _textures.Count;
                     _textures.AddRange(entry.Description.ToArray());
                     _descriptions.Add(new((byte)index, (byte)(index + 1), (byte)(index + 2), (byte)(index + 3), (byte)(index + 4), (byte)(index + 5)));
+                }
+                if (entry.AlphaTest)
+                {
+                    alphaTest.Add(entry.Id);
                 }
             }
         }

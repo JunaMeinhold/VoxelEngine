@@ -1,15 +1,13 @@
 namespace VoxelEngine.Voxel
 {
     using System.Runtime.CompilerServices;
-    using System.Runtime.InteropServices;
 
-    [StructLayout(LayoutKind.Sequential, Pack = 1)]
     public static class BlockVertex
     {
-        public static int[] IndexToTextureShifted { get; set; } = new int[]
-        {
+        public static int[] IndexToTextureShifted { get; set; } =
+        [
             0, 0 << 18, 1 << 18, 2 << 18, 3 << 18, 4 << 18, 5 << 18, 6 << 18, 7 << 18, 8 << 18, 9 << 18, 10 << 18, 11 << 18
-        };
+        ];
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void AppendQuadX(IVoxelVertexBuffer buffer, int x, int yL, int yR, int kL, int kR, int normal, int light)

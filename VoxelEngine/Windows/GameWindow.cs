@@ -74,7 +74,7 @@
 
             ImGuiConsole.Draw();
 
-            swapChain.SetTarget(D3D11DeviceManager.Context.As<ID3D11DeviceContext>(), false);
+            swapChain.SetTarget(D3D11DeviceManager.GraphicsContext, false);
             DebugDraw.SetViewport(new(Width, Height));
             debugDraw.EndDraw(swapChain.RTV, swapChain.DSV);
             renderer.EndFrame();

@@ -24,13 +24,13 @@
         {
             Texture = new(TexturePath);
 
-            mvpBuffer = new(CpuAccessFlag.Write);
+            mvpBuffer = new(CpuAccessFlags.Write);
             pipeline = new();
             pipeline.Bindings.SetCBV("ModelBuffer", mvpBuffer);
             pipeline.Bindings.SetSRV("tex", Texture);
         }
 
-        public override void Draw(ComPtr<ID3D11DeviceContext> context, PassIdentifer pass, Camera camera, object? parameter)
+        public override void Draw(GraphicsContext context, PassIdentifer pass, Camera camera, object? parameter)
         {
             if (pass == PassIdentifer.ForwardPass)
             {
@@ -38,7 +38,7 @@
             }
         }
 
-        public void DrawForward(ComPtr<ID3D11DeviceContext> context)
+        public void DrawForward(GraphicsContext context)
         {
             //VertexBuffer.Bind(context);
             //mvpBuffer.Update(context, Matrix4x4.Transpose(Matrix4x4.Identity));

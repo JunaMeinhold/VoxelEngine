@@ -3,10 +3,9 @@
     using Hexa.NET.D3D11;
     using Hexa.NET.DXGI;
     using Hexa.NET.ImGui;
-    using HexaGen.Runtime.COM;
     using System.Numerics;
+    using VoxelEngine.Graphics;
     using VoxelEngine.Graphics.D3D11;
-    using VoxelEngine.IO.ObjLoader.Data.VertexData;
     using VoxelEngine.Mathematics.Noise;
 
     public unsafe class PerlinNoiseWidget
@@ -28,7 +27,7 @@
 
         public PerlinNoiseWidget()
         {
-            texture = new(Format.R32G32B32A32Float, size, size, cpuAccessFlag: CpuAccessFlag.Write, gpuAccessFlags: GpuAccessFlags.Read);
+            texture = new(Format.R32G32B32A32Float, size, size, cpuAccessFlags: CpuAccessFlags.Write, gpuAccessFlags: GpuAccessFlags.Read);
         }
 
         private static float SaturateOctave(float value, int octaves, float persistence, float amplitude)
@@ -44,7 +43,7 @@
             return value / result;
         }
 
-        public void Draw(ComPtr<ID3D11DeviceContext> context)
+        public void Draw(GraphicsContext context)
         {
             if (!ImGui.Begin("Noise"))
             {
@@ -97,11 +96,11 @@
                     }
                 }
 
-                MappedSubresource mapped = texture.Map(context, 0, Map.WriteDiscard);
+                MappedSubresource mapped = context.Map(texture, 0, Map.WriteDiscard, 0);
 
                 pixels.CopyTo(mapped.AsSpan<Vector4>(size * size));
 
-                texture.Unmap(context, 0);
+                context.Unmap(texture, 0);
             }
 
             ImGui.Separator();

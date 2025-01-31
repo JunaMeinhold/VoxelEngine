@@ -4,6 +4,8 @@
 
     public interface ISceneSystem : IHasFlags<SystemFlags>
     {
+        public string Name { get; }
+
         public void Awake(Scene scene)
         {
         }
