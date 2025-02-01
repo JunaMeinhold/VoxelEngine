@@ -255,7 +255,7 @@
 
         public int ChunkCount => loadedChunks.Count;
 
-        public bool DoNotSave { get; set; } = true;
+        public bool DoNotSave { get; set; } = false;
 
         public int RenderDistance { get; private set; } = 16;
 
@@ -520,7 +520,7 @@
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Dispatch(Chunk chunk)
+        public void Dispatch(Chunk chunk, bool save)
         {
             ChunkSegment segment = World.GetSegment(chunk.Position);
             if (updateQueue.Contains(segment))
@@ -528,8 +528,11 @@
                 return;
             }
             updateQueue.Enqueue(segment);
-            saveIOQueue.Enqueue(segment);
-            SignalIOWorkers();
+            if (save)
+            {
+                saveIOQueue.Enqueue(segment);
+                SignalIOWorkers();
+            }
             SignalWorkers();
         }
 
@@ -546,7 +549,7 @@
             Profiler.Begin("Upload.Load");
             long start = Stopwatch.GetTimestamp();
             uploadQueue.Lock();
-            double timeBudgetMs = uploadQueue.Count > 100 ? 3.0 : 2.0;
+            double timeBudgetMs = uploadQueue.Count > 100 ? 5.0 : 4.0;
             while (uploadQueue.TryDequeueUnsafe(out var region))
             {
                 region.Update(context);
@@ -621,7 +624,7 @@
 
             RenderRegion renderRegion = FindRenderRegion(segment.Position);
             renderRegion.AddRegion(segment);
-            if (!uploadQueue.Contains(renderRegion))
+            if (renderRegion.SetDirty())
             {
                 uploadQueue.Enqueue(renderRegion);
             }
@@ -638,7 +641,7 @@
             segment.Load(true);
 
             RenderRegion renderRegion = FindRenderRegion(segment.Position);
-            if (!uploadQueue.Contains(renderRegion))
+            if (renderRegion.SetDirty())
             {
                 uploadQueue.Enqueue(renderRegion);
             }
@@ -661,7 +664,10 @@
             }
             else
             {
-                uploadQueue.Enqueue(renderRegion);
+                if (renderRegion.SetDirty())
+                {
+                    uploadQueue.Enqueue(renderRegion);
+                }
             }
 
             segment.SaveToDisk();

@@ -10,13 +10,13 @@
         private readonly HashSet<string> names = [];
         private readonly Lock _lock = new();
 
-        public double this[string name]
+        public float this[string name]
         {
             get
             {
                 if (deltas.TryGetValue(name, out var delta))
                 {
-                    return delta / (double)Stopwatch.Frequency;
+                    return delta / (float)Stopwatch.Frequency;
                 }
                 return -1;
             }

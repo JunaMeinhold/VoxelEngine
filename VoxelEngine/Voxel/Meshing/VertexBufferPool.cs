@@ -1,4 +1,4 @@
-﻿namespace VoxelEngine.Voxel
+﻿namespace VoxelEngine.Voxel.Meshing
 {
     using VoxelEngine.Graphics;
     using VoxelEngine.Graphics.Buffers;
@@ -17,7 +17,7 @@
 
         public const int MaxFreeBuffers = 64;
         public const int ResizeSmallerAt = 32;
-        public const int MinCapacity = 4096;
+        public const int MinCapacity = 4096 * 8;
 
         public VertexBuffer<T> Rent(int minCapacity)
         {

@@ -1,4 +1,4 @@
-﻿namespace VoxelEngine.Voxel
+﻿namespace VoxelEngine.Voxel.Meshing
 {
     using System.Runtime.CompilerServices;
 
@@ -9,16 +9,18 @@
         private int count;
         private int capacity;
 
-        public int* Data;
+        public VoxelVertex* Data;
+
+        private readonly SemaphoreSlim _lock = new(1);
 
         public ChunkVertexBuffer()
         {
             stride = sizeof(int);
             capacity = DefaultCapacity;
-            Data = AllocT<int>(capacity);
+            Data = AllocT<VoxelVertex>(capacity);
         }
 
-        public int this[int index]
+        public VoxelVertex this[int index]
         {
             get => Data[index];
             set => Data[index] = value;
@@ -31,7 +33,7 @@
             {
                 if (Data == null)
                 {
-                    Data = AllocT(value);
+                    Data = AllocT<VoxelVertex>(value);
                     capacity = value;
                     return;
                 }
@@ -43,6 +45,16 @@
         }
 
         public int Count => count;
+
+        public void Lock()
+        {
+            _lock.Wait();
+        }
+
+        public void ReleaseLock()
+        {
+            _lock.Release();
+        }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void Grow(int capacity)
@@ -71,34 +83,41 @@
             count = 0;
         }
 
-        public void Append(int value)
+        public VoxelVertex* Increase(int count)
         {
-            EnsureCapacity(count + 1);
-            Data[count] = value;
-            count++;
-        }
+            if (count <= 0) return null;
 
-        public void AppendRange(int* values, int count)
-        {
-            int newSize = this.count + count;
-            EnsureCapacity(newSize);
-            MemcpyT(values, Data + this.count, count);
+            int oldCount = this.count;
+            int newSize = oldCount + count;
+
+            if (newSize > capacity)
+            {
+                int newCapacity = Math.Max(capacity * 2, newSize);
+                VoxelVertex* tmp = AllocT<VoxelVertex>(newCapacity);
+                MemcpyT(Data, tmp, oldCount);
+                Free(Data);
+                Data = tmp;
+                capacity = newCapacity;
+            }
+
+            VoxelVertex* ptr = Data + oldCount;
             this.count = newSize;
-        }
 
-        public void Increase(int count)
-        {
-            EnsureCapacity(this.count + count);
-            this.count += count;
+            return ptr;
         }
 
         public void Dispose()
         {
-            Free(Data);
-            Data = null;
-            capacity = 0;
-            count = 0;
+            Lock();
+            if (Data != null)
+            {
+                Free(Data);
+                Data = null;
+                capacity = 0;
+                count = 0;
+            }
             GC.SuppressFinalize(this);
+            ReleaseLock();
         }
     }
 }

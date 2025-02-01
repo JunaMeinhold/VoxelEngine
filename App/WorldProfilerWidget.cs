@@ -40,7 +40,7 @@
                         stages[stage] = buffer;
                     }
 
-                    buffer.Add((float)profiler[stage] * 1000);
+                    buffer.Add(profiler[stage] * 1000);
 
                     ImPlot.PushStyleVar(ImPlotStyleVar.FillAlpha, 0.25f);
                     ImPlot.PlotShaded(stage, ref buffer.Values[0], buffer.Length, fill, 1, 0, ImPlotShadedFlags.None, buffer.Head);

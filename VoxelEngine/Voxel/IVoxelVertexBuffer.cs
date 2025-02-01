@@ -2,7 +2,7 @@
 {
     public interface IVoxelVertexBuffer
     {
-        int this[int index] { get; set; }
+        VoxelVertex this[int index] { get; set; }
 
         int Capacity { get; set; }
 
@@ -12,8 +12,12 @@
 
         void EnsureCapacity(int capacity);
 
-        void Increase(int count);
+        unsafe VoxelVertex* Increase(int count);
 
         void Reset(int length = 4096);
+
+        void Lock();
+
+        void ReleaseLock();
     }
 }

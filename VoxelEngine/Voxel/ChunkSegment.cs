@@ -266,7 +266,7 @@
             }
 
             string filename = Path.Combine(world.Path, $"r.{Position.X}.{Position.Y}.vxr");
-            FileStream fs = File.Create(filename);
+            using FileStream fs = File.Create(filename);
             Span<byte> buffer = stackalloc byte[4];
             BinaryPrimitives.WriteInt32LittleEndian(buffer, CHUNK_SEGMENT_SIZE);
             fs.Write(buffer);
@@ -283,7 +283,7 @@
         public unsafe void LoadFromDisk(WorldMap world)
         {
             string filename = Path.Combine(world.Path, $"r.{Position.X}.{Position.Y}.vxr");
-            FileStream fs = File.OpenRead(filename);
+            using FileStream fs = File.OpenRead(filename);
 
             int count = fs.ReadInt32();
 
@@ -337,7 +337,7 @@
             return !(left == right);
         }
 
-        public override readonly bool Equals(object obj)
+        public override readonly bool Equals(object? obj)
         {
             if (obj is ChunkSegment region)
             {

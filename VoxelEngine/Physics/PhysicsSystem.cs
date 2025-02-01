@@ -51,6 +51,8 @@
             float tDeltaY = Math.Abs(1 / rayDir.Y);
             float tDeltaZ = Math.Abs(1 / rayDir.Z);
 
+            int lastStepAxis = 0;
+
             for (float t = 0; t < maxDistance;)
             {
                 Chunk chunk = world.Get(x >> 4, y >> 4, z >> 4);
@@ -60,10 +62,9 @@
                 Block block = chunk.GetBlockInternal(x & 15, y & 15, z & 15);
                 if (block.Type != 0) // Hit a solid block
                 {
-                    Vector3 normal;
-                    if (tMaxX < tMaxY && tMaxX < tMaxZ) normal = new Vector3(-stepX, 0, 0);
-                    else if (tMaxY < tMaxZ) normal = new Vector3(0, -stepY, 0);
-                    else normal = new Vector3(0, 0, -stepZ);
+                    Vector3 normal = lastStepAxis == 0 ? new Vector3(-stepX, 0, 0) :
+                              lastStepAxis == 1 ? new Vector3(0, -stepY, 0) :
+                              new Vector3(0, 0, -stepZ);
 
                     return new RaycastHit
                     {
@@ -81,18 +82,21 @@
                     x += stepX;
                     t = tMaxX;
                     tMaxX += tDeltaX;
+                    lastStepAxis = 0;
                 }
                 else if (tMaxY < tMaxZ)
                 {
                     y += stepY;
                     t = tMaxY;
                     tMaxY += tDeltaY;
+                    lastStepAxis = 1;
                 }
                 else
                 {
                     z += stepZ;
                     t = tMaxZ;
                     tMaxZ += tDeltaZ;
+                    lastStepAxis = 2;
                 }
             }
 

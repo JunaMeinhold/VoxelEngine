@@ -4,7 +4,7 @@
 
     public class D3D11GlobalResourceList
     {
-        private static readonly Dictionary<string, ShaderParameterState> states = new();
+        private static readonly Dictionary<string, ShaderParameterState> states = [];
         private static readonly SemaphoreSlim semaphore = new(1);
 
         public static event StateChangedEventHandler? StateChanged;

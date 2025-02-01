@@ -6,6 +6,7 @@
     using System.Numerics;
     using System.Runtime.CompilerServices;
     using Hexa.NET.D3D11;
+    using Hexa.NET.Mathematics;
     using VoxelEngine.Voxel.WorldGen;
 
     public class World : WorldMap
@@ -48,6 +49,8 @@
             return x & 15;
         }
 
+        public void SetBlock(Point3 point, Block block) => SetBlock(point.X, point.Y, point.Z, block);
+
         public void SetBlock(int x, int y, int z, Block block)
         {
             int xglobal = x >> 4;
@@ -84,14 +87,18 @@
 
             // Chunk data accessed quickly using bit masks
             c.SetBlockInternal(block, xlocal, ylocal, zlocal);
-            UpdateChunk(xglobal, yglobal, zglobal);
-            UpdateChunk(xglobal + 1, yglobal, zglobal);
-            UpdateChunk(xglobal, yglobal + 1, zglobal);
-            UpdateChunk(xglobal, yglobal, zglobal + 1);
-            UpdateChunk(xglobal - 1, yglobal, zglobal);
-            UpdateChunk(xglobal, yglobal - 1, zglobal);
-            UpdateChunk(xglobal, yglobal, zglobal - 1);
+
+            UpdateChunk(xglobal, yglobal, zglobal, true);
+
+            if (xlocal == 15) UpdateChunk(xglobal + 1, yglobal, zglobal, false);
+            if (ylocal == 15) UpdateChunk(xglobal, yglobal + 1, zglobal, false);
+            if (zlocal == 15) UpdateChunk(xglobal, yglobal, zglobal + 1, false);
+            if (xlocal == 0) UpdateChunk(xglobal - 1, yglobal, zglobal, false);
+            if (ylocal == 0) UpdateChunk(xglobal, yglobal - 1, zglobal, false);
+            if (zlocal == 0) UpdateChunk(xglobal, yglobal, zglobal - 1, false);
         }
+
+        public Block GetBlock(Point3 point) => GetBlock(point.X, point.Y, point.Z);
 
         public Block GetBlock(int x, int y, int z)
         {
@@ -136,7 +143,7 @@
             return true;
         }
 
-        public void UpdateChunk(int x, int y, int z)
+        public void UpdateChunk(int x, int y, int z, bool save)
         {
             if (x < CHUNK_AMOUNT_X_MIN || x >= CHUNK_AMOUNT_X ||
                 y < CHUNK_AMOUNT_Y_MIN || y >= CHUNK_AMOUNT_Y ||
@@ -145,7 +152,7 @@
                 return;
             }
 
-            WorldLoader.Dispatch(Chunks[x, y, z]);
+            WorldLoader.Dispatch(Chunks[x, y, z], save);
         }
 
         public void LoadFromDisk(Vector3 pos)

@@ -3,14 +3,12 @@
     using App.Pipelines.Deferred;
     using App.Pipelines.Effects;
     using Hexa.NET.D3D11;
-    using Hexa.NET.D3DCommon;
     using Hexa.NET.DXGI;
     using Hexa.NET.ImGui;
     using Hexa.NET.ImPlot;
     using Hexa.NET.Mathematics;
     using HexaEngine.Graphics.Effects.Blur;
     using HexaGen.Runtime.COM;
-    using Newtonsoft.Json.Linq;
     using System.Numerics;
     using System.Runtime.CompilerServices;
     using VoxelEngine.Core;
@@ -111,9 +109,9 @@
 
         private GaussianBlur blurFilter;
 
-        private SamplerState anisotropicClamp;
-        private SamplerState pointClamp;
-        private SamplerState linearClamp;
+        private SamplerState anisotropicClampSampler;
+        private SamplerState pointClampSampler;
+        private SamplerState linearClampSampler;
 
         private DepthStencil depthStencil;
 
@@ -139,9 +137,9 @@
             rendererWidth = 1920;
             rendererHeight = 1080;
 
-            anisotropicClamp = new(SamplerDescription.AnisotropicClamp);
-            pointClamp = new(SamplerDescription.PointClamp);
-            linearClamp = new(SamplerDescription.LinearClamp);
+            anisotropicClampSampler = new(SamplerDescription.AnisotropicClamp);
+            pointClampSampler = new(SamplerDescription.PointClamp);
+            linearClampSampler = new(SamplerDescription.LinearClamp);
 
             cameraBuffer = new(CpuAccessFlags.Write);
 
@@ -155,7 +153,9 @@
             directionalLight.Create();
 
             D3D11GlobalResourceList.SetCBV("CameraBuffer", cameraBuffer);
-            D3D11GlobalResourceList.SetSampler("linearClampSampler", linearClamp);
+            D3D11GlobalResourceList.SetSampler("linearClampSampler", linearClampSampler);
+            D3D11GlobalResourceList.SetSampler("pointClampSampler", pointClampSampler);
+            D3D11GlobalResourceList.SetSampler("anisotropicClampSampler", anisotropicClampSampler);
 
             depthStencil = new(rendererWidth, rendererHeight);
             gbuffer = new(rendererWidth, rendererHeight, Format.R16G16B16A16Float, Format.R8G8B8A8Unorm, Format.R16G16B16A16Float, Format.R16G16B16A16Float);
@@ -378,6 +378,8 @@
             lightPipeline.Update(context, directionalLight.DirectionalLightShadowData);
             lightPipeline.Pass(context);
 
+            context.SetRenderTarget(lightBuffer, depthStencil);
+
             scene.RenderSystem.Draw(context, RenderQueueIndex.GeometryLast, PassIdentifer.ForwardPass, camera);
             scene.RenderSystem.Draw(context, RenderQueueIndex.Transparent, PassIdentifer.ForwardPass, camera);
 
@@ -420,9 +422,9 @@
             godRays.Dispose();
             bloom.Dispose();
 
-            anisotropicClamp.Dispose();
-            pointClamp.Dispose();
-            linearClamp.Dispose();
+            anisotropicClampSampler.Dispose();
+            pointClampSampler.Dispose();
+            linearClampSampler.Dispose();
 
             depthStencil.Dispose();
             gbuffer.Dispose();

@@ -1,6 +1,7 @@
 ﻿namespace App.Pipelines.Deferred
 {
     using Hexa.NET.D3D11;
+    using Hexa.NET.DXGI;
     using HexaGen.Runtime.COM;
     using System.Linq;
     using System.Numerics;
@@ -44,11 +45,20 @@
 
         protected override GraphicsPipelineState CreatePipelineState()
         {
+            InputElementDescription[] inputElements =
+            {
+                new("POSITION", 0, Format.R32Sint, 0, -1, InputClassification.PerVertexData, 0),
+                new("POSITION", 1, Format.R32G32B32Float, 0, -1, InputClassification.PerVertexData, 0),
+                new("COLOR", 0, Format.R8G8B8A8Unorm, 0, -1, InputClassification.PerVertexData, 0),
+            };
             return GraphicsPipelineState.Create(new()
             {
                 VertexShader = "deferred/voxel/vs.hlsl",
                 PixelShader = "deferred/voxel/ps.hlsl",
-            }, GraphicsPipelineStateDesc.Default);
+            }, new()
+            {
+                InputElements = inputElements
+            });
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

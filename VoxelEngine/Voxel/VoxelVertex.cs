@@ -6,11 +6,13 @@
     {
         public int Data;
         public Vector3 Offset;
+        public uint Color;
 
-        public VoxelVertex(int data, Vector3 offset)
+        public VoxelVertex(int data, Vector3 offset, uint color = uint.MaxValue)
         {
             Data = data;
             Offset = offset;
+            Color = color;
         }
     }
 

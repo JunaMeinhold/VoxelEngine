@@ -7,6 +7,7 @@ struct PixelInputType
 	int texID : TEXCOORD1;
 	float2 uv : TEXCOORD2;
 	float brightness : TEXCOORD3;
+	float4 color : COLOR;
 };
 
 struct BlockDescription

@@ -1,5 +1,6 @@
 ﻿namespace VoxelEngine.Voxel
 {
+    using Hexa.NET.Mathematics;
     using System.Numerics;
     using VoxelEngine.Scenes;
     using VoxelEngine.Voxel.Blocks;
@@ -41,7 +42,7 @@
             }
         }
 
-        public Vector3 LookAtBlock { get; set; }
+        public Point3 LookAtBlock { get; set; }
 
         public bool IsLookingAtBlock { set; get; }
 

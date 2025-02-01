@@ -21,6 +21,12 @@
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void UpdateSubresource(IResource buffer, uint dstSubresource, Box* box, void* srcData, uint srcRowPitch, uint srcDepthPitch)
+        {
+            context.UpdateSubresource((ID3D11Resource*)buffer.NativePointer, dstSubresource, box, srcData, srcRowPitch, srcDepthPitch);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void ClearDepthStencilView(IDepthStencilView depthStencilView, ClearFlag flags, float depth, byte stencil)
         {
             context.ClearDepthStencilView((ID3D11DepthStencilView*)depthStencilView.NativePointer, (uint)flags, depth, stencil);

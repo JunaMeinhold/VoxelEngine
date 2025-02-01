@@ -1,15 +1,17 @@
 ﻿namespace VoxelEngine.Voxel.Meshing
 {
+    using System;
     using System.Numerics;
     using System.Runtime.CompilerServices;
     using VoxelEngine.Voxel.Blocks;
 
     public static unsafe class VoxelMeshFactory
     {
-        public static void GenerateMesh(IVoxelVertexBuffer vertexBuffer, Chunk chunk)
+        public static void GenerateMesh(ChunkVertexBuffer vertexBuffer, Chunk chunk)
         {
+            vertexBuffer.Lock();
             // Default 4096, else use the lase size + 1024
-            int newSize = vertexBuffer.Count == 0 ? 4096 : vertexBuffer.Count + 1024;
+            int newSize = vertexBuffer.Count == 0 ? 4096 : vertexBuffer.Count;
             vertexBuffer.Reset(newSize);
 
             Vector3 position = chunk.Position;
@@ -117,34 +119,33 @@
                     // X and Z runs search upwards to create runs, so start at the botto
                     for (; j < topJ; j++, access++)
                     {
-                        Block b = chunk.Data[access];
+                        Block* b = chunk.Data.Data + access;
 
-                        if (b.Type != Chunk.EMPTY)
+                        if (b->Type != Chunk.EMPTY)
                         {
                             CreateRun(vertexBuffer, chunk, b, i, j, k << 12, i1, k1 << 12, j + chunkY, access, minX, maxX, j == 0, j == Chunk.CHUNK_SIZE_MINUS_ONE, minZ, maxZ, iCS, kCS2);
                         }
                     }
-
-                    // Extend the array if it is nearly full
-                    if (vertexBuffer.Count > vertexBuffer.Capacity - 2048)
-                    {
-                        vertexBuffer.EnsureCapacity(vertexBuffer.Capacity + 2048);
-                    }
                 }
             }
+
+            vertexBuffer.ReleaseLock();
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void CreateRun(IVoxelVertexBuffer vertexBuffer, Chunk chunk, Block b, int i, int j, int k, int i1, int k1, int y, int access, bool minX, bool maxX, bool minY, bool maxY, bool minZ, bool maxZ, int iCS, int kCS2)
+        private static void CreateRun(ChunkVertexBuffer vertexBuffer, Chunk chunk, Block* b, int i, int j, int k, int i1, int k1, int y, int access, bool minX, bool maxX, bool minY, bool maxY, bool minZ, bool maxZ, int iCS, int kCS2)
         {
+            Block* data = chunk.Data.Data;
+            int type = b->Type;
             ChunkHelper chunkHelper = chunk.ChunkHelper;
-            int textureHealth16 = BlockVertex.IndexToTextureShifted[b.Type];
+            int textureHealth16 = BlockVertex.IndexToTextureShifted[type];
             int accessIncremented = access + 1;
             int chunkAccess;
             int j1 = j + 1;
             int jS = j << 6;
             int jS1 = j1 << 6;
             int length;
+            uint tint = GetTint(type, access);
 
             // Left (X-)
             if (!chunkHelper.visitXN[access] && DrawFaceXN(chunk, j, access, minX, kCS2))
@@ -154,7 +155,7 @@
 
                 for (length = jS1; length < Chunk.CHUNK_SIZE_SHIFTED; length += 1 << 6)
                 {
-                    if (DifferentBlock(chunk, chunkAccess, b))
+                    if (DifferentBlock(data + chunkAccess, type))
                     {
                         break;
                     }
@@ -163,7 +164,7 @@
                 }
 
                 // k1 and k are already shifted
-                BlockVertex.AppendQuadX(vertexBuffer, i, jS, length, k1, k, (int)FaceTypeShifted.XN, textureHealth16);
+                BlockVertex.AppendQuadX(vertexBuffer, i, jS, length, k1, k, (int)FaceTypeShifted.XN, textureHealth16, tint);
             }
 
             // Right (X+)
@@ -175,7 +176,7 @@
 
                 for (length = jS1; length < Chunk.CHUNK_SIZE_SHIFTED; length += 1 << 6)
                 {
-                    if (DifferentBlock(chunk, chunkAccess, b))
+                    if (DifferentBlock(data + chunkAccess, type))
                     {
                         break;
                     }
@@ -183,7 +184,7 @@
                     chunkHelper.visitXP[chunkAccess++] = true;
                 }
 
-                BlockVertex.AppendQuadX(vertexBuffer, i1, jS, length, k, k1, (int)FaceTypeShifted.XP, textureHealth16);
+                BlockVertex.AppendQuadX(vertexBuffer, i1, jS, length, k, k1, (int)FaceTypeShifted.XP, textureHealth16, tint);
             }
 
             // Back (Z-)
@@ -195,7 +196,7 @@
 
                 for (length = jS1; length < Chunk.CHUNK_SIZE_SHIFTED; length += 1 << 6)
                 {
-                    if (DifferentBlock(chunk, chunkAccess, b))
+                    if (DifferentBlock(data + chunkAccess, type))
                     {
                         break;
                     }
@@ -203,7 +204,7 @@
                     chunkHelper.visitZN[chunkAccess++] = true;
                 }
 
-                BlockVertex.AppendQuadZ(vertexBuffer, i1, i, jS, length, k, (int)FaceTypeShifted.ZN, textureHealth16);
+                BlockVertex.AppendQuadZ(vertexBuffer, i1, i, jS, length, k, (int)FaceTypeShifted.ZN, textureHealth16, tint);
             }
 
             // Front (Z+)
@@ -215,7 +216,7 @@
 
                 for (length = jS1; length < Chunk.CHUNK_SIZE_SHIFTED; length += 1 << 6)
                 {
-                    if (DifferentBlock(chunk, chunkAccess, b))
+                    if (DifferentBlock(data + chunkAccess, type))
                     {
                         break;
                     }
@@ -223,7 +224,7 @@
                     chunkHelper.visitZP[chunkAccess++] = true;
                 }
 
-                BlockVertex.AppendQuadZ(vertexBuffer, i, i1, jS, length, k1, (int)FaceTypeShifted.ZP, textureHealth16);
+                BlockVertex.AppendQuadZ(vertexBuffer, i, i1, jS, length, k1, (int)FaceTypeShifted.ZP, textureHealth16, tint);
             }
 
             // Bottom (Y-)
@@ -235,7 +236,7 @@
 
                 for (length = i1; length < Chunk.CHUNK_SIZE; length++)
                 {
-                    if (DifferentBlock(chunk, chunkAccess, b))
+                    if (DifferentBlock(data + chunkAccess, type))
                     {
                         break;
                     }
@@ -245,7 +246,7 @@
                     chunkAccess += Chunk.CHUNK_SIZE;
                 }
 
-                BlockVertex.AppendQuadY(vertexBuffer, i, length, jS, k1, k, (int)FaceTypeShifted.YN, textureHealth16);
+                BlockVertex.AppendQuadY(vertexBuffer, i, length, jS, k1, k, (int)FaceTypeShifted.YN, textureHealth16, tint);
             }
 
             // Top (Y+)
@@ -257,7 +258,7 @@
 
                 for (length = i1; length < Chunk.CHUNK_SIZE; length++)
                 {
-                    if (DifferentBlock(chunk, chunkAccess, b))
+                    if (DifferentBlock(data + chunkAccess, type))
                     {
                         break;
                     }
@@ -267,8 +268,18 @@
                     chunkAccess += Chunk.CHUNK_SIZE;
                 }
 
-                BlockVertex.AppendQuadY(vertexBuffer, i, length, jS1, k, k1, (int)FaceTypeShifted.YP, textureHealth16);
+                BlockVertex.AppendQuadY(vertexBuffer, i, length, jS1, k, k1, (int)FaceTypeShifted.YP, textureHealth16, tint);
             }
+        }
+
+        private static uint GetTint(int type, int access)
+        {
+            if (type == 10)
+            {
+                return 0xFF619961; // ABGR
+            }
+
+            return uint.MaxValue;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -381,11 +392,19 @@
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static bool DifferentBlock(Chunk chunk, int chunkAccess, Block compare)
+        private static bool DifferentBlock(Chunk chunk, int chunkAccess, int compare)
         {
             Block b = chunk.Data[chunkAccess];
             if (BlockRegistry.AlphaTest.Contains(b)) return true;
-            return b.Type != compare.Type;
+            return b.Type != compare;
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static bool DifferentBlock(Block* data, int compare)
+        {
+            Block b = *data;
+            if (BlockRegistry.AlphaTest.Contains(b)) return true;
+            return b.Type != compare;
         }
     }
 }

@@ -1,9 +1,7 @@
 ﻿namespace App.Renderers.Forward
 {
     using App.Pipelines.Forward;
-    using Hexa.NET.D3D11;
     using Hexa.NET.Mathematics;
-    using HexaGen.Runtime.COM;
     using System.Numerics;
     using VoxelEngine.Graphics;
     using VoxelEngine.Graphics.Buffers;
@@ -51,7 +49,7 @@
             if (player == null) return;
             if (player.IsLookingAtBlock)
             {
-                mvpBuffer.Update(context, Matrix4x4.Transpose(Matrix4x4.CreateScale(0.5f) * Matrix4x4.CreateTranslation(player.LookAtBlock + new Vector3(0.5f))));
+                mvpBuffer.Update(context, Matrix4x4.Transpose(Matrix4x4.CreateScale(0.5f) * Matrix4x4.CreateTranslation((Vector3)player.LookAtBlock + new Vector3(0.5f))));
                 colorBuffer.Update(context, Color);
 
                 lineBox.Bind(context);

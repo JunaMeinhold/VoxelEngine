@@ -108,7 +108,7 @@
                 {
                     Scene.Dispatcher.Invoke(player, player =>
                     {
-                        player.World.SetBlock((int)player.LookAtBlock.X, (int)player.LookAtBlock.Y, (int)player.LookAtBlock.Z, default);
+                        player.World.SetBlock(player.LookAtBlock, Block.Air);
                     });
                 }
             }
@@ -119,12 +119,8 @@
 
                 if (player.IsLookingAtBlock)
                 {
-                    Vector3 hitLocation = result.Position;
-                    Vector3? index = CalculateAddIndex(hitLocation, player.LookAtBlock);
-                    if (index.HasValue)
-                    {
-                        player.World.SetBlock((int)index.Value.X, (int)index.Value.Y, (int)index.Value.Z, player.SelectedBlock);
-                    }
+                    Point3 hitLocation = (Point3)(result.Position + result.Normal);
+                    player.World.SetBlock(hitLocation, player.SelectedBlock);
                 }
             }
 
@@ -135,7 +131,7 @@
                 {
                     Scene.Dispatcher.Invoke(player, player =>
                     {
-                        player.SelectedBlockId = player.World.GetBlock((int)player.LookAtBlock.X, (int)player.LookAtBlock.Y, (int)player.LookAtBlock.Z).Type;
+                        player.SelectedBlockId = player.World.GetBlock(player.LookAtBlock).Type;
                     });
                 }
             }

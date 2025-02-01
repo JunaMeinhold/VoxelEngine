@@ -3,6 +3,7 @@ namespace VoxelEngine.Voxel
     using Hexa.NET.Mathematics;
     using System.Diagnostics;
     using System.Numerics;
+    using VoxelEngine.Lightning;
     using VoxelEngine.Scenes;
     using VoxelEngine.Voxel.Meshing;
     using VoxelEngine.Voxel.Metadata;
@@ -36,7 +37,7 @@ namespace VoxelEngine.Voxel
 
         public bool HasMissingNeighbours;
 
-        public readonly object _lock = new();
+        public readonly Lock _lock = new();
 
         private InternalChunkFlags flags;
 
@@ -234,35 +235,47 @@ namespace VoxelEngine.Voxel
             {
                 DirtyDisk = true;
                 Dirty = true;
-                // Chunk data accessed quickly using bit masks
+
                 int index = Extensions.MapToIndex(x, y, z);
                 Data[index] = block;
 
-                // Could be made better but for now it is okay.
-                byte min = 0;
-                byte max = 0;
-                for (byte i = 0; i < CHUNK_SIZE; i++)
+                int heightAccess = new Point2(x, z).MapToIndex();
+
+                if (block.Type == 0)
                 {
-                    int j = Extensions.MapToIndex(x, i, z);
-                    if (i == min)
+                    if (MaxY[heightAccess] == y + 1)
                     {
-                        if (Data[j].Type == 0)
+                        byte newMaxY = 0;
+                        for (int yl = y; yl >= 0; yl--)
                         {
-                            min++;
+                            if (Data[new Point3(x, yl, z).MapToIndex()].Type != 0)
+                            {
+                                newMaxY = (byte)(yl + 1);
+                                break;
+                            }
                         }
+                        MaxY[heightAccess] = newMaxY;
                     }
-                    else
+
+                    if (MinY[heightAccess] == y)
                     {
-                        if (Data[j].Type != 0)
+                        byte newMinY = 15;
+                        for (int yl = y; yl <= 16; yl++)
                         {
-                            max = i;
+                            if (Data[new Point3(x, yl, z).MapToIndex()].Type != 0)
+                            {
+                                newMinY = (byte)yl;
+                                break;
+                            }
                         }
+                        MinY[heightAccess] = newMinY;
                     }
                 }
-                max++;
-
-                MinY[new Point2(x, z).MapToIndex()] = min;
-                MaxY[new Point2(x, z).MapToIndex()] = max;
+                else
+                {
+                    MinY[heightAccess] = Math.Min(MinY[heightAccess], (byte)y);
+                    MaxY[heightAccess] = Math.Max(MaxY[heightAccess], (byte)(y + 1));
+                }
             }
         }
 

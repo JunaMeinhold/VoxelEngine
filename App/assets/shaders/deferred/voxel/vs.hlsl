@@ -17,7 +17,7 @@ cbuffer TexData
 	BlockDescription descs[256];
 };
 
-PixelInputType main(int aData : POSITION, float3 offset : POSITION1)
+PixelInputType main(int aData : POSITION, float3 offset : POSITION1, float4 color : COLOR)
 {
 	PixelInputType output;
 
@@ -30,6 +30,7 @@ PixelInputType main(int aData : POSITION, float3 offset : POSITION1)
 	output.texID = int((aData >> 18) & (31));
 
 	output.brightness = (float((aData >> 23) & (15)) + 2) / 8.0;
+	output.color = color;
 
 	int normal = int((aData >> 27) & (7));
 

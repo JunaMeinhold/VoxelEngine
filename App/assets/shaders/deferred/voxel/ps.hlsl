@@ -14,7 +14,7 @@ GeometryData main(PixelInputType input)
 	float specCoeff = 0;
 
 	GeometryData output;
-	albedo = shaderTexture.Sample(Sampler, float3(input.uv, input.texID));
+	albedo = shaderTexture.Sample(Sampler, float3(input.uv, input.texID)) * input.color;
 	normal = input.normal;
 
 	if (albedo.a < 0.5f)
