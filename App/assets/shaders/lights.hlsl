@@ -13,6 +13,7 @@ struct DirectionalLightSD
 	float3 dir;
 	bool castsShadows;
 	uint cascadeCount;
+	float lightBleedingReduction;
 };
 
 struct PointLight

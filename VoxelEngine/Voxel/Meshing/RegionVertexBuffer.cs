@@ -37,7 +37,7 @@ namespace VoxelEngine.Voxel.Meshing
 
             dirty = true;
 
-            if (bufferResized || vertexBuffer == null)
+            if (vertexBuffer == null || vertexBuffer.Count < size)
             {
                 if (vertexBuffer != null)
                 {
@@ -62,10 +62,10 @@ namespace VoxelEngine.Voxel.Meshing
             _lock.Exit();
         }
 
-        private void AppendRange(VoxelVertex* values, int count, Vector3 offset)
+        private bool AppendRange(VoxelVertex* values, int count, Vector3 offset)
         {
             int newCount = this.count + count;
-            if (newCount > vertexBuffer!.Count) return;
+            if (newCount > vertexBuffer!.Count) return false;
             VoxelVertex* vertices = (VoxelVertex*)mappedResource.PData;
             for (int i = 0, j = this.count; i < count; i++, j++)
             {
@@ -74,18 +74,15 @@ namespace VoxelEngine.Voxel.Meshing
                 vertices[j] = v;
             }
             this.count = newCount;
+            return true;
         }
 
-        public void BufferData(ChunkVertexBuffer vertexBuffer, Vector3 offset)
+        public bool BufferData(ChunkVertexBuffer vertexBuffer, Vector3 offset)
         {
-            if (vertexBuffer == null || vertexBuffer.Count == 0)
-            {
-                return;
-            }
-            if (vertexBuffer.Count % 3 != 0)
-                throw new();
-            AppendRange(vertexBuffer.Data, vertexBuffer.Count, offset);
+            if (vertexBuffer.Count == 0) return true;
+            bool result = AppendRange(vertexBuffer.Data, vertexBuffer.Count, offset);
             dirty = true;
+            return result;
         }
 
         public bool Bind(GraphicsContext context)

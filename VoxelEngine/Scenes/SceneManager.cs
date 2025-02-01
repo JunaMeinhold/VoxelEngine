@@ -18,6 +18,8 @@
         /// </value>
         public static Scene Current { [MethodImpl(MethodImplOptions.AggressiveInlining)] get; [MethodImpl(MethodImplOptions.AggressiveInlining)] private set; }
 
+        public static readonly Lock Lock = new();
+
         /// <summary>
         /// Occurs when [scene changed].
         /// </summary>
@@ -43,7 +45,7 @@
                     SceneChanged?.Invoke(null, EventArgs.Empty);
                     return;
                 }
-                lock (Current)
+                lock (Lock)
                 {
                     Current?.Dispose();
                     Current = scene;

@@ -3,8 +3,6 @@ namespace VoxelEngine.Voxel
     using Hexa.NET.Mathematics;
     using System.Diagnostics;
     using System.Numerics;
-    using VoxelEngine.Lightning;
-    using VoxelEngine.Scenes;
     using VoxelEngine.Voxel.Meshing;
     using VoxelEngine.Voxel.Metadata;
 

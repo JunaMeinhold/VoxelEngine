@@ -2,6 +2,7 @@
 {
     using System.Diagnostics;
     using Hexa.NET.D3D11;
+    using Hexa.NET.DebugDraw;
     using VoxelEngine.Core;
     using VoxelEngine.Core.Input;
     using VoxelEngine.Core.Input.Events;
@@ -62,7 +63,7 @@
             renderer.NewFrame();
 
             Dispatcher.ExecuteQueue();
-            lock (SceneManager.Current)
+            lock (SceneManager.Lock)
             {
                 if (firstFrame)
                 {
@@ -75,7 +76,7 @@
             ImGuiConsole.Draw();
 
             swapChain.SetTarget(D3D11DeviceManager.GraphicsContext, false);
-            DebugDraw.SetViewport(new(Width, Height));
+            DebugDraw.SetViewport(default, new(Width, Height));
             debugDraw.EndDraw(swapChain.RTV, swapChain.DSV);
             renderer.EndFrame();
 

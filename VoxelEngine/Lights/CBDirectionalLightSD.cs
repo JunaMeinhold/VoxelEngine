@@ -51,7 +51,8 @@
         public Vector3 Direction;
         public int CastShadows;
         public uint CascadeCount;
-        public Vector3 Padding;
+        public float LightBleedingReduction;
+        public Vector2 Padding;
 
         public CBDirectionalLightSD()
         {

@@ -13,7 +13,6 @@ GeometryData main(PixelInputType input)
 	float3 specular = float3(0.8f, 0.8f, 0.8f);
 	float specCoeff = 0;
 
-	GeometryData output;
 	albedo = shaderTexture.Sample(Sampler, float3(input.uv, input.texID)) * input.color;
 	normal = input.normal;
 
@@ -22,5 +21,5 @@ GeometryData main(PixelInputType input)
 		discard;
 	}
 
-	return PackGeometryData(albedo, normal, specular, specCoeff);
+	return PackGeometryData(albedo.rgb, normal, specular, specCoeff);
 }

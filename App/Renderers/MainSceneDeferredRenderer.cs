@@ -3,6 +3,7 @@
     using App.Pipelines.Deferred;
     using App.Pipelines.Effects;
     using Hexa.NET.D3D11;
+    using Hexa.NET.DebugDraw;
     using Hexa.NET.DXGI;
     using Hexa.NET.ImGui;
     using Hexa.NET.ImPlot;
@@ -304,6 +305,8 @@
                 compose.FogEnd = fogEnd;
             }
 
+            ImGui.InputFloat("Light Bleeding", ref directionalLight.DirectionalLightShadowData.LightBleedingReduction);
+
             DebugDraw.SetCamera(camera.Transform.ViewProjection);
             Vector3 rot = directionalLight.Transform.Rotation;
             rot.Y = 360 * Time.GameTimeNormalized - 90;
@@ -405,8 +408,6 @@
             swapChain.SetTarget(context, depthStencil);
 
             scene.RenderSystem.Draw(context, RenderQueueIndex.Overlay, PassIdentifer.ForwardPass, camera);
-
-            context.ClearState();
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

@@ -170,6 +170,19 @@
             profiler.ProfileDispatch();
         }
 
+        public T GetSystem<T>() where T : ISceneSystem
+        {
+            foreach (var system in systems)
+            {
+                if (system is T t)
+                {
+                    return t;
+                }
+            }
+
+            throw new KeyNotFoundException();
+        }
+
         /// <summary>
         /// Adds an scene element.<br/>
         /// Calls <see cref="GameObject.Awake"/> if <see cref="initialized"/> == <see langword="true" />

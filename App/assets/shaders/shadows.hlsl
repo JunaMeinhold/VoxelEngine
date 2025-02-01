@@ -56,9 +56,63 @@ float SampleVSMArray(SamplerState state, Texture2DArray depthTex, float2 texCoor
 	return max(p, fragDepth <= moments.x);
 }
 
+float SampleESM(SamplerState state, Texture2D depthTex, float2 texCoords, float fragDepth, float bias, float exponent)
+{
+	float lit = 0.0f;
+	float moment = depthTex.Sample(state, texCoords).r + bias;
+	float visibility = exp(-exponent * fragDepth) * moment;
+	return clamp(visibility, 0, 1);
+}
+
+float SampleESMArray(SamplerState state, Texture2DArray depthTex, float2 texCoords, uint layer, float fragDepth, float bias, float exponent)
+{
+	float lit = 0.0f;
+	float moment = depthTex.Sample(state, float3(texCoords.xy, layer)).r + bias;
+	float visibility = exp(-exponent * fragDepth) * moment;
+	return clamp(visibility, 0, 1);
+}
+
+float SampleEVSM(SamplerState state, Texture2D depthTex, float2 texCoords, float fragDepth, float bias, float exponent, float lightBleedingReduction)
+{
+	float shadow = 0.0;
+	float4 moments = depthTex.Sample(state, texCoords.xy); // pos, pos^2, neg, neg^2
+
+	fragDepth = 2 * fragDepth - 1;
+	float pos = exp(exponent * fragDepth);
+	float neg = -exp(-exponent * fragDepth);
+
+	float posShadow = Chebyshev(moments.xy, pos);
+	float negShadow = Chebyshev(moments.zw, neg);
+
+	posShadow = ReduceLightBleeding(posShadow, lightBleedingReduction);
+	negShadow = ReduceLightBleeding(negShadow, lightBleedingReduction);
+
+	shadow = min(posShadow, negShadow);
+	return shadow;
+}
+
+float SampleEVSMArray(SamplerState state, Texture2DArray depthTex, float2 texCoords, uint layer, float fragDepth, float bias, float exponent, float lightBleedingReduction)
+{
+	float shadow = 0.0;
+	float4 moments = depthTex.Sample(state, float3(texCoords.xy, layer)); // pos, pos^2, neg, neg^2
+
+	fragDepth = 2 * fragDepth - 1;
+	float pos = exp(exponent * fragDepth);
+	float neg = -exp(-exponent * fragDepth);
+
+	float posShadow = Chebyshev(moments.xy, pos);
+	float negShadow = Chebyshev(moments.zw, neg);
+
+	posShadow = ReduceLightBleeding(posShadow, lightBleedingReduction);
+	negShadow = ReduceLightBleeding(negShadow, lightBleedingReduction);
+
+	shadow = min(posShadow, negShadow);
+	return shadow;
+}
+
 float SampleShadowArray(SamplerState state, Texture2DArray shadowMap, float3 uvd, uint layer, float bias, float lightBleedingReduction)
 {
-	return SampleVSMArray(state, shadowMap, uvd.xy, layer, uvd.z, bias, lightBleedingReduction);
+	return SampleVSMArray(state, shadowMap, uvd.xy, layer, uvd.z - bias, bias, lightBleedingReduction);
 }
 
 float ShadowFactorDirectionalLightCascaded(Texture2DArray depthTex, SamplerState state, DirectionalLightSD light, float3 position, float NdotL)
@@ -94,6 +148,7 @@ float ShadowFactorDirectionalLightCascaded(Texture2DArray depthTex, SamplerState
 		bias *= 1 / (cascadePlaneDistance * 0.5f);
 	}
 
-	return SampleShadowArray(state, depthTex, uvd, layer, bias, 0.1);
+	return SampleShadowArray(state, depthTex, uvd, layer, bias, light.lightBleedingReduction);
 }
+
 #endif

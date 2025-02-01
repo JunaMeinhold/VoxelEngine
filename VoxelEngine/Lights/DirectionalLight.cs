@@ -46,7 +46,14 @@
             CBDirectionalLightSD d = DirectionalLightShadowData;
             Matrix4x4* views = CBDirectionalLightSD.GetViews(&d);
             float* cascades = CBDirectionalLightSD.GetCascades(&d);
-            CSMHelper.GetLightSpaceMatrices(camera, Transform, views, cascades, ShadowFrustra, Nucleus.Settings.ShadowMapSize, CascadeCount);
+
+            CSMConfig config = new()
+            {
+                CascadeCount = CascadeCount,
+                ShadowMapSize = Nucleus.Settings.ShadowMapSize,
+            };
+
+            CSMHelper.GetLightSpaceMatrices(camera, Transform, views, cascades, ShadowFrustra, config);
             DirectionalLightShadowData = d;
             DirectionalLightShadowData.Color = Color;
             DirectionalLightShadowData.Direction = Transform.Forward;

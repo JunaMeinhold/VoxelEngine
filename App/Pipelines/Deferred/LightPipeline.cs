@@ -1,8 +1,6 @@
 ﻿namespace App.Pipelines.Deferred
 {
-    using Hexa.NET.D3D11;
     using Hexa.NET.D3DCommon;
-    using HexaGen.Runtime.COM;
     using System.Runtime.CompilerServices;
     using VoxelEngine.Graphics;
     using VoxelEngine.Graphics.Buffers;

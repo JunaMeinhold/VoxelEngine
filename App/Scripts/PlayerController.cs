@@ -22,7 +22,7 @@
         private bool midDown;
         private Camera camera;
         private CPlayer player;
-        private World? world;
+        private World world;
 
         public override void Awake()
         {
@@ -31,7 +31,11 @@
             camera = Scene.Camera;
 
             Keyboard.KeyUp += Keyboard_OnKeyUp;
-            world = Scene.Find<World>();
+            world = Scene.Find<World>()!;
+
+            var origin = player.Transform.GlobalPosition;
+            origin.Y = 256;
+            var result = PhysicsSystem.CastRay(origin, -Vector3.UnitY, float.MaxValue, world);
         }
 
         private void Keyboard_OnKeyUp(object sender, VoxelEngine.Core.Input.Events.KeyboardEventArgs e)

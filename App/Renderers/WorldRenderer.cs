@@ -3,6 +3,7 @@
     using App.Pipelines.Deferred;
     using App.Pipelines.Forward;
     using Hexa.NET.D3D11;
+    using Hexa.NET.DebugDraw;
     using HexaGen.Runtime.COM;
     using System;
     using System.Numerics;
@@ -65,12 +66,14 @@
                 if (region.VertexBuffer is not null && region.VertexBuffer.VertexCount != 0 && frustum.Intersects(region.BoundingBox))
                 {
                     geometryPass.Update(context);
-                    region.Bind(context);
-                    context.DrawInstanced((uint)region.VertexBuffer.VertexCount, 1, 0, 0);
+                    if (region.Bind(context))
+                    {
+                        context.DrawInstanced((uint)region.VertexBuffer.VertexCount, 1, 0, 0);
+                    }
                 }
                 if (debugChunksRegion)
                 {
-                    DebugDraw.DrawBoundingBox(region.Name, region.BoundingBox, new(1, 1, 0, 0.8f));
+                    DebugDraw.DrawBoundingBox(region.BoundingBox.Min, region.BoundingBox.Max, new(1, 1, 0, 0.8f));
                 }
             }
             if (debugChunksRegion)
@@ -80,7 +83,8 @@
                     ChunkSegment chunk = world.LoadedChunkSegments[j];
                     Vector3 min = new Vector3(chunk.Position.X, 0, chunk.Position.Y) * Chunk.CHUNK_SIZE;
                     Vector3 max = min + new Vector3(Chunk.CHUNK_SIZE) * new Vector3(1, WorldMap.CHUNK_AMOUNT_Y, 1);
-                    DebugDraw.DrawBoundingBox($"{chunk.Position}+0", new(min, max), new(1, 1, 1, 0.4f));
+
+                    DebugDraw.DrawBoundingBox(min, max, new(1, 1, 1, 0.4f));
                 }
             }
             geometryPass.End(context);
@@ -101,8 +105,11 @@
                     if (region.VertexBuffer is not null && region.VertexBuffer.VertexCount != 0 && frustum.Intersects(region.BoundingBox))
                     {
                         csmPass.Update(context);
-                        region.Bind(context);
-                        context.DrawInstanced((uint)region.VertexBuffer.VertexCount, 1, 0, 0);
+                        if (region.Bind(context))
+                        {
+                            context.DrawInstanced((uint)region.VertexBuffer.VertexCount, 1, 0, 0);
+                        }
+
                         break;
                     }
                 }

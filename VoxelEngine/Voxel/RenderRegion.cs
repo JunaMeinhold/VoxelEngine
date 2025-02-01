@@ -8,13 +8,13 @@
 
     public class RenderRegion
     {
+        private readonly Lock @lock = new();
         private readonly List<ChunkSegment> ChunkSegments = new();
         public RegionVertexBuffer vertexBuffer = new();
         public Vector3 Position;
         public Vector2 Offset;
         public Vector2 Size;
         public BoundingBox BoundingBox;
-        public string Name;
         public int IsDirty;
 
         public RenderRegion(Vector2 offset, Vector2 size)
@@ -22,7 +22,6 @@
             Position = new(offset.X, 0, offset.Y);
             Offset = offset;
             Size = size;
-            Name = offset.ToString();
         }
 
         public RegionVertexBuffer VertexBuffer => vertexBuffer;
@@ -40,23 +39,25 @@
 
         public void AddRegion(ChunkSegment region)
         {
-            lock (ChunkSegments)
+            lock (@lock)
             {
                 ChunkSegments.Add(region);
+                IsDirty++;
             }
         }
 
         public void RemoveRegion(ChunkSegment region)
         {
-            lock (ChunkSegments)
+            lock (@lock)
             {
                 ChunkSegments.Remove(region);
+                IsDirty++;
             }
         }
 
         public bool ContainsRegion(ChunkSegment region)
         {
-            lock (ChunkSegments)
+            lock (@lock)
             {
                 return ChunkSegments.Contains(region);
             }
@@ -74,44 +75,52 @@
 
         public bool SetDirty()
         {
-            var wasDirty = Interlocked.CompareExchange(ref IsDirty, 1, 0);
-            return wasDirty == 0;
+            lock (@lock)
+            {
+                IsDirty++;
+                return true;
+            }
         }
 
         public void Update(GraphicsContext context)
         {
-            Interlocked.Exchange(ref IsDirty, 0);
-
-            int verts = 0;
-
-            for (int i = 0; i < ChunkSegments.Count; i++)
+            lock (@lock)
             {
-                ChunkSegment region = ChunkSegments[i];
-                for (int j = 0; j < ChunkSegment.CHUNK_SEGMENT_SIZE; j++)
+                int value = IsDirty;
+                if (value == 0) return;
+                IsDirty = 0;
+
+                int verts = 0;
+
+                for (int i = 0; i < ChunkSegments.Count; i++)
                 {
-                    Chunk chunk = region.Chunks[j];
-                    chunk.VertexBuffer.Lock();
-                    verts += chunk.VertexBuffer.Count;
+                    ChunkSegment region = ChunkSegments[i];
+                    for (int j = 0; j < ChunkSegment.CHUNK_SEGMENT_SIZE; j++)
+                    {
+                        Chunk chunk = region.Chunks[j];
+                        chunk.VertexBuffer.Lock();
+                        verts += chunk.VertexBuffer.Count;
+                    }
                 }
-            }
 
-            vertexBuffer.Map(context, verts);
+                vertexBuffer.Map(context, verts);
 
-            var max = Offset + Size;
-            BoundingBox = new(new Vector3(Offset.X, 0, Offset.Y) * Chunk.CHUNK_SIZE, new Vector3(max.X, World.CHUNK_AMOUNT_Y, max.Y) * Chunk.CHUNK_SIZE);
+                var max = Offset + Size;
+                BoundingBox = new(new Vector3(Offset.X, 0, Offset.Y) * Chunk.CHUNK_SIZE, new Vector3(max.X, World.CHUNK_AMOUNT_Y, max.Y) * Chunk.CHUNK_SIZE);
 
-            for (int i = 0; i < ChunkSegments.Count; i++)
-            {
-                ChunkSegment region = ChunkSegments[i];
-                for (int j = 0; j < ChunkSegment.CHUNK_SEGMENT_SIZE; j++)
+                for (int i = 0; i < ChunkSegments.Count; i++)
                 {
-                    Chunk chunk = region.Chunks[j];
-                    vertexBuffer.BufferData(chunk.VertexBuffer, chunk.Position * Chunk.CHUNK_SIZE);
-                    chunk.VertexBuffer.ReleaseLock();
+                    ChunkSegment region = ChunkSegments[i];
+                    for (int j = 0; j < ChunkSegment.CHUNK_SEGMENT_SIZE; j++)
+                    {
+                        Chunk chunk = region.Chunks[j];
+                        vertexBuffer.BufferData(chunk.VertexBuffer, chunk.Position * Chunk.CHUNK_SIZE);
+                        chunk.VertexBuffer.ReleaseLock();
+                    }
                 }
-            }
 
-            vertexBuffer.Unmap(context);
+                vertexBuffer.Unmap(context);
+            }
         }
 
         public void Release()
@@ -119,9 +128,9 @@
             vertexBuffer?.Dispose();
         }
 
-        public void Bind(GraphicsContext context)
+        public bool Bind(GraphicsContext context)
         {
-            vertexBuffer.Bind(context);
+            return vertexBuffer.Bind(context);
         }
     }
 }

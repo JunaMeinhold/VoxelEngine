@@ -5,7 +5,6 @@
     using HexaGen.Runtime.COM;
     using System.Collections.Generic;
     using System.Diagnostics;
-    using System.Diagnostics.CodeAnalysis;
     using System.Linq;
     using System.Numerics;
     using System.Runtime.CompilerServices;
@@ -37,94 +36,6 @@
         }
     }
 
-    public class LockedQueue<T>
-    {
-        private readonly Queue<T> queue = [];
-        private readonly Lock _lock = new();
-        private volatile int count;
-
-        public int Count => count;
-
-        public bool IsEmpty => count == 0;
-
-        public void Lock()
-        {
-            _lock.Enter();
-        }
-
-        public void ReleaseLock()
-        {
-            _lock.Exit();
-        }
-
-        public bool Contains(T item)
-        {
-            Lock();
-            var result = queue.Contains(item);
-            ReleaseLock();
-            return result;
-        }
-
-        public void EnqueueUnsafe(T item)
-        {
-            queue.Enqueue(item);
-            count++;
-        }
-
-        public void EnqueueRange(IList<T> values)
-        {
-            Lock();
-            int count = values.Count;
-            queue.EnsureCapacity(queue.Count + count);
-            foreach (T item in values)
-            {
-                queue.Enqueue(item);
-            }
-            this.count += count;
-            ReleaseLock();
-        }
-
-        public void Enqueue(T item)
-        {
-            Lock();
-            queue.Enqueue(item);
-            count++;
-            ReleaseLock();
-        }
-
-        public T Dequeue()
-        {
-            Lock();
-            T item = queue.Dequeue();
-            count--;
-            ReleaseLock();
-            return item;
-        }
-
-        public bool TryDequeue([MaybeNullWhen(false)] out T result)
-        {
-            Lock();
-            bool item = queue.TryDequeue(out result);
-            if (item)
-            {
-                count--;
-            }
-            ReleaseLock();
-            return item;
-        }
-
-        public bool TryDequeueUnsafe([MaybeNullWhen(false)] out T result)
-        {
-            bool item = queue.TryDequeue(out result);
-            if (item)
-            {
-                count--;
-            }
-
-            return item;
-        }
-    }
-
     public class WorldLoader : IDisposable
     {
         private Vector2[] indicesRenderCache;
@@ -132,36 +43,36 @@
 
         private readonly HashSet<Vector2> loadedRegionIds = new();
 
-        private readonly LockedQueue<Vector3> loadIOQueue = new();
+        private readonly BlockingQueue<Vector3> loadIOQueue = new();
 
-        private readonly LockedQueue<ChunkSegment> generationQueue = new();
+        private readonly BlockingQueue<ChunkSegment> generationQueue = new();
 
-        private readonly LockedQueue<ChunkSegment> loadQueue = new();
+        private readonly BlockingQueue<ChunkSegment> loadQueue = new();
 
         // Contains chunks that are marked as dirty from an block update.
-        private readonly LockedQueue<ChunkSegment> updateQueue = new();
+        private readonly BlockingQueue<ChunkSegment> updateQueue = new();
 
         // Contains chunks that needed to upload data to the gpu.
-        private readonly LockedQueue<RenderRegion> uploadQueue = new();
+        private readonly BlockingQueue<RenderRegion> uploadQueue = new();
 
         // Contains chunks that will be added to LoadedChunks list.
-        private readonly LockedQueue<ChunkSegment> integrationQueue = new();
+        private readonly BlockingQueue<ChunkSegment> integrationQueue = new();
 
         // Contains chunks that will be unloaded form the simulation and LoadedChunks list.
-        private readonly LockedQueue<ChunkSegment> unloadQueue = new();
+        private readonly BlockingQueue<ChunkSegment> unloadQueue = new();
 
         // Contains chunks that will be unloaded from the gpu and will be send to unloadQueue.
-        private readonly LockedQueue<ChunkSegment> unloadIOQueue = new();
+        private readonly BlockingQueue<ChunkSegment> unloadIOQueue = new();
 
-        private readonly LockedQueue<ChunkSegment> saveIOQueue = new();
+        private readonly BlockingQueue<ChunkSegment> saveIOQueue = new();
 
         // Contains chunks that are marked as loaded internal to prevent loading chunks multiple times.
-        private readonly ConcurrentList<ChunkSegment> loadedInternal = new();
+        private readonly BlockingList<ChunkSegment> loadedInternal = new();
 
         // Contains chunks that will be rendered and simulated.
         private readonly List<Chunk> loadedChunks = new();
 
-        private readonly ConcurrentList<RenderRegion> renderRegions = new();
+        private readonly BlockingList<RenderRegion> renderRegions = new();
 
         private readonly Worker[] workers;
         private readonly Worker[] ioWorkers;
@@ -624,10 +535,7 @@
 
             RenderRegion renderRegion = FindRenderRegion(segment.Position);
             renderRegion.AddRegion(segment);
-            if (renderRegion.SetDirty())
-            {
-                uploadQueue.Enqueue(renderRegion);
-            }
+            uploadQueue.Enqueue(renderRegion);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -664,10 +572,7 @@
             }
             else
             {
-                if (renderRegion.SetDirty())
-                {
-                    uploadQueue.Enqueue(renderRegion);
-                }
+                uploadQueue.Enqueue(renderRegion);
             }
 
             segment.SaveToDisk();
