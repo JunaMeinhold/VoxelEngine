@@ -3,7 +3,6 @@
     using Hexa.NET.D3D11;
     using Hexa.NET.D3DCommon;
     using Hexa.NET.DXGI;
-    using Hexa.NET.ImGui.Backends.Vulkan;
     using HexaGen.Runtime.COM;
     using System.Runtime.CompilerServices;
     using VoxelEngine.IO;
@@ -13,14 +12,6 @@
         private readonly string dbgName;
         private Texture2DDesc description;
         private GpuAccessFlags gpuAccessFlags;
-        private bool canWrite;
-        private bool canRead;
-
-        private bool isDirty;
-        private bool disposedValue;
-        private int rowPitch;
-        private int slicePitch;
-        private byte* local;
 
         private ComPtr<ID3D11Texture2D> texture;
         private ComPtr<ID3D11UnorderedAccessView> uav;
@@ -55,13 +46,27 @@
             CreateViews(device, description);
         }
 
+        public Texture2D(Texture2DDescription desc, [CallerFilePath] string file = "", [CallerLineNumber] int line = 0)
+        {
+            dbgName = $"{file}, {line}";
+            gpuAccessFlags = desc.GpuAccessFlags;
+            ComPtr<ID3D11Device> device = D3D11DeviceManager.Device.As<ID3D11Device>();
+            description = new((uint)desc.Width, (uint)desc.Height, (uint)desc.MipLevels, (uint)desc.ArraySize, desc.Format, desc.SampleDesc, 0, 0, (uint)desc.CpuAccessFlags, (uint)desc.MiscFlags);
+            (description.Usage, description.BindFlags) = TextureHelper.ConvertToUB(desc.CpuAccessFlags, desc.GpuAccessFlags);
+
+            device.CreateTexture2D(ref description, null, out texture).ThrowIf();
+            texture.GetDesc(ref description);
+            Utils.SetDebugName(texture, $"{dbgName}.{nameof(Texture2D)}");
+            CreateViews(device, description);
+        }
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Texture2D(Format format, int width, int height, int arraySize = 1, int mipLevels = 1, CpuAccessFlags cpuAccessFlags = 0, GpuAccessFlags gpuAccessFlags = GpuAccessFlags.None, ResourceMiscFlag miscFlags = 0, [CallerFilePath] string file = "", [CallerLineNumber] int line = 0)
+        public Texture2D(Format format, int width, int height, int arraySize = 1, int mipLevels = 1, CpuAccessFlags cpuAccessFlags = 0, GpuAccessFlags gpuAccessFlags = GpuAccessFlags.None, ResourceMiscFlag miscFlags = 0, SampleDesc? sampleDesc = default, [CallerFilePath] string file = "", [CallerLineNumber] int line = 0)
         {
             dbgName = $"{file}, {line}";
             this.gpuAccessFlags = gpuAccessFlags;
             ComPtr<ID3D11Device> device = D3D11DeviceManager.Device.As<ID3D11Device>();
-            description = new((uint)width, (uint)height, (uint)mipLevels, (uint)arraySize, format, new SampleDesc(1, 0), 0, 0, (uint)cpuAccessFlags, (uint)miscFlags);
+            description = new((uint)width, (uint)height, (uint)mipLevels, (uint)arraySize, format, sampleDesc ?? new SampleDesc(1, 0), 0, 0, (uint)cpuAccessFlags, (uint)miscFlags);
             (description.Usage, description.BindFlags) = TextureHelper.ConvertToUB(cpuAccessFlags, gpuAccessFlags);
 
             device.CreateTexture2D(ref description, null, out texture).ThrowIf();
@@ -71,12 +76,12 @@
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Texture2D(SubresourceData subresourceData, Format format, int width, int height, int arraySize = 1, int mipLevels = 1, CpuAccessFlags cpuAccessFlags = 0, GpuAccessFlags gpuAccessFlags = GpuAccessFlags.None, ResourceMiscFlag miscFlags = 0, [CallerFilePath] string file = "", [CallerLineNumber] int line = 0)
+        public Texture2D(SubresourceData subresourceData, Format format, int width, int height, int arraySize = 1, int mipLevels = 1, CpuAccessFlags cpuAccessFlags = 0, GpuAccessFlags gpuAccessFlags = GpuAccessFlags.None, ResourceMiscFlag miscFlags = 0, SampleDesc? sampleDesc = default, [CallerFilePath] string file = "", [CallerLineNumber] int line = 0)
         {
             dbgName = $"{file}, {line}";
             this.gpuAccessFlags = gpuAccessFlags;
             ComPtr<ID3D11Device> device = D3D11DeviceManager.Device.As<ID3D11Device>();
-            description = new((uint)width, (uint)height, (uint)mipLevels, (uint)arraySize, format, new SampleDesc(1, 0), 0, 0, (uint)cpuAccessFlags, (uint)miscFlags);
+            description = new((uint)width, (uint)height, (uint)mipLevels, (uint)arraySize, format, sampleDesc ?? new SampleDesc(1, 0), 0, 0, (uint)cpuAccessFlags, (uint)miscFlags);
             (description.Usage, description.BindFlags) = TextureHelper.ConvertToUB(cpuAccessFlags, gpuAccessFlags);
 
             device.CreateTexture2D(ref description, &subresourceData, out texture).ThrowIf();
@@ -86,12 +91,12 @@
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Texture2D(SubresourceData[] subresourceData, Format format, int width, int height, int arraySize = 1, int mipLevels = 1, CpuAccessFlags cpuAccessFlags = 0, GpuAccessFlags gpuAccessFlags = GpuAccessFlags.None, ResourceMiscFlag miscFlags = 0, [CallerFilePath] string file = "", [CallerLineNumber] int line = 0)
+        public Texture2D(SubresourceData[] subresourceData, Format format, int width, int height, int arraySize = 1, int mipLevels = 1, CpuAccessFlags cpuAccessFlags = 0, GpuAccessFlags gpuAccessFlags = GpuAccessFlags.None, ResourceMiscFlag miscFlags = 0, SampleDesc? sampleDesc = default, [CallerFilePath] string file = "", [CallerLineNumber] int line = 0)
         {
             dbgName = $"{file}, {line}";
             this.gpuAccessFlags = gpuAccessFlags;
             ComPtr<ID3D11Device> device = D3D11DeviceManager.Device.As<ID3D11Device>();
-            Texture2DDesc description = new((uint)width, (uint)height, (uint)mipLevels, (uint)arraySize, format, new SampleDesc(1, 0), 0, 0, (uint)cpuAccessFlags, (uint)miscFlags);
+            description = new((uint)width, (uint)height, (uint)mipLevels, (uint)arraySize, format, new SampleDesc(1, 0), 0, 0, (uint)cpuAccessFlags, (uint)miscFlags);
             (description.Usage, description.BindFlags) = TextureHelper.ConvertToUB(cpuAccessFlags, gpuAccessFlags);
 
             device.CreateTexture2D(ref description, ref subresourceData[0], out texture).ThrowIf();
@@ -173,12 +178,6 @@
             description = new((uint)width, (uint)height, (uint)arraySize, (uint)mipLevels, format, new SampleDesc(1, 0), 0, 0, (uint)cpuAccessFlags, (uint)miscFlag);
             (description.Usage, description.BindFlags) = TextureHelper.ConvertToUB(cpuAccessFlags, gpuAccessFlags);
             CreateViews(device, description);
-
-            if (cpuAccessFlags != 0)
-            {
-                local = (byte*)Alloc(rowPitch * height);
-                ZeroMemory(local, rowPitch * height);
-            }
 
             DisposeCore();
 
@@ -311,18 +310,6 @@
                 }
             }
             srvSlices = null; rtvSlices = null; uavSlices = null;
-        }
-
-        public MappedSubresource Map(ComPtr<ID3D11DeviceContext> context, uint subresource, Map map, MapFlag flag = 0)
-        {
-            MappedSubresource mapped;
-            context.Map(texture.As<ID3D11Resource>(), subresource, map, (uint)flag, &mapped);
-            return mapped;
-        }
-
-        public void Unmap(ComPtr<ID3D11DeviceContext> context, uint subresource)
-        {
-            context.Unmap(texture.As<ID3D11Resource>(), subresource);
         }
 
         public static implicit operator ComPtr<ID3D11ShaderResourceView>(Texture2D texture) => texture.SRV;

@@ -73,13 +73,13 @@
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static unsafe Matrix4x4* GetViews(CBDirectionalLightSD* data)
         {
-            return (Matrix4x4*)data;
+            return &data->View1;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static unsafe float* GetCascades(CBDirectionalLightSD* data)
         {
-            return (float*)((byte*)data + CascadePointerOffset);
+            return &data->Cascade1;
         }
     }
 }

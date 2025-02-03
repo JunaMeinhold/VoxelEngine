@@ -2,11 +2,9 @@ struct PixelInputType
 {
 	float4 position : SV_POSITION;
 	float3 normal : NORMAL;
-	float depth : DEPTH;
-	float4 pos : TEXCOORD0;
+	float2 uv : TEXCOORD0;
 	int texID : TEXCOORD1;
-	float2 uv : TEXCOORD2;
-	float brightness : TEXCOORD3;
+	float4 pos : TEXCOORD2;
 	float4 color : COLOR;
 };
 

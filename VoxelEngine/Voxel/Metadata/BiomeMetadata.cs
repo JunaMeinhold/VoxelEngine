@@ -1,11 +1,10 @@
 ﻿namespace VoxelEngine.Voxel.Metadata
 {
     using Hexa.NET.Mathematics;
-    using System.Numerics;
 
-    public class BiomeMetadata
+    public unsafe struct BiomeMetadata
     {
-        public byte[] Data = new byte[Chunk.CHUNK_SIZE_SQUARED];
+        public fixed byte Data[Chunk.CHUNK_SIZE_SQUARED];
 
         public BiomeMetadata()
         {
@@ -25,23 +24,20 @@
 
         public void Serialize(Stream stream)
         {
-            BiomeMetadataHeader.Write(stream, Data.Length);
-            stream.Write(Data);
+            fixed (byte* pData = Data)
+            {
+                BiomeMetadataHeader.Write(stream, Chunk.CHUNK_SIZE_SQUARED);
+                stream.Write(new Span<byte>(pData, Chunk.CHUNK_SIZE_SQUARED));
+            }
         }
 
         public void Deserialize(Stream stream)
         {
-            BiomeMetadataHeader.Read(stream, out int dataLength);
-            Data = new byte[dataLength];
-            stream.ReadExactly(Data);
-        }
-
-        public int Deserialize(ReadOnlySpan<byte> data)
-        {
-            int index = BiomeMetadataHeader.Read(data, out int dataLength);
-            Data = new byte[dataLength];
-            data.Slice(index, dataLength).CopyTo(Data);
-            return index + dataLength;
+            fixed (byte* pData = Data)
+            {
+                BiomeMetadataHeader.Read(stream, out int dataLength);
+                stream.ReadExactly(new Span<byte>(pData, dataLength));
+            }
         }
     }
 }

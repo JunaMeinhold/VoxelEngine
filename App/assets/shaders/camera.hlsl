@@ -9,6 +9,8 @@ cbuffer CameraBuffer : register(b1)
 	float4x4 projInv;
 	float4x4 viewProj;
 	float4x4 viewProjInv;
+	float4x4 relViewProj;
+	float4x4 relViewProjInv;
 	float4x4 prevViewProj;
 	float camFar;
 	float camNear;
@@ -74,6 +76,14 @@ float3 GetPositionWS(float2 uv, float depth)
 	float4 ndc = float4(uv * 2.0f - 1.0f, depth, 1.0f);
 	ndc.y *= -1;
 	float4 wp = mul(ndc, viewProjInv);
+	return wp.xyz / wp.w;
+}
+
+float3 GetPositionRWS(float2 uv, float depth)
+{
+	float4 ndc = float4(uv * 2.0f - 1.0f, depth, 1.0f);
+	ndc.y *= -1;
+	float4 wp = mul(ndc, relViewProjInv);
 	return wp.xyz / wp.w;
 }
 

@@ -1,10 +1,7 @@
 ﻿namespace App.Renderers
 {
-    using App.Pipelines.Forward;
-    using Hexa.NET.D3D11;
     using Hexa.NET.Mathematics.Sky;
     using Hexa.NET.Mathematics.Sky.Preetham;
-    using HexaGen.Runtime.COM;
     using System.Numerics;
     using VoxelEngine.Graphics;
     using VoxelEngine.Graphics.Buffers;
@@ -14,7 +11,7 @@
 
     public class SkyboxRenderer : BaseRenderComponent
     {
-        private SkyboxPipeline pipeline;
+        private GraphicsPipelineState pipeline;
 
         private ConstantBuffer<Matrix4x4> mvpBuffer;
         private ConstantBuffer<CBWeather> constantBuffer;
@@ -31,7 +28,15 @@
 
         public override void Awake()
         {
-            pipeline = new();
+            pipeline = GraphicsPipelineState.Create(new()
+            {
+                VertexShader = "forward/skybox/vs.hlsl",
+                PixelShader = "forward/skybox/preethamSky.hlsl"
+            }, new GraphicsPipelineStateDesc()
+            {
+                Rasterizer = RasterizerDescription.CullNone,
+                DepthStencil = DepthStencilDescription.DepthRead
+            });
             sphere = new();
             Texture = new(TexturePath);
 
@@ -69,9 +74,9 @@
             constantBuffer.Update(context, colors);
             mvpBuffer.Update(context, Matrix4x4.Transpose(Matrix4x4.CreateScale(camera.Transform.Far) * Matrix4x4.CreateTranslation(camera.Transform.Position)));
             sphere.Bind(context);
-            pipeline.Begin(context);
+            context.SetGraphicsPipelineState(pipeline);
             context.DrawIndexedInstanced((uint)sphere.IndexBuffer.Count, 1, 0, 0, 0);
-            pipeline.End(context);
+            context.SetGraphicsPipelineState(null);
         }
 
         public override void Destroy()

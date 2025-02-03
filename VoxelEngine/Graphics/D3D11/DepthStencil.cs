@@ -4,14 +4,14 @@
     using Hexa.NET.D3DCommon;
     using Hexa.NET.DXGI;
     using HexaGen.Runtime.COM;
-    using System;
+    using System.Runtime.CompilerServices;
     using VoxelEngine.Resources;
     using Format = Hexa.NET.DXGI.Format;
 
     public unsafe class DepthStencil : Resource, IDepthStencilView, IShaderResourceView
     {
+        private readonly string dbgName;
         private ComPtr<ID3D11Texture2D> texture;
-
         private ComPtr<ID3D11DepthStencilView> depthStencilView;
         private ComPtr<ID3D11ShaderResourceView> shaderResourceView;
 
@@ -22,16 +22,21 @@
 
         public Hexa.NET.Mathematics.Viewport Viewport => new(width, height);
 
-        public DepthStencil(int width, int height) : this(Format.D32Float, width, height, 1)
+        public DepthStencil(DepthStencilBufferDescription desc, [CallerFilePath] string file = "", [CallerLineNumber] int line = 0) : this(desc.Format, desc.Width, desc.Height, desc.ArraySize, file, line)
         {
         }
 
-        public DepthStencil(int width, int height, int arraySize) : this(Format.D32Float, width, height, arraySize)
+        public DepthStencil(int width, int height, [CallerFilePath] string file = "", [CallerLineNumber] int line = 0) : this(Format.D32Float, width, height, 1, file, line)
         {
         }
 
-        public DepthStencil(Format format, int width, int height, int arraySize)
+        public DepthStencil(int width, int height, int arraySize, [CallerFilePath] string file = "", [CallerLineNumber] int line = 0) : this(Format.D32Float, width, height, arraySize, file, line)
         {
+        }
+
+        public DepthStencil(Format format, int width, int height, int arraySize, [CallerFilePath] string file = "", [CallerLineNumber] int line = 0)
+        {
+            dbgName = $"{file}, {line}";
             var device = D3D11DeviceManager.Device;
             this.format = format;
             this.width = width;
@@ -53,7 +58,7 @@
             };
 
             device.CreateTexture2D(ref depthBufferDesc, null, out texture).ThrowIf();
-            //texture.DebugName = nameof(DepthStencil) + "." + nameof(texture);
+            Utils.SetDebugName(texture, $"{dbgName}.{nameof(Texture2D)}");
 
             CreateViews(device, format, arraySize);
         }
@@ -96,10 +101,10 @@
             }
 
             device.CreateDepthStencilView(texture.As<ID3D11Resource>(), ref dsvdesc, out depthStencilView).ThrowIf();
-            //depthStencilView.DebugName = nameof(DepthStencil) + "." + nameof(DSV);
+            Utils.SetDebugName(depthStencilView, $"{dbgName}.{nameof(DSV)}");
 
             device.CreateShaderResourceView(texture.As<ID3D11Resource>(), ref srvdesc, out shaderResourceView).ThrowIf();
-            //shaderResourceView.DebugName = nameof(DepthStencil) + "." + nameof(SRV);
+            Utils.SetDebugName(shaderResourceView, $"{dbgName}.{nameof(SRV)}");
         }
 
         public ComPtr<ID3D11DepthStencilView> DSV => depthStencilView;

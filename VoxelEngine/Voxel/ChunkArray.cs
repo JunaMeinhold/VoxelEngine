@@ -5,7 +5,7 @@
     public class ChunkArray
     {
         private readonly Dictionary<Vector3, Chunk> chunks = new();
-        private readonly object _lock = new();
+        private readonly Lock _lock = new();
 
         public ChunkArray()
         {

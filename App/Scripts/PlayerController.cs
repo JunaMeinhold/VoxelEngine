@@ -23,6 +23,7 @@
         private Camera camera;
         private CPlayer player;
         private World world;
+        private Vector3 teleportLocation;
 
         public override void Awake()
         {
@@ -63,8 +64,15 @@
         [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         public override void Update()
         {
-            if (ImGui.Begin("Blocks"))
+            if (ImGui.Begin("Player"))
             {
+                ImGui.InputFloat3("Location", ref teleportLocation);
+                ImGui.SameLine();
+                if (ImGui.Button("Teleport"))
+                {
+                    camera.Transform.GlobalPosition = teleportLocation;
+                    world.WorldLoader.Reset();
+                }
                 ImGui.Text(player.SelectedBlock.Name);
             }
             ImGui.End();

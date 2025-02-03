@@ -8,7 +8,7 @@
     /// <summary>
     /// Describes the properties of a sampler state in a graphics API or framework.
     /// </summary>
-    public partial struct SamplerDescription : IEquatable<SamplerDescription>
+    public partial struct SamplerStateDescription : IEquatable<SamplerStateDescription>
     {
         /// <summary>
         /// The maximum allowed value for <see cref="MaxAnisotropy"/>.
@@ -82,57 +82,57 @@
         /// <summary>
         /// Predefined instance for point sampling with wrapping.
         /// </summary>
-        public static readonly SamplerDescription PointWrap = new(Filter.MinMagMipPoint, TextureAddressMode.Wrap);
+        public static readonly SamplerStateDescription PointWrap = new(Filter.MinMagMipPoint, TextureAddressMode.Wrap);
 
         /// <summary>
         /// Predefined instance for point sampling with clamping.
         /// </summary>
-        public static readonly SamplerDescription PointClamp = new(Filter.MinMagMipPoint, TextureAddressMode.Clamp);
+        public static readonly SamplerStateDescription PointClamp = new(Filter.MinMagMipPoint, TextureAddressMode.Clamp);
 
         /// <summary>
         /// Predefined instance for linear sampling with mirror.
         /// </summary>
-        public static readonly SamplerDescription LinearMirror = new(Filter.MinMagMipLinear, TextureAddressMode.Mirror);
+        public static readonly SamplerStateDescription LinearMirror = new(Filter.MinMagMipLinear, TextureAddressMode.Mirror);
 
         /// <summary>
         /// Predefined instance for linear sampling with wrapping.
         /// </summary>
-        public static readonly SamplerDescription LinearWrap = new(Filter.MinMagMipLinear, TextureAddressMode.Wrap);
+        public static readonly SamplerStateDescription LinearWrap = new(Filter.MinMagMipLinear, TextureAddressMode.Wrap);
 
         /// <summary>
         /// Predefined instance for linear sampling with clamping.
         /// </summary>
-        public static readonly SamplerDescription LinearClamp = new(Filter.MinMagMipLinear, TextureAddressMode.Clamp);
+        public static readonly SamplerStateDescription LinearClamp = new(Filter.MinMagMipLinear, TextureAddressMode.Clamp);
 
         /// <summary>
         /// Predefined instance for linear sampling with a border color.
         /// </summary>
-        public static readonly SamplerDescription LinearBorder = new(Filter.MinMagMipLinear, TextureAddressMode.Border) { BorderColor = default };
+        public static readonly SamplerStateDescription LinearBorder = new(Filter.MinMagMipLinear, TextureAddressMode.Border) { BorderColor = default };
 
         /// <summary>
         /// Predefined instance for anisotropic sampling with wrapping.
         /// </summary>
-        public static readonly SamplerDescription AnisotropicWrap = new(Filter.Anisotropic, TextureAddressMode.Wrap, 0.0f, MaxMaxAnisotropy);
+        public static readonly SamplerStateDescription AnisotropicWrap = new(Filter.Anisotropic, TextureAddressMode.Wrap, 0.0f, MaxMaxAnisotropy);
 
         /// <summary>
         /// Predefined instance for anisotropic sampling with clamping.
         /// </summary>
-        public static readonly SamplerDescription AnisotropicClamp = new(Filter.Anisotropic, TextureAddressMode.Clamp, 0.0f, MaxMaxAnisotropy);
+        public static readonly SamplerStateDescription AnisotropicClamp = new(Filter.Anisotropic, TextureAddressMode.Clamp, 0.0f, MaxMaxAnisotropy);
 
         /// <summary>
         /// Predefined instance for linear sampling with a border color and comparison function.
         /// </summary>
-        public static readonly SamplerDescription ComparisonLinearBorder = new(Filter.ComparisonMinMagMipLinear, TextureAddressMode.Border, 0, 0, ComparisonFunc.LessEqual, 0, float.MaxValue);
+        public static readonly SamplerStateDescription ComparisonLinearBorder = new(Filter.ComparisonMinMagMipLinear, TextureAddressMode.Border, 0, 0, ComparisonFunc.LessEqual, 0, float.MaxValue);
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="SamplerDescription"/> struct.
+        /// Initializes a new instance of the <see cref="SamplerStateDescription"/> struct.
         /// </summary>
-        public SamplerDescription()
+        public SamplerStateDescription()
         {
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="SamplerDescription"/> struct.
+        /// Initializes a new instance of the <see cref="SamplerStateDescription"/> struct.
         /// </summary>
         /// <param name="filter">Filtering method to use when sampling a texture.</param>
         /// <param name="addressU">Method to use for resolving a u texture coordinate that is outside the 0 to 1 range.</param>
@@ -144,7 +144,7 @@
         /// <param name="borderColor">Border color to use if <see cref="TextureAddressMode.Border"/> is specified for AddressU, AddressV, or AddressW.</param>
         /// <param name="minLOD">Lower end of the mipmap range to clamp access to, where 0 is the largest and most detailed mipmap level and any level higher than that is less detailed.</param>
         /// <param name="maxLOD">Upper end of the mipmap range to clamp access to, where 0 is the largest and most detailed mipmap level and any level higher than that is less detailed. This _value must be greater than or equal to MinLOD. </param>
-        public SamplerDescription(
+        public SamplerStateDescription(
             Filter filter,
             TextureAddressMode addressU,
             TextureAddressMode addressV,
@@ -169,7 +169,7 @@
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="SamplerDescription"/> struct.
+        /// Initializes a new instance of the <see cref="SamplerStateDescription"/> struct.
         /// </summary>
         /// <param name="filter">Filtering method to use when sampling a texture.</param>
         /// <param name="addressU">Method to use for resolving a u texture coordinate that is outside the 0 to 1 range.</param>
@@ -180,7 +180,7 @@
         /// <param name="comparisonFunction">A function that compares sampled data against existing sampled data. </param>
         /// <param name="minLOD">Lower end of the mipmap range to clamp access to, where 0 is the largest and most detailed mipmap level and any level higher than that is less detailed.</param>
         /// <param name="maxLOD">Upper end of the mipmap range to clamp access to, where 0 is the largest and most detailed mipmap level and any level higher than that is less detailed. This _value must be greater than or equal to MinLOD. </param>
-        public SamplerDescription(
+        public SamplerStateDescription(
             Filter filter,
             TextureAddressMode addressU,
             TextureAddressMode addressV,
@@ -204,7 +204,7 @@
         }
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="SamplerDescription"/> struct.
+        /// Initializes a new instance of the <see cref="SamplerStateDescription"/> struct.
         /// </summary>
         /// <param name="filter">Filtering method to use when sampling a texture.</param>
         /// <param name="address">Method to use for resolving a u, v e w texture coordinate that is outside the 0 to 1 range.</param>
@@ -213,7 +213,7 @@
         /// <param name="comparisonFunction">A function that compares sampled data against existing sampled data. </param>
         /// <param name="minLOD">Lower end of the mipmap range to clamp access to, where 0 is the largest and most detailed mipmap level and any level higher than that is less detailed.</param>
         /// <param name="maxLOD">Upper end of the mipmap range to clamp access to, where 0 is the largest and most detailed mipmap level and any level higher than that is less detailed. This _value must be greater than or equal to MinLOD. </param>
-        public SamplerDescription(
+        public SamplerStateDescription(
             Filter filter,
             TextureAddressMode address,
             float mipLODBias = 0.0f,
@@ -234,7 +234,7 @@
             MaxLOD = maxLOD;
         }
 
-        public static implicit operator SamplerDesc(SamplerDescription desc)
+        public static implicit operator SamplerDesc(SamplerStateDescription desc)
         {
             return new()
             {
@@ -257,11 +257,11 @@
         /// <inheritdoc/>
         public override readonly bool Equals(object? obj)
         {
-            return obj is SamplerDescription description && Equals(description);
+            return obj is SamplerStateDescription description && Equals(description);
         }
 
         /// <inheritdoc/>
-        public readonly bool Equals(SamplerDescription other)
+        public readonly bool Equals(SamplerStateDescription other)
         {
             return Filter == other.Filter &&
                    AddressU == other.AddressU &&
@@ -293,27 +293,27 @@
         }
 
         /// <summary>
-        /// Determines whether two <see cref="SamplerDescription"/> instances are equal.
+        /// Determines whether two <see cref="SamplerStateDescription"/> instances are equal.
         /// </summary>
-        /// <param name="left">The first <see cref="SamplerDescription"/> to compare.</param>
-        /// <param name="right">The second <see cref="SamplerDescription"/> to compare.</param>
+        /// <param name="left">The first <see cref="SamplerStateDescription"/> to compare.</param>
+        /// <param name="right">The second <see cref="SamplerStateDescription"/> to compare.</param>
         /// <returns>
         /// <see langword="true"/> if the specified instances are equal; otherwise, <see langword="false"/>.
         /// </returns>
-        public static bool operator ==(SamplerDescription left, SamplerDescription right)
+        public static bool operator ==(SamplerStateDescription left, SamplerStateDescription right)
         {
             return left.Equals(right);
         }
 
         /// <summary>
-        /// Determines whether two <see cref="SamplerDescription"/> instances are not equal.
+        /// Determines whether two <see cref="SamplerStateDescription"/> instances are not equal.
         /// </summary>
-        /// <param name="left">The first <see cref="SamplerDescription"/> to compare.</param>
-        /// <param name="right">The second <see cref="SamplerDescription"/> to compare.</param>
+        /// <param name="left">The first <see cref="SamplerStateDescription"/> to compare.</param>
+        /// <param name="right">The second <see cref="SamplerStateDescription"/> to compare.</param>
         /// <returns>
         /// <see langword="true"/> if the specified instances are not equal; otherwise, <see langword="false"/>.
         /// </returns>
-        public static bool operator !=(SamplerDescription left, SamplerDescription right)
+        public static bool operator !=(SamplerStateDescription left, SamplerStateDescription right)
         {
             return !(left == right);
         }

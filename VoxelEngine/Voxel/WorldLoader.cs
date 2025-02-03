@@ -1,8 +1,6 @@
 ﻿namespace VoxelEngine.Voxel
 {
-    using Hexa.NET.D3D11;
     using Hexa.NET.Utilities;
-    using HexaGen.Runtime.COM;
     using System.Collections.Generic;
     using System.Diagnostics;
     using System.Linq;
@@ -259,6 +257,11 @@
         }
 
         private Vector3 lastPos;
+
+        public void Reset()
+        {
+            first = true;
+        }
 
         public unsafe void DispatchInitial(Vector3 pos)
         {

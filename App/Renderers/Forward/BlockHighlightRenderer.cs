@@ -1,17 +1,18 @@
 ﻿namespace App.Renderers.Forward
 {
-    using App.Pipelines.Forward;
+    using Hexa.NET.D3DCommon;
     using Hexa.NET.Mathematics;
     using System.Numerics;
     using VoxelEngine.Graphics;
     using VoxelEngine.Graphics.Buffers;
+    using VoxelEngine.Graphics.D3D11;
     using VoxelEngine.Graphics.Primitives;
     using VoxelEngine.Scenes;
     using VoxelEngine.Voxel;
 
     public class BlockHighlightRenderer : BaseRenderComponent
     {
-        private LinePipeline linePipeline;
+        private GraphicsPipelineState linePipeline;
         private ConstantBuffer<Matrix4x4> mvpBuffer;
         private ConstantBuffer<Vector4> colorBuffer;
         private LineBox lineBox;
@@ -29,7 +30,14 @@
             }
             mvpBuffer = new(CpuAccessFlags.Write);
             colorBuffer = new(CpuAccessFlags.Write);
-            linePipeline = new();
+            linePipeline = GraphicsPipelineState.Create(new()
+            {
+                VertexShader = "forward/line/vs.hlsl",
+                PixelShader = "forward/line/ps.hlsl",
+            }, new GraphicsPipelineStateDesc()
+            {
+                Topology = PrimitiveTopology.Linelist
+            });
             linePipeline.Bindings.SetCBV("ModelBuffer", mvpBuffer);
             linePipeline.Bindings.SetCBV("ColorBuffer", colorBuffer);
             Color = Colors.Gray;
@@ -49,13 +57,13 @@
             if (player == null) return;
             if (player.IsLookingAtBlock)
             {
-                mvpBuffer.Update(context, Matrix4x4.Transpose(Matrix4x4.CreateScale(0.5f) * Matrix4x4.CreateTranslation((Vector3)player.LookAtBlock + new Vector3(0.5f))));
+                mvpBuffer.Update(context, Matrix4x4.Transpose(Matrix4x4.CreateScale(0.51f) * Matrix4x4.CreateTranslation((Vector3)player.LookAtBlock + new Vector3(0.5f))));
                 colorBuffer.Update(context, Color);
 
                 lineBox.Bind(context);
-                linePipeline.Begin(context);
+                context.SetGraphicsPipelineState(linePipeline);
                 context.DrawIndexedInstanced((uint)lineBox.IndexBuffer.Count, 1, 0, 0, 0);
-                linePipeline.End(context);
+                context.SetGraphicsPipelineState(null);
             }
         }
 

@@ -112,10 +112,10 @@ float SampleEVSMArray(SamplerState state, Texture2DArray depthTex, float2 texCoo
 
 float SampleShadowArray(SamplerState state, Texture2DArray shadowMap, float3 uvd, uint layer, float bias, float lightBleedingReduction)
 {
-	return SampleVSMArray(state, shadowMap, uvd.xy, layer, uvd.z - bias, bias, lightBleedingReduction);
+	return SampleVSMArray(state, shadowMap, uvd.xy, layer, uvd.z, bias, lightBleedingReduction);
 }
 
-float ShadowFactorDirectionalLightCascaded(Texture2DArray depthTex, SamplerState state, DirectionalLightSD light, float3 position, float NdotL)
+float ShadowFactorDirectionalLightCascaded(Texture2DArray depthTex, SamplerState state, ShadowData light, float3 position, float NdotL)
 {
 	float cascadePlaneDistances[8] = (float[8]) light.cascades;
 
@@ -148,7 +148,7 @@ float ShadowFactorDirectionalLightCascaded(Texture2DArray depthTex, SamplerState
 		bias *= 1 / (cascadePlaneDistance * 0.5f);
 	}
 
-	return SampleShadowArray(state, depthTex, uvd, layer, bias, light.lightBleedingReduction);
+	return SampleShadowArray(state, depthTex, uvd, layer, bias, light.softness);
 }
 
 #endif

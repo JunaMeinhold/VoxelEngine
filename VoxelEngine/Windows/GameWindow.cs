@@ -44,6 +44,7 @@
 
             swapChain = DXGIDeviceManager.CreateSwapChain(this);
 
+            SceneRenderer.Initialize(this);
             renderDispatcher = Dispatcher.CurrentDispatcher;
             renderer = new(this, D3D11DeviceManager.Device.As<ID3D11Device>(), D3D11DeviceManager.Context.As<ID3D11DeviceContext>());
             debugDraw = new(D3D11DeviceManager.Device.As<ID3D11Device>(), D3D11DeviceManager.Context.As<ID3D11DeviceContext>());
@@ -51,12 +52,14 @@
             SceneManager.Load(scene);
         }
 
+        public ISceneRenderer SceneRenderer { get; set; }
+
         public override void Render()
         {
             if (resize)
             {
                 swapChain.Resize(Width, Height);
-                SceneManager.Current?.Renderer.Resize(this);
+                SceneRenderer.Resize(this);
                 resize = false;
             }
             debugDraw.BeginDraw();
@@ -65,12 +68,17 @@
             Dispatcher.ExecuteQueue();
             lock (SceneManager.Lock)
             {
-                if (firstFrame)
+                var scene = SceneManager.Current;
+                if (scene != null)
                 {
-                    Time.Initialize();
-                    firstFrame = false;
+                    if (firstFrame)
+                    {
+                        Time.Initialize();
+                        firstFrame = false;
+                    }
+                    scene.Tick();
+                    SceneRenderer.Render(D3D11DeviceManager.GraphicsContext, scene.Camera, scene);
                 }
-                SceneManager.Current?.Render();
             }
 
             ImGuiConsole.Draw();
@@ -85,6 +93,7 @@
 
         public override void RendererDestroy()
         {
+            SceneRenderer.Dispose();
             renderer.Dispose();
             SceneManager.Unload();
             debugDraw.Dispose();

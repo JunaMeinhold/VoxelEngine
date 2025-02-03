@@ -1,6 +1,7 @@
 ﻿namespace VoxelEngine.Voxel.Meshing
 {
     using System.Runtime.CompilerServices;
+    using System.Threading;
 
     public unsafe class ChunkVertexBuffer : IDisposable, IVoxelVertexBuffer
     {
@@ -18,6 +19,7 @@
             stride = sizeof(int);
             capacity = DefaultCapacity;
             Data = AllocT<VoxelVertex>(capacity);
+            ZeroMemoryT(Data, capacity);
         }
 
         public VoxelVertex this[int index]
@@ -41,6 +43,7 @@
                 Data = ReAllocT(Data, value);
                 capacity = value;
                 count = capacity < count ? capacity : count;
+                ZeroMemoryT(Data + count, capacity - count);
             }
         }
 

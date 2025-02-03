@@ -1,11 +1,6 @@
 #include "../../camera.hlsl"
 #include "defs.hlsl"
 
-cbuffer ModelBuffer
-{
-	float4x4 model;
-};
-
 cbuffer WorldData
 {
 	float3 chunkOffset;
@@ -17,29 +12,25 @@ cbuffer TexData
 	BlockDescription descs[256];
 };
 
-PixelInputType main(int aData : POSITION, float3 offset : POSITION1, float4 color : COLOR)
+PixelInputType main(float3 position : POSITION, int aData : POSITION1, float4 color : COLOR)
 {
 	PixelInputType output;
 
-	float3 position = float3(float(aData & (63)), float((aData >> 6) & (63)), float((aData >> 12) & (63))) + offset;
+	float3 relativePos = (position + chunkOffset * 16) - GetCameraPos();
 
-	output.position = mul(float4(position, 1), model);
-	output.pos = output.position;
-	output.position = mul(output.position, viewProj);
+	output.pos = float4(position, 1);
+	output.position = mul(float4(relativePos, 1), relViewProj);
 
 	output.texID = int((aData >> 18) & (31));
 
-	output.brightness = (float((aData >> 23) & (15)) + 2) / 8.0;
 	output.color = color;
 
 	int normal = int((aData >> 27) & (7));
 
-	position += chunkOffset;
-
 	if (normal < 2)
 	{
 		output.uv = position.xz * 1; // 1 == uvSize[output.texID]
-		output.brightness *= normal == 0 ? 1.3 : 0.85;
+		//output.brightness *= normal == 0 ? 1.3 : 0.85;
 	}
 	else
 	{
@@ -79,9 +70,7 @@ PixelInputType main(int aData : POSITION, float3 offset : POSITION1, float4 colo
 		}
 
 	output.uv.y = 1 - output.uv.y;
-	output.depth = output.position.z / output.position.w;
 
-	output.normal = mul(output.normal, (float3x3)model);
 	output.normal = normalize(output.normal);
 
 	return output;

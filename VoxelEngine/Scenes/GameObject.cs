@@ -4,7 +4,6 @@
     using System.ComponentModel;
     using System.Diagnostics.CodeAnalysis;
     using System.Runtime.CompilerServices;
-    using VoxelEngine.Core;
 
     public delegate void GameObjectEventHandler<T>(GameObject sender, T args);
 
@@ -20,6 +19,7 @@
         private object? tag;
         private GameObject? parent;
         private Transform transform = new();
+        private bool enabled = true;
 
         /// <summary>
         /// Gets the scene that the element is associated.
@@ -109,10 +109,26 @@
             get => tag;
             set
             {
-                tag = value;
-                TagChanged?.Invoke(this, value);
+                if (SetAndNotifyWithEqualsTest(ref tag, value))
+                {
+                    TagChanged?.Invoke(this, value);
+                }
             }
         }
+
+        public bool Enabled
+        {
+            get => enabled;
+            set
+            {
+                if (SetAndNotifyWithEqualsTest(ref enabled, value))
+                {
+                    EnabledChanged?.Invoke(this, value);
+                }
+            }
+        }
+
+        public event GameObjectEventHandler<bool>? EnabledChanged;
 
         public event GameObjectEventHandler<string>? NameChanged;
 
@@ -151,6 +167,19 @@
         protected bool SetAndNotifyWithEqualsTest<T>(ref T field, T value, [CallerMemberName] string name = "") where T : IEquatable<T>
         {
             if (field.Equals(value))
+            {
+                return false;
+            }
+
+            PropertyChanging?.Invoke(this, new PropertyChangingEventArgs(name));
+            field = value;
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+            return true;
+        }
+
+        protected bool SetAndNotifyWithEqualsTest(ref object? field, object? value, [CallerMemberName] string name = "")
+        {
+            if (field == value)
             {
                 return false;
             }

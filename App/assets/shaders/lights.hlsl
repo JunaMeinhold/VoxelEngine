@@ -23,4 +23,29 @@ struct PointLight
 	float range;
 };
 
+struct Light
+{
+	uint type;
+
+	float4 color;
+	float4 position;
+	float4 direction;
+	float range;
+	int castsShadows;
+	bool cascadedShadows;
+	int shadowMapIndex;
+};
+
+struct ShadowData
+{
+	float4x4 views[8];
+	float4 cascades[2];
+	float size;
+	float softness;
+	uint cascadeCount;
+	float4 regions[8];
+	float bias;
+	float slopeBias;
+};
+
 #endif

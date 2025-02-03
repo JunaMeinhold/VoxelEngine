@@ -4,6 +4,7 @@
     {
         public string Shader;
         public string ShaderEntry = "main";
+        public ShaderMacro[]? Macros;
 
         public ComputePipelineDesc()
         {

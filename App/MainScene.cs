@@ -4,6 +4,8 @@
     using App.Renderers;
     using App.Renderers.Forward;
     using App.Scripts;
+    using System.Numerics;
+    using VoxelEngine.Lightning;
     using VoxelEngine.Scenes;
     using VoxelEngine.Voxel;
     using VoxelEngine.Voxel.Blocks;
@@ -15,25 +17,29 @@
         {
             Camera camera = new();
             camera.Far = 1000;
+            camera.Near = 0.1f;
             camera.Transform.Position = new(0, 100, 0);
             camera.Transform.Rotation = new(0, 0, 0);
 
             Scene scene = new()
             {
-                Renderer = new MainSceneDeferredRenderer(),
                 Camera = camera
             };
 
+            DirectionalLight directionalLight = new()
+            {
+                Color = new Vector4(196 / 255f, 220 / 255f, 1, 1) * 1.4f
+            };
+            directionalLight.Transform.Far = 100;
+            directionalLight.Transform.Rotation = new(0, 100, 0);
+            directionalLight.CastShadows = true;
+
+            scene.Add(directionalLight);
+
             scene.Add(camera);
-            // Creates the skybox.
+
             scene.Add(new Skybox());
 
-            // Creates the crosshair.
-            scene.Add(new Crosshair());
-
-            // Creates the player.
-
-            // Creates the world.
             World world = new("world");
 
             world.Generator = new DefaultChunkGenerator(68458);
@@ -43,11 +49,14 @@
 
             CPlayer player = new(new(0, 74, 0));
             player.AddComponent(new BlockHighlightRenderer());
+            player.AddComponent(new CrosshairRenderer()
+            {
+                TexturePath = "crosshair.png"
+            });
             scene.Add(player);
 
             world.Player = player;
 
-            // Registers the block types.
             BlockRegistry.Reset();
             BlockRegistry.RegisterBlock(new("Dirt", new("blocks/dirt.dds")));
             BlockRegistry.RegisterBlock(new("Stone", new("blocks/stone.dds")));

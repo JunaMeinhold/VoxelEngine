@@ -4,6 +4,7 @@
     using HexaEngine.Queries;
     using HexaEngine.Queries.Generic;
     using System.Collections.Concurrent;
+    using System.Diagnostics;
 
     public class TransformSystem : ISceneSystem
     {

@@ -182,6 +182,7 @@ namespace VoxelEngine.Voxel
                 Free(MaxY);
                 MinY = null;
                 MaxY = null;
+                BlockMetadata.Release();
             }
         }
 

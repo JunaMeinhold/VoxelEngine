@@ -105,6 +105,7 @@
 
                 vertexBuffer.Map(context, verts);
 
+                var min = new Vector3(Offset.X, 0, Offset.Y);
                 var max = Offset + Size;
                 BoundingBox = new(new Vector3(Offset.X, 0, Offset.Y) * Chunk.CHUNK_SIZE, new Vector3(max.X, World.CHUNK_AMOUNT_Y, max.Y) * Chunk.CHUNK_SIZE);
 
@@ -114,7 +115,7 @@
                     for (int j = 0; j < ChunkSegment.CHUNK_SEGMENT_SIZE; j++)
                     {
                         Chunk chunk = region.Chunks[j];
-                        vertexBuffer.BufferData(chunk.VertexBuffer, chunk.Position * Chunk.CHUNK_SIZE);
+                        vertexBuffer.BufferData(chunk.VertexBuffer, (chunk.Position - min) * Chunk.CHUNK_SIZE);
                         chunk.VertexBuffer.ReleaseLock();
                     }
                 }

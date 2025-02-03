@@ -2,13 +2,9 @@
 {
     using Hexa.NET.D3D11;
     using HexaGen.Runtime.COM;
-    using Newtonsoft.Json.Linq;
     using System.Runtime.CompilerServices;
-    using System.Runtime.InteropServices;
     using VoxelEngine.Graphics.D3D11;
-    using VoxelEngine.Mathematics;
     using VoxelEngine.Resources;
-    using static Hexa.NET.Utilities.IO.FileUtils.Win;
 
     public unsafe class ConstantBuffer<T> : Resource, IConstantBuffer<T> where T : unmanaged
     {
@@ -19,7 +15,7 @@
         private T* data;
         private int count;
 
-        public ConstantBuffer(CpuAccessFlags accessFlags, T* value, int count, [CallerFilePath] string file = "", [CallerLineNumber] int line = 0)
+        public ConstantBuffer(T* value, int count, CpuAccessFlags accessFlags, [CallerFilePath] string file = "", [CallerLineNumber] int line = 0)
         {
             dbgName = $"ConstantBuffer: {Path.GetFileNameWithoutExtension(file)}, Line:{line}";
             var device = D3D11DeviceManager.Device;
@@ -44,7 +40,7 @@
             //Buffer.DebugName = nameof(ConstantBuffer<T>);
         }
 
-        public ConstantBuffer(CpuAccessFlags accessFlags, T value, [CallerFilePath] string file = "", [CallerLineNumber] int line = 0)
+        public ConstantBuffer(T value, CpuAccessFlags accessFlags, [CallerFilePath] string file = "", [CallerLineNumber] int line = 0)
         {
             dbgName = $"ConstantBuffer: {Path.GetFileNameWithoutExtension(file)}, Line:{line}";
             var device = D3D11DeviceManager.Device;
@@ -67,7 +63,7 @@
             //Buffer.DebugName = nameof(ConstantBuffer<T>);
         }
 
-        public ConstantBuffer(CpuAccessFlags accessFlags, int count, [CallerFilePath] string file = "", [CallerLineNumber] int line = 0)
+        public ConstantBuffer(int count, CpuAccessFlags accessFlags, [CallerFilePath] string file = "", [CallerLineNumber] int line = 0)
         {
             dbgName = $"ConstantBuffer: {Path.GetFileNameWithoutExtension(file)}, Line:{line}";
             var device = D3D11DeviceManager.Device;

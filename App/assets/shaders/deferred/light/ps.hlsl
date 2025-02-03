@@ -9,21 +9,25 @@ struct PixelInput
 	float2 tex : TEXCOORD;
 };
 
-cbuffer directionalLightBuffer : register(b0)
+StructuredBuffer<Light> LightBuffer;
+StructuredBuffer<ShadowData> ShadowDataBuffer;
+
+cbuffer LightParams
 {
-	DirectionalLightSD directionalLight;
+	uint lightCount;
+	float3 ambient;
 };
 
-Texture2D<float4> GBufferA : register(t0);
-Texture2D<float4> GBufferB : register(t1);
-Texture2D<float4> GBufferC : register(t2);
-Texture2D<float4> GBufferD : register(t3);
-Texture2D<float> DepthTex : register(t4);
+Texture2D<float4> GBufferA;
+Texture2D<float4> GBufferB;
+Texture2D<float4> GBufferC;
+Texture2D<float4> GBufferD;
+Texture2D<float> DepthTex;
 
-Texture2DArray lightDepthMap : register(t5);
-Texture2D<float> aoTexture : register(t6);
+Texture2DArray CSMDepthBuffer;
+Texture2D<float> AOBuffer;
 
-SamplerState linearClampSampler : register(s0);
+SamplerState linearClampSampler;
 
 #define PI 3.14159265358979323846
 
@@ -47,10 +51,10 @@ float3 BlinnPhong(float3 radiance, float NdotL, float3 L, float3 V, float3 N, fl
 	return (diffuse + specular) * baseColor;
 }
 
-float3 ComputeDirectionalLight(GeometryAttributes attrs, float3 position, float3 V, DirectionalLightSD light)
+float3 ComputeDirectionalLight(GeometryAttributes attrs, float3 position, float3 V, Light light)
 {
-	float3 radiance = (float3)light.color;
-	float3 L = normalize(-light.dir);
+	float3 radiance = light.color.rgb;
+	float3 L = normalize(-light.direction);
 	float3 N = normalize(attrs.normal);
 	float NdotL = dot(N, L);
 
@@ -58,13 +62,14 @@ float3 ComputeDirectionalLight(GeometryAttributes attrs, float3 position, float3
 
 	if (light.castsShadows)
 	{
-		visibility = ShadowFactorDirectionalLightCascaded(lightDepthMap, linearClampSampler, light, position, NdotL);
+		ShadowData data = ShadowDataBuffer[light.shadowMapIndex];
+		visibility = ShadowFactorDirectionalLightCascaded(CSMDepthBuffer, linearClampSampler, data, position + GetCameraPos(), NdotL);
 	}
 
-	return BlinnPhong(radiance, NdotL, L, V, N, attrs.albedo, 16.0f) * visibility;
+	return BlinnPhong(radiance, NdotL, L, V, N, attrs.albedo, 32) * visibility;
 }
 
-float3 ComputePointLight(GeometryAttributes attrs, float3 position, float3 V, PointLight light)
+float3 ComputePointLight(GeometryAttributes attrs, float3 position, float3 V, Light light)
 {
 	float3 N = attrs.normal;
 	float3 LN = light.position.xyz - position;
@@ -74,7 +79,7 @@ float3 ComputePointLight(GeometryAttributes attrs, float3 position, float3 V, Po
 
 	float attenuation = Attenuation(distance, light.range);
 	float3 radiance = light.color.rgb * attenuation;
-	return BlinnPhong(radiance, NdotL, L, V, N, attrs.albedo, 32);
+	return BlinnPhong(radiance, NdotL, L, V, N, attrs.albedo, 16);
 }
 
 float4 main(PixelInput input) : SV_TARGET
@@ -82,14 +87,31 @@ float4 main(PixelInput input) : SV_TARGET
 	GeometryAttributes attrs;
 	ExtractGeometryData(input.tex, GBufferA, GBufferB, GBufferC, GBufferD, linearClampSampler, attrs);
 	float depth = DepthTex.SampleLevel(linearClampSampler, input.tex, 0);
-	float3 position = GetPositionWS(input.tex, depth);
-	float3 V = normalize(GetCameraPos() - position);
+	float3 position = GetPositionRWS(input.tex, depth);
+	float3 V = normalize(-position);
 
-	float ao = aoTexture.SampleLevel(linearClampSampler, input.tex, 0);
+	float ao = AOBuffer.SampleLevel(linearClampSampler, input.tex, 0);
 
-	float3 color = ComputeDirectionalLight(attrs, position, V, directionalLight) * attrs.albedo;
+	float3 lo = 0;
+	[loop]
+	for (uint i = 0; i < lightCount; i++)
+	{
+		Light light = LightBuffer[i];
+		[branch]
+			switch (light.type)
+			{
+			case POINT_LIGHT:
+				lo += ComputePointLight(attrs, position, V, light);
+				break;
+			case DIRECTIONAL_LIGHT:
+				lo += ComputeDirectionalLight(attrs, position, V, light);
+				break;
+			}
+	}
 
-	color += attrs.albedo * 0.5f * ao;
+	float3 color = attrs.albedo * lo;
+
+	color += attrs.albedo * (ambient * ao);
 
 	return float4(color, 1);
 }

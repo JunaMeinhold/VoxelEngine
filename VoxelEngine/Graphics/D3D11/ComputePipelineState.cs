@@ -2,6 +2,7 @@
 {
     using Hexa.NET.D3D11;
     using HexaGen.Runtime.COM;
+    using System.Runtime.CompilerServices;
 
     public unsafe class ComputePipelineState : D3D11PipelineState
     {
@@ -10,6 +11,15 @@
         private readonly string dbgName;
 
         internal ComPtr<ID3D11ComputeShader> cs;
+
+        public static ComputePipelineState Create(ComputePipelineDesc desc, [CallerFilePath] string file = "", [CallerLineNumber] int line = 0)
+        {
+            string dbgName = $"{file}, {line}";
+            ComputePipeline pipeline = new(desc, dbgName);
+            ComputePipelineState state = new(pipeline, dbgName);
+            pipeline.Dispose();
+            return state;
+        }
 
         public ComputePipelineState(ComputePipeline pipeline, string dbgName = "")
         {

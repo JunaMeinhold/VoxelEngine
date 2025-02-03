@@ -70,7 +70,7 @@ namespace VoxelEngine.Voxel.Meshing
             for (int i = 0, j = this.count; i < count; i++, j++)
             {
                 var v = values[i];
-                v.Offset = offset;
+                v.Position += offset;
                 vertices[j] = v;
             }
             this.count = newCount;

@@ -3,12 +3,14 @@
     using Hexa.NET.D3D11;
     using Hexa.NET.DXGI;
     using HexaGen.Runtime.COM;
+    using System;
     using System.Numerics;
     using System.Runtime.CompilerServices;
     using VoxelEngine.Resources;
 
     public unsafe class GBuffer : Resource
     {
+        private readonly string dbgName;
         private ComPtr<ID3D11Texture2D>[] textures;
         private ShaderResourceView[] srvs;
         private RenderTargetView[] rtvs;
@@ -24,10 +26,15 @@
 
         public Hexa.NET.Mathematics.Viewport Viewport { get; private set; }
 
-        public GBuffer(int width, int height, params Format[] formats)
+        public GBuffer(GBufferDescription description, [CallerFilePath] string file = "", [CallerLineNumber] int line = 0) : this(description.Width, description.Height, description.Formats, file, line)
         {
-            Viewport = new(width, height);
+        }
+
+        public GBuffer(int width, int height, Format[] formats, [CallerFilePath] string file = "", [CallerLineNumber] int line = 0)
+        {
+            dbgName = $"{file}, {line}";
             var device = D3D11DeviceManager.Device;
+            Viewport = new(width, height);
             Count = formats.Length;
             Width = width;
             Height = height;
@@ -53,8 +60,11 @@
                 };
 
                 device.CreateTexture2D(ref textureDesc, null, out ComPtr<ID3D11Texture2D> texture).ThrowIf();
+                Utils.SetDebugName(texture, $"{dbgName}.{nameof(Texture2D)}.{i}");
                 device.CreateShaderResourceView(texture.As<ID3D11Resource>(), null, out ComPtr<ID3D11ShaderResourceView> srv).ThrowIf();
+                Utils.SetDebugName(srv, $"{dbgName}.{nameof(ShaderResourceView)}.{i}");
                 device.CreateRenderTargetView(texture.As<ID3D11Resource>(), null, out ComPtr<ID3D11RenderTargetView> rtv).ThrowIf();
+                Utils.SetDebugName(rtv, $"{dbgName}.{nameof(RenderTargetView)}.{i}");
 
                 textures[i] = texture;
                 srvs[i] = srv;
@@ -108,9 +118,12 @@
                     MiscFlags = 0
                 };
 
-                device.CreateTexture2D(ref textureDesc, null, out ComPtr<ID3D11Texture2D> texture);
-                device.CreateShaderResourceView(texture.As<ID3D11Resource>(), null, out ComPtr<ID3D11ShaderResourceView> srv);
-                device.CreateRenderTargetView(texture.As<ID3D11Resource>(), null, out ComPtr<ID3D11RenderTargetView> rtv);
+                device.CreateTexture2D(ref textureDesc, null, out ComPtr<ID3D11Texture2D> texture).ThrowIf();
+                Utils.SetDebugName(texture, $"{dbgName}.{nameof(Texture2D)}.{i}");
+                device.CreateShaderResourceView(texture.As<ID3D11Resource>(), null, out ComPtr<ID3D11ShaderResourceView> srv).ThrowIf();
+                Utils.SetDebugName(srv, $"{dbgName}.{nameof(ShaderResourceView)}.{i}");
+                device.CreateRenderTargetView(texture.As<ID3D11Resource>(), null, out ComPtr<ID3D11RenderTargetView> rtv).ThrowIf();
+                Utils.SetDebugName(rtv, $"{dbgName}.{nameof(RenderTargetView)}.{i}");
 
                 textures[i] = texture;
                 srvs[i] = srv;

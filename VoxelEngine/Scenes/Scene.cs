@@ -9,6 +9,7 @@
     using VoxelEngine.Core;
     using VoxelEngine.Graphics;
     using VoxelEngine.Graphics.D3D11;
+    using VoxelEngine.Lights;
     using VoxelEngine.Physics;
     using VoxelEngine.Scripting;
     using VoxelEngine.Voxel;
@@ -52,6 +53,7 @@
             systems.Add(RenderSystem = new RenderSystem());
             systems.Add(new ScriptSystem());
             systems.Add(new PhysicsSystem());
+            systems.Add(LightSystem = new LightSystem());
         }
 
         public IReadOnlyList<GameObject> GameObjects => gameObjects;
@@ -81,14 +83,6 @@
         public Camera Camera { get; set; }
 
         /// <summary>
-        /// Gets or sets the renderer.
-        /// </summary>
-        /// <value>
-        /// The renderer.
-        /// </value>
-        public ISceneRenderer Renderer { get; set; }
-
-        /// <summary>
         /// Gets or sets a value indicating whether this instance is simulating.
         /// </summary>
         /// <value>
@@ -106,12 +100,13 @@
 
         public RenderSystem RenderSystem { get; }
 
+        public LightSystem LightSystem { get; }
+
         public MiniProfiler SceneProfiler { get; } = new();
 
         public virtual void Initialize()
         {
             Window = (GameWindow)Application.MainWindow;
-            Renderer.Initialize(Window);
 
             root.Awake();
 
@@ -141,7 +136,7 @@
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Render()
+        public void Tick()
         {
             float delta = Time.Delta;
             profiler.Reset();
@@ -160,11 +155,6 @@
             {
                 system.Update(delta);
             }
-
-            profiler.ProfileUpdate();
-            Camera.Transform.Recalculate();
-            Renderer.Render(D3D11DeviceManager.GraphicsContext, Camera, this);
-            profiler.ProfileRender();
 
             Dispatcher.ExecuteInvokes();
             profiler.ProfileDispatch();
@@ -239,10 +229,9 @@
                     system.Destroy();
                 }
 
-                Renderer.Uninitialize();
                 dispatcher = null;
                 Camera = null;
-                Renderer = null;
+
                 Window = null;
                 initialized = false;
                 disposedValue = true;

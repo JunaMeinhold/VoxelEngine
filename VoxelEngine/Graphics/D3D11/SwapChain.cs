@@ -30,7 +30,7 @@
             Viewport = new(desc.Width, desc.Height);
         }
 
-        public ComPtr<ID3D11RenderTargetView> RTV => rtv;
+        public RenderTargetView RTV => rtv;
 
         public ComPtr<ID3D11DepthStencilView> DSV => depthStencil.DSV;
 

@@ -12,6 +12,7 @@
         {
             if (!ImGui.Begin("Profiler"))
             {
+                ImGui.End();
                 return;
             }
 

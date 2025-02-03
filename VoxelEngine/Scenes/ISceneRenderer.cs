@@ -1,8 +1,5 @@
 ﻿namespace VoxelEngine.Scenes
 {
-    using Hexa.NET.D3D11;
-    using HexaGen.Runtime.COM;
-    using VoxelEngine.Core.Windows;
     using VoxelEngine.Graphics;
     using VoxelEngine.Windows;
 
@@ -11,23 +8,12 @@
     /// </summary>
     public interface ISceneRenderer
     {
-        /// <summary>
-        /// Initializes this instance. Called by <see cref="Scene.Initialize"/> ... <see cref="SceneManager.Load(Scene)"/>
-        /// </summary>
         void Initialize(GameWindow window);
 
-        /// <summary>
-        /// Renders the scene with the current Camera. Called by <see cref="Scene.Render"/> ... <see cref="GameWindow.RenderVoid"/>
-        /// </summary>
-        /// <param name="camera">The view.</param>
-        /// <param name="scene">The scene.</param>
         void Render(GraphicsContext context, Camera camera, Scene scene);
 
         void Resize(GameWindow window);
 
-        /// <summary>
-        /// Uninitializes this instance. Called by <see cref="Scene.Dispose"/> ... <see cref="SceneManager.Unload"/>
-        /// </summary>
-        void Uninitialize();
+        void Dispose();
     }
 }

@@ -22,7 +22,7 @@
 
         public static bool GenerateMipMaps { get; set; } = true;
 
-        public static unsafe ComPtr<ID3D11Texture1D> LoadTexture1DFile(ComPtr<ID3D11Device> device, string path, bool postProcess = true)
+        public static unsafe ComPtr<ID3D11Texture1D> LoadTexture1DFile(ComPtr<ID3D11Device> device, string path, Texture1DDesc desc, bool postProcess = true)
         {
             ScratchImage scratchImage = LoadFromFile(path);
             if (postProcess)
@@ -34,10 +34,10 @@
             DirectXTex.CreateTextureEx2(
                 (Hexa.NET.DirectXTex.ID3D11Device*)device.Handle,
                 scratchImage,
-                (uint)Usage.Immutable,
-                (uint)BindFlag.ShaderResource,
-                0,
-                0,
+                (uint)desc.Usage,
+                desc.BindFlags,
+                desc.CPUAccessFlags,
+                desc.MiscFlags,
                 CreateTexFlags.Default,
                 &res).ThrowIf();
 

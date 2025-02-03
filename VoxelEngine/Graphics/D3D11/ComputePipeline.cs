@@ -8,6 +8,7 @@
     public unsafe class ComputePipeline : DisposableRefBase, IPipeline, IDisposable
     {
         private readonly ComputePipelineDesc desc;
+        private readonly string dbgName;
         private ShaderMacro[]? macros;
 
         internal ComPtr<ID3D11ComputeShader> cs;
@@ -18,18 +19,11 @@
         private volatile bool initialized;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public ComputePipeline(ComputePipelineDesc desc)
+        public ComputePipeline(ComputePipelineDesc desc, string dbgName = "")
         {
             this.desc = desc;
-            Compile();
-            initialized = true;
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public ComputePipeline(ComputePipelineDesc desc, ShaderMacro[] macros)
-        {
-            this.desc = desc;
-            this.macros = macros;
+            this.dbgName = dbgName;
+            macros = desc.Macros;
             Compile();
             initialized = true;
         }
@@ -97,7 +91,7 @@
                 ComPtr<ID3D11ComputeShader> computeShader;
                 device.CreateComputeShader(shader->Bytecode, shader->Length, (ID3D11ClassLinkage*)null, &computeShader.Handle);
                 cs = computeShader;
-                //Utils.SetDebugName(cs.Handle, dbgName);
+                Utils.SetDebugName(cs.Handle, dbgName);
 
                 computeShaderBlob = shader;
             }

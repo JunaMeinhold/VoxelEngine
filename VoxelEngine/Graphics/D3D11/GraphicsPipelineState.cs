@@ -8,6 +8,12 @@
     using System.Runtime.CompilerServices;
     using System.Runtime.InteropServices;
 
+    public struct GraphicsPipelineStateDescEx
+    {
+        public GraphicsPipelineDesc PipelineDesc;
+        public GraphicsPipelineStateDesc StateDesc;
+    }
+
     public unsafe class GraphicsPipelineState : D3D11PipelineState
     {
         private readonly ComPtr<ID3D11Device5> device = D3D11DeviceManager.Device;
@@ -38,6 +44,11 @@
             GraphicsPipelineState pipelineState = new(pipeline, stateDesc, dbgName);
             pipeline.Dispose();
             return pipelineState;
+        }
+
+        public static GraphicsPipelineState Create(GraphicsPipelineStateDescEx desc, [CallerFilePath] string file = "", [CallerLineNumber] int line = 0)
+        {
+            return Create(desc.PipelineDesc, desc.StateDesc, file, line);
         }
 
         public GraphicsPipelineState(GraphicsPipeline pipeline, GraphicsPipelineStateDesc desc, string dbgName = "")
