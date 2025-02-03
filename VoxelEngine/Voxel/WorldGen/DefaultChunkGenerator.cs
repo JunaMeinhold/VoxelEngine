@@ -1,12 +1,147 @@
 ﻿namespace VoxelEngine.Voxel.WorldGen
 {
+    using Hexa.NET.Mathematics;
+    using System;
     using System.Numerics;
+    using VoxelEngine.Graphics.D3D11;
     using VoxelEngine.Mathematics.Noise;
     using VoxelEngine.Voxel;
     using VoxelEngine.Voxel.WorldGen.Biomes;
     using static VoxelEngine.Voxel.Blocks.BlockRegistry;
 
-    public class DefaultChunkGenerator : IChunkGenerator
+    public struct PrefabRecord
+    {
+        public Point3 Pos;
+        public Block Block;
+
+        public PrefabRecord(Point3 pos, Block block)
+        {
+            Pos = pos;
+            Block = block;
+        }
+    }
+
+    public struct BlockBoundingBox
+    {
+        public Point3 Min;
+        public Point3 Max;
+
+        public BlockBoundingBox(Point3 min, Point3 max)
+        {
+            Min = min;
+            Max = max;
+        }
+
+        public readonly BlockBoundingBox Offset(Point3 translation)
+        {
+            return new(Min + translation, Max + translation);
+        }
+
+        public readonly BlockBoundingBox Merge(BlockBoundingBox other)
+        {
+            return new(MathHelper.Min(Min, other.Min), MathHelper.Max(Max, other.Max));
+        }
+
+        public readonly ContainmentType Contains(in Vector3 point)
+        {
+            if (Min.X <= point.X && Max.X >= point.X && Min.Y <= point.Y && Max.Y >= point.Y && Min.Z <= point.Z && Max.Z >= point.Z)
+            {
+                return ContainmentType.Contains;
+            }
+
+            return ContainmentType.Disjoint;
+        }
+
+        public readonly ContainmentType Contains(BlockBoundingBox box)
+        {
+            if (Max.X < box.Min.X || Min.X > box.Max.X)
+            {
+                return ContainmentType.Disjoint;
+            }
+
+            if (Max.Y < box.Min.Y || Min.Y > box.Max.Y)
+            {
+                return ContainmentType.Disjoint;
+            }
+
+            if (Max.Z < box.Min.Z || Min.Z > box.Max.Z)
+            {
+                return ContainmentType.Disjoint;
+            }
+
+            if (Min.X <= box.Min.X && box.Max.X <= Max.X && Min.Y <= box.Min.Y && box.Max.Y <= Max.Y && Min.Z <= box.Min.Z && box.Max.Z <= Max.Z)
+            {
+                return ContainmentType.Contains;
+            }
+
+            return ContainmentType.Intersects;
+        }
+    }
+
+    public class BlockPrefab
+    {
+        public List<PrefabRecord> Blocks = [];
+        public BlockBoundingBox BoundingBox;
+
+        public static BlockPrefab Default = GetTreePrefab();
+
+        private static BlockPrefab GetTreePrefab()
+        {
+            BlockPrefab tree = new();
+
+            int trunkHeight = 5;
+            for (int i = 0; i < trunkHeight; i++)
+                tree.Blocks.Add(new(new(0, i, 0), GetBlockByName("Oak Log")));
+
+            for (int dx = -2; dx <= 2; dx++)
+            {
+                for (int dz = -2; dz <= 2; dz++)
+                {
+                    if (dx == 0 && dz == 0) continue;
+                    if (Math.Abs(dx) == 2 && Math.Abs(dz) == 2) continue;
+
+                    tree.Blocks.Add(new(new(dx, trunkHeight - 2, dz), GetBlockByName("Oak Leaves")));
+                    tree.Blocks.Add(new(new(dx, trunkHeight - 1, dz), GetBlockByName("Oak Leaves")));
+                }
+            }
+
+            for (int dx = -1; dx <= 1; dx++)
+            {
+                for (int dz = -1; dz <= 1; dz++)
+                {
+                    tree.Blocks.Add(new(new(dx, trunkHeight, dz), GetBlockByName("Oak Leaves")));
+                }
+            }
+
+            for (int dx = -1; dx <= 1; dx++)
+            {
+                for (int dz = -1; dz <= 1; dz++)
+                {
+                    if (Math.Abs(dx) == 1 && Math.Abs(dz) == 1) continue;
+                    tree.Blocks.Add(new(new(dx, trunkHeight + 1, dz), GetBlockByName("Oak Leaves")));
+                }
+            }
+
+            tree.ComputeBoundingBox();
+            return tree;
+        }
+
+        public void ComputeBoundingBox()
+        {
+            Point3 min = new(int.MaxValue);
+            Point3 max = new(int.MinValue);
+
+            foreach (PrefabRecord record in Blocks)
+            {
+                min = MathHelper.Min(min, record.Pos);
+                max = MathHelper.Max(max, record.Pos);
+            }
+
+            BoundingBox = new(min, max);
+        }
+    }
+
+    public class DefaultChunkGenerator : DisposableBase, IChunkGenerator
     {
         private readonly GenericNoise genericNoise;
         private readonly PerlinNoise perlinNoise;
@@ -72,13 +207,14 @@
                 chunks[i] = chunk;
             }
 
-            Vector3 chunkPos = position * Chunk.CHUNK_SIZE;
+            Point3 chunkPos = position * Chunk.CHUNK_SIZE;
+
             for (int x = 0; x < Chunk.CHUNK_SIZE; x++)
             {
                 for (int z = 0; z < Chunk.CHUNK_SIZE; z++)
                 {
-                    float globalX = chunkPos.X + x;
-                    float globalZ = chunkPos.Z + z;
+                    int globalX = chunkPos.X + x;
+                    int globalZ = chunkPos.Z + z;
 
                     BiomeData data = BiomeData.GetBlendedBiomeData(perlinNoise, Biomes, globalX, globalZ);
 
@@ -100,24 +236,40 @@
                             continue;
                         }
 
-                        MapToChunks(ref chunks, new Vector3(x, h, z), GetBlock(h, (int)height));
+                        chunks.SetBlock(new Point3(x, h, z), GetBlock(h, (int)height));
+                    }
+
+                    if (ShouldPlaceTree(globalX, globalZ))
+                    {
+                        PlaceTree(ref chunks, new(x, (int)height, z), world);
                     }
                 }
             }
         }
 
-        public static unsafe void MapToChunks(ref ChunkSegment.ChunkArray chunks, Vector3 pos, Block block)
+        private void PlaceTree(ref ChunkSegment.ChunkArray chunks, Point3 pos, World world)
         {
-            int cheight = 0;
-            int height = (int)pos.Y;
-            while (height >= Chunk.CHUNK_SIZE)
+            BlockBoundingBox chunkBox = new(default, new(Chunk.CHUNK_SIZE - 1, Chunk.CHUNK_SIZE * World.CHUNK_AMOUNT_Y - 1, Chunk.CHUNK_SIZE - 1));
+            var prefab = BlockPrefab.Default;
+
+            BlockBoundingBox prefabBox = prefab.BoundingBox.Offset(pos);
+
+            if (chunkBox.Contains(prefabBox) != ContainmentType.Contains) return;
+
+            foreach (var item in prefab.Blocks)
             {
-                height -= Chunk.CHUNK_SIZE;
-                cheight++;
+                var localPos = pos + item.Pos;
+
+                if (chunkBox.Contains(localPos) == ContainmentType.Disjoint) continue;
+
+                chunks.SetBlock(localPos, item.Block);
             }
-            chunks[cheight].MinY[new Vector2(pos.X, pos.Z).MapToIndex(Chunk.CHUNK_SIZE)] = 0;
-            chunks[cheight].MaxY[new Vector2(pos.X, pos.Z).MapToIndex(Chunk.CHUNK_SIZE)] = (byte)(height + 1);
-            chunks[cheight].Data[new Vector3(pos.X, height, pos.Z).MapToIndex(Chunk.CHUNK_SIZE, Chunk.CHUNK_SIZE)] = block;
+        }
+
+        public bool ShouldPlaceTree(int x, int z)
+        {
+            double noiseValue = simplexNoise.Noise(x, z);
+            return noiseValue > 0.85;
         }
 
         public static Block GetBlock(int height, int maxheight)
@@ -136,21 +288,8 @@
             }
         }
 
-        protected virtual void Dispose(bool disposing)
+        protected override void DisposeCore()
         {
-        }
-
-        ~DefaultChunkGenerator()
-        {
-            // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
-            Dispose(disposing: false);
-        }
-
-        public void Dispose()
-        {
-            // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
-            Dispose(disposing: true);
-            GC.SuppressFinalize(this);
         }
     }
 }

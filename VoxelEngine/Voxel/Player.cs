@@ -1,7 +1,7 @@
 ﻿namespace VoxelEngine.Voxel
 {
+    using Hexa.NET.Mathematics;
     using System.Numerics;
-    using Vortice.Direct3D11;
     using VoxelEngine.Scenes;
     using VoxelEngine.Voxel.Blocks;
 
@@ -20,10 +20,10 @@
             Respawn();
         }
 
-        public override void Initialize(ID3D11Device device)
+        public override void Awake()
         {
-            World = Scene.GetElementByType<World>();
-            base.Initialize(device);
+            World = Scene.Find<World>()!;
+            base.Awake();
         }
 
         public World World { get; private set; }
@@ -42,7 +42,7 @@
             }
         }
 
-        public Vector3 LookAtBlock { get; set; }
+        public Point3 LookAtBlock { get; set; }
 
         public bool IsLookingAtBlock { set; get; }
 

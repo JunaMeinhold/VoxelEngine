@@ -1,152 +1,119 @@
 ﻿namespace VoxelEngine.Graphics.Buffers
 {
-    using System.Collections.Generic;
+    using Hexa.NET.D3D11;
+    using Hexa.NET.Utilities;
+    using HexaGen.Runtime.COM;
     using System.Runtime.CompilerServices;
-    using System.Runtime.InteropServices;
-    using Vortice.Direct3D;
-    using Vortice.Direct3D11;
-    using VoxelEngine.Rendering.D3D;
+    using VoxelEngine.Graphics.D3D11;
     using VoxelEngine.Resources;
 
-    public class VertexBuffer<T> : Resource where T : unmanaged
+    public unsafe class VertexBuffer<T> : Resource, IBuffer where T : unmanaged
     {
+        private BufferDesc desc;
         private bool isDirty;
-        private List<T> vertices;
         private int vertexCount;
-        private ID3D11Buffer vertexBuffer;
-        private string debugName;
-        private readonly int size;
+        private ComPtr<ID3D11Buffer> vertexBuffer;
+        private readonly uint stride;
+        private readonly CpuAccessFlags cpuAccessFlags;
+        private readonly bool canWrite;
+        private readonly bool canRead;
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public VertexBuffer()
+        public VertexBuffer(CpuAccessFlags cpuAccessFlags, int capacity)
         {
-            size = Marshal.SizeOf<T>();
-            vertices = new List<T>();
+            var device = D3D11DeviceManager.Device;
+            this.cpuAccessFlags = cpuAccessFlags;
+            vertexCount = capacity;
+            stride = (uint)sizeof(T);
+            if (cpuAccessFlags == 0) throw new ArgumentException("Vertex Buffer cannot be immutable", nameof(cpuAccessFlags));
             isDirty = true;
+
+            Usage usage = Usage.Immutable;
+            if ((cpuAccessFlags & CpuAccessFlags.Write) != 0)
+            {
+                usage = Usage.Dynamic;
+                canWrite = true;
+            }
+            if ((cpuAccessFlags & CpuAccessFlags.Read) != 0)
+            {
+                usage = Usage.Staging;
+                canRead = true;
+            }
+
+            desc = new((uint)(capacity * sizeof(T)), usage, (uint)BindFlag.VertexBuffer, (uint)cpuAccessFlags, structureByteStride: (uint)sizeof(T));
+            device.CreateBuffer(ref desc, null, out vertexBuffer);
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public VertexBuffer(ID3D11Device device, IEnumerable<T> vertices)
+        public VertexBuffer(CpuAccessFlags cpuAccessFlags, Span<T> vertices)
         {
-            size = Marshal.SizeOf<T>();
-            this.vertices = new List<T>(vertices);
-            ResizeBuffers(device);
-            isDirty = true;
-        }
+            var device = D3D11DeviceManager.Device;
+            this.cpuAccessFlags = cpuAccessFlags;
+            stride = (uint)sizeof(T);
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public VertexBuffer(ID3D11Device device, int capacity)
-        {
-            size = Marshal.SizeOf<T>();
-            vertices = new List<T>(capacity);
-            ResizeBuffers(device);
+            Usage usage = Usage.Immutable;
+            if ((cpuAccessFlags & CpuAccessFlags.Write) != 0)
+            {
+                usage = Usage.Dynamic;
+                canWrite = true;
+            }
+            if ((cpuAccessFlags & CpuAccessFlags.Read) != 0)
+            {
+                usage = Usage.Staging;
+                canRead = true;
+            }
+
+            desc = new((uint)(vertices.Length * sizeof(T)), usage, (uint)BindFlag.VertexBuffer, (uint)cpuAccessFlags, structureByteStride: (uint)sizeof(T));
+
+            fixed (T* pVertices = vertices)
+            {
+                SubresourceData subresource = new(pVertices);
+                device.CreateBuffer(ref desc, ref subresource, out vertexBuffer);
+            }
+            vertexCount = vertices.Length;
         }
 
         public int Count => vertexCount;
 
-        public int VertexCapacity { get; private set; }
-
         public unsafe int Stride { get; } = sizeof(T);
 
-        public PrimitiveTopology Topology { get; set; } = PrimitiveTopology.TriangleList;
+        public nint NativePointer => (nint)vertexBuffer.Handle;
 
-        public string DebugName
+        public void Resize(int size)
         {
-            get => debugName; set
+            var device = D3D11DeviceManager.Device;
+            if (vertexBuffer.Handle != null)
             {
-                debugName = value;
-                if (vertexBuffer != null)
-                {
-                    vertexBuffer.DebugName = value;
-                }
+                vertexBuffer.Release();
+                vertexBuffer = default;
             }
+            desc.ByteWidth = (uint)(size * sizeof(T));
+            device.CreateBuffer(ref desc, null, out vertexBuffer);
+            vertexCount = size;
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private unsafe void ResizeBuffers(ID3D11Device device)
+        public void Write(GraphicsContext context, T* verts, int count)
         {
-            if (vertices.Count <= VertexCapacity)
-            {
-                return;
-            }
-
-            vertexBuffer?.Dispose();
-            vertexBuffer = device.CreateBuffer((ReadOnlySpan<T>)vertices.ToArray().AsSpan(),
-                new BufferDescription(
-                vertices.Count * sizeof(T),
-                BindFlags.VertexBuffer,
-                ResourceUsage.Dynamic,
-                CpuAccessFlags.Write));
-            VertexCapacity = vertices.Count;
-            vertexBuffer.DebugName = debugName;
+            context.Write(this, verts, count);
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private unsafe void UpdateBuffers(ID3D11DeviceContext context)
-        {
-            DeviceHelper.Write(context, vertexBuffer, vertices.ToArray());
-            vertexCount = vertices.Count;
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void FreeMemory(ID3D11DeviceContext context)
-        {
-            ResizeBuffers(context.Device);
-            UpdateBuffers(context);
-            isDirty = false;
-            vertices.Clear();
-            vertices = null;
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Append(T vertex)
-        {
-            vertices.Add(vertex);
-            isDirty = true;
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Append(params T[] vertices)
-        {
-            this.vertices.AddRange(vertices);
-            isDirty = true;
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Clear()
-        {
-            vertices.Clear();
-            isDirty = true;
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Bind(ID3D11DeviceContext context)
+        public void Bind(GraphicsContext context)
         {
             Bind(context, 0);
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Bind(ID3D11DeviceContext context, int slot)
+        public void Bind(GraphicsContext context, int slot)
         {
-            if (isDirty)
-            {
-                ResizeBuffers(context.Device);
-                UpdateBuffers(context);
-
-                isDirty = false;
-            }
-
-            context.IASetVertexBuffer(slot, vertexBuffer, size);
-
-            context.IASetPrimitiveTopology(Topology);
+            context.SetVertexBuffer((uint)slot, this, stride);
         }
 
-        public static implicit operator ID3D11Buffer(VertexBuffer<T> buffer) => buffer.vertexBuffer;
+        public static implicit operator ComPtr<ID3D11Buffer>(VertexBuffer<T> buffer) => buffer.vertexBuffer;
 
-        protected override void Dispose(bool disposing)
+        protected override void DisposeCore()
         {
-            vertexBuffer?.Dispose();
-            vertexBuffer = null;
+            if (vertexBuffer.Handle != null)
+            {
+                vertexBuffer.Release();
+                vertexBuffer = null;
+            }
         }
     }
 }

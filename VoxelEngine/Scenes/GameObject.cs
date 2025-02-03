@@ -1,21 +1,33 @@
 ﻿namespace VoxelEngine.Scenes
 {
-    using System.Numerics;
     using Hexa.NET.Mathematics;
-    using Vortice.Direct3D11;
-    using VoxelEngine.Core;
-    using VoxelEngine.Mathematics;
+    using System.ComponentModel;
+    using System.Diagnostics.CodeAnalysis;
+    using System.Runtime.CompilerServices;
 
-    public class GameObject
+    public delegate void GameObjectEventHandler<T>(GameObject sender, T args);
 
+    public class GameObject : INotifyPropertyChanged, INotifyPropertyChanging
     {
+        private readonly List<IComponent> components = [];
+        private readonly List<GameObject> children = [];
+        private bool initialized = false;
+        private Guid guid = Guid.NewGuid();
+        private string name = string.Empty;
+        private string? fullName;
+
+        private object? tag;
+        private GameObject? parent;
+        private Transform transform = new();
+        private bool enabled = true;
+
         /// <summary>
         /// Gets the scene that the element is associated.
         /// </summary>
         /// <value>
         /// The scene.
         /// </value>
-        public Scene Scene { get; internal set; }
+        public virtual Scene Scene { get; internal set; }
 
         /// <summary>
         /// Gets the dispatcher of the scene.
@@ -23,80 +35,300 @@
         /// <value>
         /// The dispatcher of the scene.
         /// </value>
-        public Dispatcher Dispatcher => Scene.Dispatcher;
+        public SceneDispatcher Dispatcher => Scene.Dispatcher;
+
+        public GameObject? Parent
+        {
+            get => parent;
+            private set
+            {
+                parent = value;
+                ParentChanged?.Invoke(this, value);
+            }
+        }
+
+        public IReadOnlyList<GameObject> Children => children;
+
+        public IReadOnlyList<IComponent> Components => components;
 
         /// <summary>
-        /// Gets or sets the parent of the element.
+        /// Gets or sets the unique identifier.
         /// </summary>
         /// <value>
-        /// The parent.
+        /// The unique identifier.
         /// </value>
-        public GameObject Parent { get; set; }
+        public Guid Guid
+        {
+            get => guid;
+            set
+            {
+                if (SetAndNotifyWithEqualsTest(ref guid, value))
+                {
+                    fullName = null;
+                }
+            }
+        }
 
         /// <summary>
-        /// Gets or sets the children.
+        /// Gets or sets the name.
         /// </summary>
         /// <value>
-        /// The children.
+        /// The name.
         /// </value>
-        public List<GameObject> Children { get; } = new();
+        public string Name
+        {
+            get => name;
+            set
+            {
+                if (SetAndNotifyWithEqualsTest(ref name, value))
+                {
+                    fullName = null;
+                    NameChanged?.Invoke(this, value);
+                }
+            }
+        }
 
         /// <summary>
-        /// Gets the components.
+        /// Gets the full name of the <see cref="GameObject"/>, which is a unique combination of its name and Guid.
+        /// The full name is lazily generated when accessed for the first time and will be
+        /// reinitialized if either the name or Guid property is modified.
         /// </summary>
         /// <value>
-        /// The components.
+        /// The full name of the <see cref="GameObject"/>.
         /// </value>
-        public List<IComponent> Components { get; } = new();
+        public string FullName
+        {
+            get
+            {
+                return fullName ??= $"{name}##{guid}";
+            }
+        }
 
-        public Transform Transform { get; protected set; } = new();
+        public object? Tag
+        {
+            get => tag;
+            set
+            {
+                if (SetAndNotifyWithEqualsTest(ref tag, value))
+                {
+                    TagChanged?.Invoke(this, value);
+                }
+            }
+        }
 
-        public string Name { get; set; } = Guid.NewGuid().ToString();
+        public bool Enabled
+        {
+            get => enabled;
+            set
+            {
+                if (SetAndNotifyWithEqualsTest(ref enabled, value))
+                {
+                    EnabledChanged?.Invoke(this, value);
+                }
+            }
+        }
+
+        public event GameObjectEventHandler<bool>? EnabledChanged;
+
+        public event GameObjectEventHandler<string>? NameChanged;
+
+        public event GameObjectEventHandler<IComponent>? ComponentAdded;
+
+        public event GameObjectEventHandler<IComponent>? ComponentRemoved;
+
+        public event GameObjectEventHandler<object?>? TagChanged;
+
+        public event GameObjectEventHandler<GameObject?>? ParentChanged;
+
+        public event GameObjectEventHandler<GameObject>? ChildAdded;
+
+        public event GameObjectEventHandler<GameObject>? ChildRemoved;
+
+        public event PropertyChangedEventHandler? PropertyChanged;
+
+        public event PropertyChangingEventHandler? PropertyChanging;
+
+        public event GameObjectEventHandler<Transform>? TransformUpdated;
+
+        public event GameObjectEventHandler<Transform>? TransformChanged;
+
+        public Transform Transform { get => transform; set => OverwriteTransform(transform); }
+
+        protected void NotifyPropertyChanged([CallerMemberName] string propertyName = "")
+        {
+            PropertyChanged?.Invoke(this, new(propertyName));
+        }
+
+        protected void NotifyPropertyChanging([CallerMemberName] string propertyName = "")
+        {
+            PropertyChanging?.Invoke(this, new(propertyName));
+        }
+
+        protected bool SetAndNotifyWithEqualsTest<T>(ref T field, T value, [CallerMemberName] string name = "") where T : IEquatable<T>
+        {
+            if (field.Equals(value))
+            {
+                return false;
+            }
+
+            PropertyChanging?.Invoke(this, new PropertyChangingEventArgs(name));
+            field = value;
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+            return true;
+        }
+
+        protected bool SetAndNotifyWithEqualsTest(ref object? field, object? value, [CallerMemberName] string name = "")
+        {
+            if (field == value)
+            {
+                return false;
+            }
+
+            PropertyChanging?.Invoke(this, new PropertyChangingEventArgs(name));
+            field = value;
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(name));
+            return true;
+        }
+
+        protected void SetAndNotify<T>(ref T target, T value, [CallerMemberName] string propertyName = "")
+        {
+            PropertyChanging?.Invoke(this, new(propertyName));
+            target = value;
+            PropertyChanged?.Invoke(this, new(propertyName));
+        }
 
         /// <summary>
         /// Initializes this instance.<br/>
-        /// Called by <see cref="Scene.Initialize"/> ... <see cref="SceneManager.Load(Scene)"/><br/>
-        /// Called by <see cref="Scene.Add(GameObject)"/> if <see cref="Scene.initialized"/> == <see langword="true" /><br/>
         /// </summary>
-        public virtual void Initialize(ID3D11Device device)
+        public virtual void Awake()
         {
-            Children.ForEach(child => child.Scene = Scene);
-            Components.ForEach(component => component.Initialize(device, this));
-            Children.ForEach(child => child.Initialize(device));
+            Transform.Changed += OnTransformChanged;
+            Transform.Updated += OnTransformUpdated;
+            foreach (var component in components)
+            {
+                component.GameObject = this;
+            }
+            foreach (var child in Children)
+            {
+                child.Parent = this;
+                child.Scene = Scene;
+                child.Awake();
+            }
             Scene.Register(this);
+            initialized = true;
         }
 
         /// <summary>
         /// Uninitializes this instance.<br/>
-        /// Called by <see cref="Scene.Dispose"/> ... <see cref="SceneManager.Unload"/><br/>
-        /// Called by <see cref="Scene.Remove(GameObject)"/> if <see cref="Scene.initialized"/> == <see langword="true" /><br/>
         /// </summary>
-        public virtual void Uninitialize()
+        public virtual void Destroy()
         {
+            Transform.Changed -= OnTransformChanged;
+            Transform.Updated -= OnTransformUpdated;
+            initialized = false;
+            for (int i = 0; i < components.Count; i++)
+            {
+                components[i].Destroy();
+            }
+            foreach (var child in Children)
+            {
+                child.Destroy();
+            }
             Scene.Unregister(this);
-            Components.ForEach(component => component.Uninitialize());
-            Components.Clear();
-            Children.ForEach(child => child.Uninitialize());
-            Children.Clear();
+            Scene = null!;
         }
 
-        /// <summary>
-        /// Destroys this instance. And removes it self automatically out of the scene.<br/>
-        /// Calls <see cref="Scene.Remove(GameObject)"/> param <see cref="this"/><br/>
-        /// </summary>
-        public void Destroy()
+        protected void OverwriteTransform(Transform transform)
         {
-            Scene.Remove(this);
+            this.transform.Updated -= OnTransformUpdated;
+            this.transform.Changed -= OnTransformChanged;
+            this.transform = transform;
+            transform.Updated += OnTransformUpdated;
+            transform.Changed += OnTransformChanged;
+        }
+
+        protected virtual void OnTransformChanged(Transform transform)
+        {
+            TransformChanged?.Invoke(this, transform);
+        }
+
+        protected virtual void OnTransformUpdated(Transform transform)
+        {
+            TransformUpdated?.Invoke(this, transform);
+        }
+
+        public bool IsAncestorOf(GameObject ancestor)
+        {
+            for (GameObject? current = Parent; current != null; current = current.Parent)
+            {
+                if (current == ancestor) return true;
+            }
+            return false;
+        }
+
+        public virtual void AddChild(GameObject child)
+        {
+            if (child == this)
+            {
+                throw new InvalidOperationException("A GameObject cannot be its own parent.");
+            }
+
+            if (IsAncestorOf(child))
+            {
+                throw new InvalidOperationException("A GameObject cannot be its own ancestor.");
+            }
+
+            child.Parent?.RemoveChild(child);
+            child.Parent = this;
+
+            children.Add(child);
+
+            if (initialized)
+            {
+                child.Scene = Scene;
+                child.Awake();
+            }
+
+            ChildAdded?.Invoke(this, child);
+        }
+
+        public virtual bool RemoveChild(GameObject child)
+        {
+            if (!children.Remove(child))
+            {
+                return false;
+            }
+
+            if (initialized)
+            {
+                child.Destroy();
+            }
+            child.Parent = null;
+
+            ChildRemoved?.Invoke(this, child);
+
+            return true;
         }
 
         /// <summary>
         /// Binds an component to SceneElement.
         /// </summary>
         /// <typeparam name="T"></typeparam>
-        /// <param name="t">The component.</param>
-        public virtual void AddComponent<T>(T t) where T : IComponent
+        /// <param name="component">The component.</param>
+        public virtual void AddComponent(IComponent component)
         {
-            Components.Add(t);
+            components.Add(component);
+            if (initialized)
+            {
+                component.GameObject = this;
+            }
+            ComponentAdded?.Invoke(this, component);
+        }
+
+        public virtual void RemoveComponent(IComponent component)
+        {
+            components.Remove(component);
+            ComponentRemoved?.Invoke(this, component);
         }
 
         /// <summary>
@@ -104,42 +336,74 @@
         /// </summary>
         /// <typeparam name="T"></typeparam>
         /// <returns>T or null</returns>
-        public virtual T GetComponent<T>() where T : IComponent
+        public virtual T? GetComponent<T>() where T : IComponent
         {
-            return (T)Components.FirstOrDefault(component => component is T);
+            foreach (var component in components)
+            {
+                if (component is T t)
+                {
+                    return t;
+                }
+            }
+
+            return default;
         }
 
         /// <summary>
         /// Tries to get component by T.
         /// </summary>
         /// <typeparam name="T"></typeparam>
-        /// <param name="t">T or null</param>
+        /// <param name="component">T or null</param>
         /// <returns>true if sucess, false if failed</returns>
-        public virtual bool TryGetComponent<T>(out T t) where T : IComponent
+        public virtual bool TryGetComponent<T>([MaybeNullWhen(false)] out T? component) where T : IComponent
         {
-            T component = (T)Components.FirstOrDefault(component => component is T);
-            t = component;
-            return component != null;
+            foreach (var componentT in components)
+            {
+                if (componentT is T t)
+                {
+                    component = t;
+                    return true;
+                }
+            }
+
+            component = default;
+            return false;
         }
 
         /// <summary>
-        /// Gets all T components from this instance and their Children.
+        /// Gets all T components from this instance.
         /// </summary>
         /// <typeparam name="T"></typeparam>
         /// <returns></returns>
         public IEnumerable<T> GetComponents<T>() where T : IComponent
         {
-            IEnumerable<T> components = Components.Where(component => component is T).Cast<T>();
-            foreach (T component in components)
+            foreach (var component in components)
             {
-                yield return component;
-            }
-
-            foreach (GameObject child in Children)
-            {
-                foreach (T childComponent in child.GetComponents<T>())
+                if (component is T t)
                 {
-                    yield return childComponent;
+                    yield return t;
+                }
+            }
+        }
+
+        public IEnumerable<IComponent> GetComponents(Func<IComponent, bool> selector)
+        {
+            foreach (var component in components)
+            {
+                if (selector(component))
+                {
+                    yield return component;
+                }
+            }
+        }
+
+        public IEnumerable<T> GetComponents<T>(Func<T, bool> selector) where T : IComponent
+        {
+            foreach (var component in components)
+            {
+                if (component is T t && selector(t))
+                {
+                    yield return t;
                 }
             }
         }

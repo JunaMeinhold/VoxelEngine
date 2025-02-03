@@ -1,7 +1,11 @@
 ﻿namespace App.Scripts
 {
-    using System.Numerics;
     using Hexa.NET.ImGui;
+    using Hexa.NET.Mathematics;
+    using System.Numerics;
+    using VoxelEngine.Core;
+    using VoxelEngine.Graphics.D3D11;
+    using VoxelEngine.Scenes;
     using VoxelEngine.Scripting;
     using VoxelEngine.Voxel;
 
@@ -16,7 +20,7 @@
 
         public override void Awake()
         {
-            world = Parent as World;
+            world = GameObject as World;
         }
 
         public override void Destroy()
@@ -25,7 +29,8 @@
 
         public override void FixedUpdate()
         {
-            world.WorldLoader.Upload(Device, Device.ImmediateContext);
+            var context = D3D11DeviceManager.GraphicsContext;
+            world.WorldLoader.Upload(context);
             Vector3 pos = Scene.Camera.Transform.Position;
 
             float x = pos.X % Chunk.CHUNK_SIZE;
@@ -76,6 +81,33 @@
             ImGui.Text($"Loaded Render Regions: {world.WorldLoader.RenderRegionCount}");
             ImGui.Text($"Loaded Chunk Segments: {world.WorldLoader.ChunkSegmentCount}");
             ImGui.Text($"Loaded Chunks: {world.WorldLoader.ChunkCount}");
+
+            var directionalLight = Scene.LightSystem.ActiveDirectionalLight;
+
+            if (directionalLight != null)
+            {
+                Vector3 rot = directionalLight.Transform.Rotation;
+                rot.Y = 360 * Time.GameTimeNormalized - 90;
+                float ro = rot.Y - 180F;
+                directionalLight.Transform.Rotation = rot.NormalizeEulerAngleDegrees();
+                if (rot.Y > 45 && rot.Y < 135)
+                {
+                    directionalLight.Color = new Vector4(196 / 255f, 220 / 255f, 1, 1);
+                }
+                else if (rot.Y > 135 && rot.Y < 225)
+                {
+                    directionalLight.Color = new Vector4(196 / 255f, 220 / 255f, 1, 1) * MathUtil.Lerp(1, 0.2f, (rot.Y - 135) / 90);
+                }
+                else if (ro > 45 && ro < 135)
+                {
+                    directionalLight.Color = new Vector4(196 / 255f, 220 / 255f, 1, 1) * 0.2f;
+                }
+                else if (ro > 135 && ro < 225)
+                {
+                    directionalLight.Color = new Vector4(196 / 255f, 220 / 255f, 1, 1) * MathUtil.Lerp(0.2f, 1, (ro - 135) / 90);
+                }
+                directionalLight.Color *= 5;
+            }
         }
     }
 }

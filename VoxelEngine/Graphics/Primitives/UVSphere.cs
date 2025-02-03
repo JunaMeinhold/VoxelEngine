@@ -1,90 +1,101 @@
 ﻿namespace VoxelEngine.Graphics.Primitives
 {
+    using Hexa.NET.Mathematics;
+    using Hexa.NET.Utilities;
     using System;
+    using System.Linq;
+    using System.Numerics;
     using VoxelEngine.Graphics.Buffers;
     using VoxelEngine.Mathematics;
     using VoxelEngine.Objects;
 
-    public class UVSphere : Mesh<Vertex>
+    public class UVSphere : Mesh<Vertex, uint>
     {
         protected override void Initialize()
         {
             CreateSphere(out VertexBuffer, out IndexBuffer);
         }
 
-        private static void CreateSphere(out VertexBuffer<Vertex> vertexBuffer, out IndexBuffer indexBuffer, int LatLines = 10, int LongLines = 10)
+        private static void CreateSphere(out VertexBuffer<Vertex> vertexBuffer, out IndexBuffer<uint> indexBuffer, float diameter = 1, uint tessellation = 16, bool invertn = false)
         {
-            float radius = 1;
-            float x, y, z, xy;                              // vertex position
-            float nx, ny, nz, lengthInv = 1.0f / radius;    // vertex normal
-            float s, t;                                     // vertex texCoord
-
-            float sectorStep = 2 * MathF.PI / LongLines;
-            float stackStep = MathF.PI / LatLines;
-            float sectorAngle, stackAngle;
-
-            vertexBuffer = new();
-            indexBuffer = new();
-
-            for (int i = 0; i <= LatLines; ++i)
+            if (tessellation < 3)
             {
-                stackAngle = MathF.PI / 2 - i * stackStep;        // starting from pi/2 to -pi/2
-                xy = radius * MathF.Cos(stackAngle);             // r * cos(u)
-                z = radius * MathF.Sin(stackAngle);              // r * sin(u)
+                throw new ArgumentException("tesselation parameter must be at least 3");
+            }
 
-                // add (sectorCount+1) vertices per stack
-                // the first and last vertices have same position and normal, but different tex coords
-                for (int j = 0; j <= LongLines; ++j)
+            uint verticalSegments = tessellation;
+            uint horizontalSegments = tessellation * 2;
+
+            Vertex[] vertices = new Vertex[(verticalSegments + 1) * (horizontalSegments + 1)];
+            uint[] indices = new uint[verticalSegments * (horizontalSegments + 1) * 6];
+
+            float radius = diameter / 2;
+
+            uint vcounter = 0;
+            for (uint i = 0; i <= verticalSegments; i++)
+            {
+                float v = 1 - (float)i / verticalSegments;
+                float latitude = i * MathUtil.PI / verticalSegments - MathUtil.PIDIV2;
+
+                float dy = MathF.Sin(latitude), dxz = MathF.Cos(latitude);
+
+                for (uint j = 0; j <= horizontalSegments; j++)
                 {
-                    Vertex v = new();
-                    sectorAngle = j * sectorStep;           // starting from 0 to 2pi
+                    float u = (float)j / horizontalSegments;
+                    float longitude = j * MathUtil.PI2 / horizontalSegments;
+                    float dx = MathF.Sin(longitude), dz = MathF.Cos(longitude);
 
-                    // vertex position (x, y, z)
-                    x = xy * MathF.Cos(sectorAngle);             // r * cos(u) * cos(v)
-                    y = xy * MathF.Sin(sectorAngle);             // r * cos(u) * sin(v)
-                    v.Position = new(x, y, z, 1);
+                    dx *= dxz;
+                    dz *= dxz;
 
-                    // normalized vertex normal (nx, ny, nz)
-                    nx = x * lengthInv;
-                    ny = y * lengthInv;
-                    nz = z * lengthInv;
-                    v.Normal = new(nx, ny, nz);
+                    Vector3 normal = new(dx, dy, dz);
 
-                    // vertex tex coord (s, t) range between [0, 1]
-                    s = (float)j / LongLines;
-                    t = (float)i / LatLines;
-                    v.Texture = new(s, t, 0);
-                    vertexBuffer.Append(v);
+                    Vector3 tangent;
+                    if (Vector3.Dot(Vector3.UnitY, normal) == 1.0f)
+                    {
+                        tangent = Vector3.UnitX;
+                    }
+                    else
+                    {
+                        tangent = Vector3.Normalize(Vector3.Cross(Vector3.UnitY, normal));
+                    }
+
+                    Vector2 textureCoordinate = new(u, v);
+
+                    vertices[vcounter++] = new(normal * radius, textureCoordinate, normal, tangent);
                 }
             }
 
-            int k1, k2;
-
-            for (int i = 0; i < LatLines; ++i)
+            uint stride = horizontalSegments + 1;
+            uint icounter = 0;
+            for (uint i = 0; i < verticalSegments; i++)
             {
-                k1 = i * (LongLines + 1);     // beginning of current stack
-                k2 = k1 + LongLines + 1;      // beginning of next stack
-
-                for (int j = 0; j < LongLines; ++j, ++k1, ++k2)
+                for (uint j = 0; j <= horizontalSegments; j++)
                 {
-                    // 2 triangles per sector excluding first and last stacks
-                    // k1 => k2 => k1+1
-                    if (i != 0)
-                    {
-                        indexBuffer.Append(k1);
-                        indexBuffer.Append(k2);
-                        indexBuffer.Append(k1 + 1);
-                    }
+                    uint nextI = i + 1;
+                    uint nextJ = (j + 1) % stride;
 
-                    // k1+1 => k2 => k2+1
-                    if (i != LatLines - 1)
-                    {
-                        indexBuffer.Append(k1 + 1);
-                        indexBuffer.Append(k2);
-                        indexBuffer.Append(k2 + 1);
-                    }
+                    indices[icounter + 0] = (i * stride + j);
+                    indices[icounter + 1] = (nextI * stride + j);
+                    indices[icounter + 2] = (i * stride + nextJ);
+
+                    indices[icounter + 3] = (i * stride + nextJ);
+                    indices[icounter + 4] = (nextI * stride + j);
+                    indices[icounter + 5] = (nextI * stride + nextJ);
+                    icounter += 6;
                 }
             }
+
+            if (invertn)
+            {
+                for (uint i = 0; i < vertices.Length; i++)
+                {
+                    vertices[i].Normal = -vertices[i].Normal;
+                }
+            }
+
+            vertexBuffer = new(0, vertices);
+            indexBuffer = new(0, indices);
         }
     }
 }

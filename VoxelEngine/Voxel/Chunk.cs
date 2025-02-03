@@ -1,12 +1,8 @@
 namespace VoxelEngine.Voxel
 {
+    using Hexa.NET.Mathematics;
     using System.Diagnostics;
     using System.Numerics;
-    using BepuUtilities.Memory;
-    using Hexa.NET.Mathematics;
-    using VoxelEngine.Mathematics;
-    using VoxelEngine.Physics;
-    using VoxelEngine.Scenes;
     using VoxelEngine.Voxel.Meshing;
     using VoxelEngine.Voxel.Metadata;
 
@@ -25,7 +21,7 @@ namespace VoxelEngine.Voxel
         public Vector3 Position;
         public BoundingBox BoundingBox;
 
-        public BlockStorage Data = new(0, CHUNK_SIZE_CUBED);
+        public BlockStorage2 Data = new(CHUNK_SIZE_CUBED);
         public byte* MinY;
         public byte* MaxY;
 
@@ -33,14 +29,13 @@ namespace VoxelEngine.Voxel
         public BiomeMetadata BiomeMetadata = new();
 
         public ChunkVertexBuffer VertexBuffer = new();
-        public ChunkStaticHandle2 Handle;
 
         public ChunkHelper ChunkHelper;
         public Chunk? cXN, cXP, cYN, cYP, cZN, cZP;
 
         public bool HasMissingNeighbours;
 
-        public readonly object _lock = new();
+        public readonly Lock _lock = new();
 
         private InternalChunkFlags flags;
 
@@ -86,7 +81,7 @@ namespace VoxelEngine.Voxel
             }
         }
 
-        public bool InMemory => Data is not null;
+        public bool InMemory => Data.IsAllocated;
 
         public bool InSimulation
         {
@@ -185,9 +180,9 @@ namespace VoxelEngine.Voxel
                 Data.Dispose();
                 Free(MinY);
                 Free(MaxY);
-                Data = null;
                 MinY = null;
                 MaxY = null;
+                BlockMetadata.Release();
             }
         }
 
@@ -196,7 +191,6 @@ namespace VoxelEngine.Voxel
         /// </summary>
         public void Unload()
         {
-            UnloadFormSimulation();
             UnloadFromGPU();
             UnloadFromMem();
         }
@@ -208,7 +202,7 @@ namespace VoxelEngine.Voxel
         {
             lock (_lock)
             {
-                if (Data is null)
+                if (!Data.IsAllocated)
                 {
                     return;
                 }
@@ -240,35 +234,47 @@ namespace VoxelEngine.Voxel
             {
                 DirtyDisk = true;
                 Dirty = true;
-                // Chunk data accessed quickly using bit masks
-                int index = Extensions.MapToIndex(x, y, z, CHUNK_SIZE, CHUNK_SIZE);
+
+                int index = Extensions.MapToIndex(x, y, z);
                 Data[index] = block;
 
-                // Could be made better but for now it is okay.
-                byte min = 0;
-                byte max = 0;
-                for (byte i = 0; i < CHUNK_SIZE; i++)
+                int heightAccess = new Point2(x, z).MapToIndex();
+
+                if (block.Type == 0)
                 {
-                    int j = Extensions.MapToIndex(x, i, z, CHUNK_SIZE, CHUNK_SIZE);
-                    if (i == min)
+                    if (MaxY[heightAccess] == y + 1)
                     {
-                        if (Data[j].Type == 0)
+                        byte newMaxY = 0;
+                        for (int yl = y; yl >= 0; yl--)
                         {
-                            min++;
+                            if (Data[new Point3(x, yl, z).MapToIndex()].Type != 0)
+                            {
+                                newMaxY = (byte)(yl + 1);
+                                break;
+                            }
                         }
+                        MaxY[heightAccess] = newMaxY;
                     }
-                    else
+
+                    if (MinY[heightAccess] == y)
                     {
-                        if (Data[j].Type != 0)
+                        byte newMinY = 15;
+                        for (int yl = y; yl <= 16; yl++)
                         {
-                            max = i;
+                            if (Data[new Point3(x, yl, z).MapToIndex()].Type != 0)
+                            {
+                                newMinY = (byte)yl;
+                                break;
+                            }
                         }
+                        MinY[heightAccess] = newMinY;
                     }
                 }
-                max++;
-
-                MinY[new Vector2(x, z).MapToIndex(CHUNK_SIZE)] = min;
-                MaxY[new Vector2(x, z).MapToIndex(CHUNK_SIZE)] = max;
+                else
+                {
+                    MinY[heightAccess] = Math.Min(MinY[heightAccess], (byte)y);
+                    MaxY[heightAccess] = Math.Max(MaxY[heightAccess], (byte)(y + 1));
+                }
             }
         }
 
@@ -276,7 +282,7 @@ namespace VoxelEngine.Voxel
         {
             {
                 // Chunk data accessed quickly using bit masks
-                int index = Extensions.MapToIndex(x, y, z, CHUNK_SIZE, CHUNK_SIZE);
+                int index = Extensions.MapToIndex(x, y, z);
                 if (index < CHUNK_SIZE_CUBED)
                 {
                     return Data[index];
@@ -318,34 +324,6 @@ namespace VoxelEngine.Voxel
             lock (_lock)
             {
                 ChunkSerializer.Deserialize(this, stream);
-            }
-        }
-
-        public void LoadToSimulation(BufferPool pool)
-        {
-            lock (_lock)
-            {
-                if (InSimulation)
-                {
-                    return;
-                }
-
-                Handle = new(SceneManager.Current.Simulation, pool, this);
-                InSimulation = true;
-            }
-        }
-
-        public void UnloadFormSimulation()
-        {
-            lock (_lock)
-            {
-                if (!InSimulation)
-                {
-                    return;
-                }
-
-                Handle.Free(SceneManager.Current.Simulation);
-                InSimulation = false;
             }
         }
 

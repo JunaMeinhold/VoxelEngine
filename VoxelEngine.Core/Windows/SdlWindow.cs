@@ -1,11 +1,10 @@
 ﻿namespace VoxelEngine.Core.Windows
 {
+    using Hexa.NET.Mathematics;
+    using Hexa.NET.SDL2;
     using System;
     using System.Runtime.CompilerServices;
-    using System.Runtime.InteropServices;
     using System.Text;
-    using Hexa.NET.SDL2;
-    using Vortice.Mathematics;
     using VoxelEngine.Core;
     using VoxelEngine.Core.Input;
     using VoxelEngine.Core.Input.Events;

@@ -1,9 +1,7 @@
 ﻿namespace VoxelEngine.Voxel
 {
-    using System;
     using System.Collections.Generic;
     using System.Diagnostics;
-    using System.Runtime.Intrinsics.X86;
 
     public enum DisplayOptions
     {

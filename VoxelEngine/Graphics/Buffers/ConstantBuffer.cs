@@ -1,132 +1,167 @@
 ﻿namespace VoxelEngine.Graphics.Buffers
 {
+    using Hexa.NET.D3D11;
+    using HexaGen.Runtime.COM;
     using System.Runtime.CompilerServices;
-    using System.Runtime.InteropServices;
-    using Vortice.Direct3D11;
-    using VoxelEngine.Rendering.D3D;
+    using VoxelEngine.Graphics.D3D11;
     using VoxelEngine.Resources;
 
     public unsafe class ConstantBuffer<T> : Resource, IConstantBuffer<T> where T : unmanaged
     {
-        private BufferDescription description;
-        public ID3D11Buffer Buffer;
-        private readonly bool isDynamic;
+        private readonly string dbgName;
+        private BufferDesc description;
+        public ComPtr<ID3D11Buffer> Buffer;
 
-        private readonly T* data;
+        private T* data;
+        private int count;
 
-        public ConstantBuffer(ID3D11Device device, CpuAccessFlags accessFlags, T* value, int count)
+        public ConstantBuffer(T* value, int count, CpuAccessFlags accessFlags, [CallerFilePath] string file = "", [CallerLineNumber] int line = 0)
         {
-            ResourceUsage usage = accessFlags switch
+            dbgName = $"ConstantBuffer: {Path.GetFileNameWithoutExtension(file)}, Line:{line}";
+            var device = D3D11DeviceManager.Device;
+            Usage usage = accessFlags switch
             {
-                CpuAccessFlags.Write => ResourceUsage.Dynamic,
-                CpuAccessFlags.Read => ResourceUsage.Staging,
-                CpuAccessFlags.None => ResourceUsage.Immutable,
+                CpuAccessFlags.Write => Usage.Dynamic,
+                CpuAccessFlags.Read => Usage.Staging,
+                CpuAccessFlags.None => Usage.Immutable,
                 _ => throw new NotImplementedException(),
             };
 
-            description = new(sizeof(T) * count, BindFlags.ConstantBuffer, usage, accessFlags);
-            if (accessFlags != CpuAccessFlags.None)
+            description = new((uint)(sizeof(T) * count), usage, (uint)BindFlag.ConstantBuffer, (uint)accessFlags);
+            if (accessFlags != 0)
             {
                 data = AllocCopyT(value, count);
+                this.count = count;
             }
 
-            Buffer = device.CreateBuffer(description, new SubresourceData(value));
-            Buffer.DebugName = nameof(ConstantBuffer<T>);
+            var subresourceData = new SubresourceData(value);
+            device.CreateBuffer(ref description, ref subresourceData, out Buffer);
+
+            //Buffer.DebugName = nameof(ConstantBuffer<T>);
         }
 
-        public ConstantBuffer(ID3D11Device device, CpuAccessFlags accessFlags, T value)
+        public ConstantBuffer(T value, CpuAccessFlags accessFlags, [CallerFilePath] string file = "", [CallerLineNumber] int line = 0)
         {
-            ResourceUsage usage = accessFlags switch
+            dbgName = $"ConstantBuffer: {Path.GetFileNameWithoutExtension(file)}, Line:{line}";
+            var device = D3D11DeviceManager.Device;
+            Usage usage = accessFlags switch
             {
-                CpuAccessFlags.Write => ResourceUsage.Dynamic,
-                CpuAccessFlags.Read => ResourceUsage.Staging,
-                CpuAccessFlags.None => ResourceUsage.Immutable,
+                CpuAccessFlags.Write => Usage.Dynamic,
+                CpuAccessFlags.Read => Usage.Staging,
+                CpuAccessFlags.None => Usage.Immutable,
                 _ => throw new NotImplementedException(),
             };
 
-            description = new(sizeof(T), BindFlags.ConstantBuffer, usage, accessFlags);
-            if (accessFlags != CpuAccessFlags.None)
+            description = new((uint)sizeof(T), usage, (uint)BindFlag.ConstantBuffer, (uint)accessFlags);
+            if (accessFlags != 0)
             {
                 data = AllocT<T>(); ZeroMemoryT(data);
+                count = 1;
             }
-
-            Buffer = device.CreateBuffer(description, new SubresourceData(&value));
-            Buffer.DebugName = nameof(ConstantBuffer<T>);
+            var subresourceData = new SubresourceData(&value);
+            device.CreateBuffer(ref description, ref subresourceData, out Buffer);
+            //Buffer.DebugName = nameof(ConstantBuffer<T>);
         }
 
-        public ConstantBuffer(ID3D11Device device, CpuAccessFlags accessFlags, int count)
+        public ConstantBuffer(int count, CpuAccessFlags accessFlags, [CallerFilePath] string file = "", [CallerLineNumber] int line = 0)
         {
-            ResourceUsage usage = accessFlags switch
+            dbgName = $"ConstantBuffer: {Path.GetFileNameWithoutExtension(file)}, Line:{line}";
+            var device = D3D11DeviceManager.Device;
+            Usage usage = accessFlags switch
             {
-                CpuAccessFlags.Write => ResourceUsage.Dynamic,
-                CpuAccessFlags.Read => ResourceUsage.Staging,
-                CpuAccessFlags.None => throw new NotSupportedException("Immutable buffers need initial data"),
+                CpuAccessFlags.Write => Usage.Dynamic,
+                CpuAccessFlags.Read => Usage.Staging,
+                0 => throw new NotSupportedException("Immutable buffers need initial data"),
                 _ => throw new NotImplementedException(),
             };
 
-            description = new(sizeof(T) * count, BindFlags.ConstantBuffer, usage, accessFlags);
+            description = new((uint)(sizeof(T) * count), usage, (uint)BindFlag.ConstantBuffer, (uint)accessFlags);
             data = AllocT<T>(count); ZeroMemoryT(data, count);
-            Buffer = device.CreateBuffer(description);
-            Buffer.DebugName = nameof(ConstantBuffer<T>);
+            this.count = count;
+            device.CreateBuffer(ref description, null, out Buffer);
+            //Buffer.DebugName = nameof(ConstantBuffer<T>);
         }
 
-        public ConstantBuffer(ID3D11Device device, CpuAccessFlags accessFlags)
+        public ConstantBuffer(CpuAccessFlags accessFlags, [CallerFilePath] string file = "", [CallerLineNumber] int line = 0)
         {
-            ResourceUsage usage = accessFlags switch
+            dbgName = $"ConstantBuffer: {Path.GetFileNameWithoutExtension(file)}, Line:{line}";
+            var device = D3D11DeviceManager.Device;
+            Usage usage = accessFlags switch
             {
-                CpuAccessFlags.Write => ResourceUsage.Dynamic,
-                CpuAccessFlags.Read => ResourceUsage.Staging,
-                CpuAccessFlags.None => throw new NotSupportedException("Immutable buffers need initial data"),
+                CpuAccessFlags.Write => Usage.Dynamic,
+                CpuAccessFlags.Read => Usage.Staging,
+                0 => throw new NotSupportedException("Immutable buffers need initial data"),
                 _ => throw new NotImplementedException(),
             };
 
-            description = new(sizeof(T), BindFlags.ConstantBuffer, usage, accessFlags);
+            description = new((uint)sizeof(T), usage, (uint)BindFlag.ConstantBuffer, (uint)accessFlags);
             data = AllocT<T>(); ZeroMemoryT(data);
-            Buffer = device.CreateBuffer(description);
-            Buffer.DebugName = nameof(ConstantBuffer<T>);
+            count = 1;
+            device.CreateBuffer(ref description, null, out Buffer);
+            //Buffer.DebugName = nameof(ConstantBuffer<T>);
         }
 
-        public void Update(ID3D11DeviceContext context)
+        public nint NativePointer => (nint)Buffer.Handle;
+
+        public void Update(GraphicsContext context)
         {
-            throw new NotImplementedException();
+            context.Write(this, data, count);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Update(ID3D11DeviceContext context, T value)
+        public void Update(GraphicsContext context, T value)
         {
-            DeviceHelper.Write(context, Buffer, value);
+            context.Write(this, value);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public unsafe void Update(ID3D11DeviceContext context, T* value, int length)
+        public unsafe void Update(GraphicsContext context, T* value, int length)
         {
-            DeviceHelper.Write(context, Buffer, value, length);
+            context.Write(this, value, length);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Update(ID3D11DeviceContext context, T[] value)
+        public void Update(GraphicsContext context, T[] value)
         {
-            DeviceHelper.Write(context, Buffer, value);
+            fixed (T* values = value)
+            {
+                context.Write(this, values, value.Length);
+            }
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Resize(ID3D11Device device, int length)
+        public void Resize(int length)
         {
-            Buffer.Dispose();
-            int size = Marshal.SizeOf<T>() * length;
-            Buffer = device.CreateBuffer(new(size, BindFlags.ConstantBuffer, ResourceUsage.Dynamic, CpuAccessFlags.Write));
-            Buffer.DebugName = nameof(ConstantBuffer<T>);
+            var device = D3D11DeviceManager.Device;
+            if (Buffer.Handle != null)
+            {
+                Buffer.Release();
+                Buffer = null;
+            }
+            description.ByteWidth = (uint)(sizeof(T) * length);
+            device.CreateBuffer(ref description, null, out Buffer);
+            //Buffer.DebugName = nameof(ConstantBuffer<T>);
         }
 
-        public static implicit operator ID3D11Buffer(ConstantBuffer<T> value)
+        public static implicit operator ComPtr<ID3D11Buffer>(ConstantBuffer<T> value)
         {
             return value.Buffer;
         }
 
-        protected override void Dispose(bool disposing)
+        protected override void DisposeCore()
         {
-            Buffer.Dispose();
-            Buffer = null;
+            if (Buffer.Handle != null)
+            {
+                Buffer.Release();
+                Buffer = null;
+            }
+
+            if (data != null)
+            {
+                Free(data);
+                data = null;
+                count = 0;
+            }
         }
     }
 }

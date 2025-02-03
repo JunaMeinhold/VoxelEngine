@@ -15,6 +15,10 @@
 
         public static readonly Block Air = new(0);
 
+        public static implicit operator ushort(Block block) => block.Type;
+
+        public static implicit operator Block(ushort type) => new(type);
+
         public override bool Equals(object obj)
         {
             return obj is Block block && Equals(block);

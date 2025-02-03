@@ -2,8 +2,11 @@
 {
     using System.Collections.Generic;
     using System.IO;
+    using System.Linq;
     using System.Numerics;
-    using Vortice.Direct3D11;
+    using System.Runtime.CompilerServices;
+    using Hexa.NET.D3D11;
+    using Hexa.NET.Mathematics;
     using VoxelEngine.Voxel.WorldGen;
 
     public class World : WorldMap
@@ -40,20 +43,24 @@
 
         public WorldLoader WorldLoader;
 
-        public static int Mod(int x, int m)
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static int Mod(int x)
         {
-            int r = x % m;
-            return r < 0 ? r + m : r;
+            return x & 15;
         }
+
+        public void SetBlock(Point3 point, Block block) => SetBlock(point.X, point.Y, point.Z, block);
 
         public void SetBlock(int x, int y, int z, Block block)
         {
-            int xglobal = (int)Math.Floor((float)x / Chunk.CHUNK_SIZE);
-            int xlocal = Mod(x, Chunk.CHUNK_SIZE);
-            int yglobal = (int)Math.Floor((float)y / Chunk.CHUNK_SIZE);
-            int ylocal = Mod(y, Chunk.CHUNK_SIZE);
-            int zglobal = (int)Math.Floor((float)z / Chunk.CHUNK_SIZE);
-            int zlocal = Mod(z, Chunk.CHUNK_SIZE);
+            int xglobal = x >> 4;
+            int yglobal = y >> 4;
+            int zglobal = z >> 4;
+
+            int xlocal = x & 15;
+            int ylocal = y & 15;
+            int zlocal = z & 15;
+
             // If it is at the edge of the map, return true
             if (xglobal < CHUNK_AMOUNT_X_MIN || xglobal >= CHUNK_AMOUNT_X ||
                 yglobal < CHUNK_AMOUNT_Y_MIN || yglobal >= CHUNK_AMOUNT_Y ||
@@ -80,23 +87,29 @@
 
             // Chunk data accessed quickly using bit masks
             c.SetBlockInternal(block, xlocal, ylocal, zlocal);
-            UpdateChunk(xglobal, yglobal, zglobal);
-            UpdateChunk(xglobal + 1, yglobal, zglobal);
-            UpdateChunk(xglobal, yglobal + 1, zglobal);
-            UpdateChunk(xglobal, yglobal, zglobal + 1);
-            UpdateChunk(xglobal - 1, yglobal, zglobal);
-            UpdateChunk(xglobal, yglobal - 1, zglobal);
-            UpdateChunk(xglobal, yglobal, zglobal - 1);
+
+            UpdateChunk(xglobal, yglobal, zglobal, true);
+
+            if (xlocal == 15) UpdateChunk(xglobal + 1, yglobal, zglobal, false);
+            if (ylocal == 15) UpdateChunk(xglobal, yglobal + 1, zglobal, false);
+            if (zlocal == 15) UpdateChunk(xglobal, yglobal, zglobal + 1, false);
+            if (xlocal == 0) UpdateChunk(xglobal - 1, yglobal, zglobal, false);
+            if (ylocal == 0) UpdateChunk(xglobal, yglobal - 1, zglobal, false);
+            if (zlocal == 0) UpdateChunk(xglobal, yglobal, zglobal - 1, false);
         }
+
+        public Block GetBlock(Point3 point) => GetBlock(point.X, point.Y, point.Z);
 
         public Block GetBlock(int x, int y, int z)
         {
-            int xglobal = (int)Math.Floor((float)x / Chunk.CHUNK_SIZE);
-            int xlocal = Mod(x, Chunk.CHUNK_SIZE);
-            int yglobal = (int)Math.Floor((float)y / Chunk.CHUNK_SIZE);
-            int ylocal = Mod(y, Chunk.CHUNK_SIZE);
-            int zglobal = (int)Math.Floor((float)z / Chunk.CHUNK_SIZE);
-            int zlocal = Mod(z, Chunk.CHUNK_SIZE);
+            int xglobal = x >> 4;
+            int yglobal = y >> 4;
+            int zglobal = z >> 4;
+
+            int xlocal = x & 15;
+            int ylocal = y & 15;
+            int zlocal = z & 15;
+
             // If it is at the edge of the map, return true
             if (xglobal < CHUNK_AMOUNT_X_MIN || xglobal >= CHUNK_AMOUNT_X ||
                 yglobal < CHUNK_AMOUNT_Y_MIN || yglobal >= CHUNK_AMOUNT_Y ||
@@ -130,7 +143,7 @@
             return true;
         }
 
-        public void UpdateChunk(int x, int y, int z)
+        public void UpdateChunk(int x, int y, int z, bool save)
         {
             if (x < CHUNK_AMOUNT_X_MIN || x >= CHUNK_AMOUNT_X ||
                 y < CHUNK_AMOUNT_Y_MIN || y >= CHUNK_AMOUNT_Y ||
@@ -139,7 +152,7 @@
                 return;
             }
 
-            WorldLoader.Dispatch(Chunks[x, y, z]);
+            WorldLoader.Dispatch(Chunks[x, y, z], save);
         }
 
         public void LoadFromDisk(Vector3 pos)
@@ -151,17 +164,17 @@
             }
         }
 
-        public override void Initialize(ID3D11Device device)
+        public override void Awake()
         {
-            Player = Scene.GetElementByType<Player>();
-            base.Initialize(device);
+            Player = Scene.Find<Player>()!;
+            base.Awake();
             WorldLoader = new(this);
             Generator.Dispose();
         }
 
-        public override void Uninitialize()
+        public override void Destroy()
         {
-            base.Uninitialize();
+            base.Destroy();
             WorldLoader.Dispose();
             Chunks.Clear();
             Chunks = null;

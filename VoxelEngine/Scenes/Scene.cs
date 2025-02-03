@@ -1,45 +1,62 @@
 ﻿namespace VoxelEngine.Scenes
 {
+    using Hexa.NET.D3D11;
+    using HexaEngine.Queries;
     using System;
-    using System.Numerics;
     using System.Runtime.CompilerServices;
-    using BepuPhysics;
-    using BepuPhysics.Collidables;
-    using BepuUtilities;
-    using BepuUtilities.Memory;
+    using System.Threading;
+    using VoxelEngine.Collections;
     using VoxelEngine.Core;
-    using VoxelEngine.Core.Input;
-    using VoxelEngine.Core.Windows;
+    using VoxelEngine.Graphics;
+    using VoxelEngine.Graphics.D3D11;
+    using VoxelEngine.Lights;
     using VoxelEngine.Physics;
-    using VoxelEngine.Physics.Characters;
-    using VoxelEngine.Physics.Collidables;
-    using VoxelEngine.Rendering.D3D;
     using VoxelEngine.Scripting;
+    using VoxelEngine.Voxel;
     using VoxelEngine.Windows;
+
+    public delegate void SceneEventHandler<T>(Scene scene, T args);
+
+    public class SceneRootNode : GameObject
+    {
+        private Scene parent;
+
+        public SceneRootNode(Scene parent)
+        {
+            this.parent = parent;
+            Name = "Root";
+        }
+
+        public override Scene Scene { get => parent; internal set => parent = value; }
+    }
 
     public class Scene : IDisposable
     {
         private bool disposedValue;
         private bool initialized;
-        private Dispatcher dispatcher;
-        private SceneProfiler profiler = new();
-        private List<GameObject> flatList = new();
+        private SceneDispatcher dispatcher = new();
+        private readonly SceneProfiler profiler = new();
+        private readonly List<GameObject> gameObjects = new();
+        private readonly FlaggedList<SystemFlags, ISceneSystem> systems = new();
+        private readonly SceneRootNode root;
+
+        private readonly SemaphoreSlim semaphore = new(1);
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Scene"/> class.
         /// </summary>
         public Scene()
         {
-            Elements = new(this);
+            root = new(this);
+            systems.Add(QueryManager = new QuerySystem(this));
+            systems.Add(new TransformSystem());
+            systems.Add(RenderSystem = new RenderSystem());
+            systems.Add(new ScriptSystem());
+            systems.Add(new PhysicsSystem());
+            systems.Add(LightSystem = new LightSystem());
         }
 
-        /// <summary>
-        /// Gets the elements.
-        /// </summary>
-        /// <value>
-        /// The elements.
-        /// </value>
-        protected SceneElementCollection Elements { get; private set; }
+        public IReadOnlyList<GameObject> GameObjects => gameObjects;
 
         /// <summary>
         /// Gets the dispatcher.
@@ -47,7 +64,7 @@
         /// <value>
         /// The dispatcher. Used to ensure thread-safety
         /// </value>
-        public Dispatcher Dispatcher => dispatcher;
+        public SceneDispatcher Dispatcher => dispatcher;
 
         /// <summary>
         /// Gets the window.
@@ -66,54 +83,6 @@
         public Camera Camera { get; set; }
 
         /// <summary>
-        /// Gets or sets the renderer.
-        /// </summary>
-        /// <value>
-        /// The renderer.
-        /// </value>
-        public ISceneRenderer Renderer { get; set; }
-
-        /// <summary>
-        /// Gets or sets the buffer pool.
-        /// </summary>
-        /// <value>
-        /// The buffer pool.
-        /// </value>
-        public BufferPool BufferPool { get; set; }
-
-        /// <summary>
-        /// Gets the thread dispatcher.
-        /// </summary>
-        /// <value>
-        /// The thread dispatcher.
-        /// </value>
-        public ThreadDispatcher ThreadDispatcher { get; private set; }
-
-        /// <summary>
-        /// Gets or sets the simulation.
-        /// </summary>
-        /// <value>
-        /// The simulation.
-        /// </value>
-        public Simulation Simulation { get; private set; }
-
-        /// <summary>
-        /// Gets the character controllers.
-        /// </summary>
-        /// <value>
-        /// The character controllers.
-        /// </value>
-        public CharacterControllers CharacterControllers { get; private set; }
-
-        /// <summary>
-        /// Gets the contact events.
-        /// </summary>
-        /// <value>
-        /// The contact events.
-        /// </value>
-        public ContactEvents ContactEvents { get; private set; }
-
-        /// <summary>
         /// Gets or sets a value indicating whether this instance is simulating.
         /// </summary>
         /// <value>
@@ -121,233 +90,128 @@
         /// </value>
         public bool IsSimulating { get; set; }
 
+        public event SceneEventHandler<GameObject>? GameObjectAdded;
+
+        public event SceneEventHandler<GameObject>? GameObjectRemoved;
+
         public SceneProfiler Profiler => profiler;
 
-        /// <summary>
-        /// Initializes the scene.<br/>
-        /// Calls <see cref="ISceneRenderer.Initialize"/><br/>
-        /// Calls <see cref="Camera.UpdateProjection"/><br/>
-        /// Calls foreach in <see cref="Elements"/>, <see cref="GameObject.Initialize"/><br/>
-        /// Sets <see cref="initialized"/> to <see langword="true" />
-        /// </summary>
+        public QuerySystem QueryManager { get; }
+
+        public RenderSystem RenderSystem { get; }
+
+        public LightSystem LightSystem { get; }
+
+        public MiniProfiler SceneProfiler { get; } = new();
+
         public virtual void Initialize()
         {
-            dispatcher = Dispatcher.CurrentDispatcher;
-            BufferPool = new BufferPool();
-
-            int targetThreadCount = Math.Max(1, Environment.ProcessorCount > 4 ? Environment.ProcessorCount - 2 : Environment.ProcessorCount - 1);
-            ThreadDispatcher = new ThreadDispatcher(targetThreadCount);
-            CharacterControllers = new(BufferPool);
-            ContactEvents = new ContactEvents(ThreadDispatcher, BufferPool);
-            Simulation = Simulation.Create(BufferPool, new NarrowphaseCallbacks(CharacterControllers, ContactEvents), new PoseIntegratorCallbacks(new Vector3(0, -10, 0)), new SolveDescription(8, 1));
-            Voxels.Register(Simulation);
             Window = (GameWindow)Application.MainWindow;
-            Renderer.Initialize(D3D11DeviceManager.ID3D11Device, Window);
-            Elements.ForEach(e => e.Initialize(D3D11DeviceManager.ID3D11Device));
+
+            root.Awake();
+
+            foreach (var system in systems[SystemFlags.Awake])
+            {
+                system.Awake(this);
+            }
+
+            Time.FixedUpdate += FixedUpdate;
             initialized = true;
         }
 
-        /// <summary>
-        /// Renders the scene and updates all states.<br/>
-        /// Calls foreach in <see cref="Elements"/>, that have <see cref="ScriptComponent.Update"/><br/>
-        /// Calls foreach in <see cref="Elements"/>, that have <see cref="ScriptFrameComponent.Update"/><br/>
-        /// Calls foreach in <see cref="Elements"/>, that have <see cref="DynamicBodyComponent.Update"/><br/>
-        /// Calls <see cref="ISceneRenderer.Render(Interfaces.IView, SceneElementCollection)"/> from instance <see cref="Renderer"/><br/>
-        /// Calls <see cref="Simulation.Step(float)"/> with param <see cref="Time.Delta"/> from instance <see cref="Simulation"/><br/>
-        /// Calls <see cref="SceneDispatcher.DoWork"/> from instance <see cref="dispatcher"/><br/>
-        /// </summary>
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Render()
+        private void FixedUpdate(object? sender, EventArgs e)
         {
-            profiler.Reset();
             if (IsSimulating)
             {
-                lock (Simulation)
+                foreach (var system in systems[SystemFlags.PhysicsUpdate])
                 {
-                    Simulate(Time.Delta);
+                    system.FixedUpdate();
                 }
             }
 
-            profiler.ProfileSimulation();
-
-            foreach (ScriptComponent item in Elements.ScriptComponents)
+            foreach (var system in systems[SystemFlags.FixedUpdate])
             {
-                item.Update();
+                system.FixedUpdate();
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Tick()
+        {
+            float delta = Time.Delta;
+            profiler.Reset();
+
+            foreach (var system in systems[SystemFlags.EarlyUpdate])
+            {
+                system.Update(delta);
             }
 
-            foreach (ScriptFrameComponent item in Elements.ScriptFrameComponents)
+            foreach (var system in systems[SystemFlags.Update])
             {
-                item.Update();
+                system.Update(delta);
             }
 
-            foreach (IBodyComponent item in Elements.ColliderComponents)
+            foreach (var system in systems[SystemFlags.LateUpdate])
             {
-                item.Update();
+                system.Update(delta);
             }
 
-            profiler.ProfileUpdate();
-            Camera.Transform.Recalculate();
-            Renderer.Render(D3D11DeviceManager.ID3D11DeviceContext, Camera, Elements);
-            profiler.ProfileRender();
-
-            Dispatcher.ExecuteQueue();
+            Dispatcher.ExecuteInvokes();
             profiler.ProfileDispatch();
         }
 
-        private const float stepsize = 0.010f;
-        private float interpol;
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Simulate(float delta)
+        public T GetSystem<T>() where T : ISceneSystem
         {
-            interpol += delta;
-            while (interpol > stepsize)
+            foreach (var system in systems)
             {
-                interpol -= stepsize;
-                Simulation.Timestep(stepsize, ThreadDispatcher);
-            }
-            ContactEvents.Flush();
-        }
-
-        /// <summary>
-        /// Gets the element by T and the given name.
-        /// </summary>
-        /// <typeparam name="T">Type</typeparam>
-        /// <param name="name">Name</param>
-        /// <returns>The element</returns>
-        public T GetElementByName<T>(string name) where T : GameObject
-        {
-            return GetElementsByType<T>().FirstOrDefault(x => x.Name == name);
-        }
-
-        /// <summary>
-        /// Gets all elements with the type T.
-        /// </summary>
-        /// <typeparam name="T">Type</typeparam>
-        /// <returns>The elements</returns>
-        public IEnumerable<T> GetElementsByType<T>() where T : GameObject
-        {
-            return Elements.Where(x => x is T).Cast<T>();
-        }
-
-        /// <summary>
-        /// Gets the first element with the type T.
-        /// </summary>
-        /// <typeparam name="T">Type</typeparam>
-        /// <returns>The elements</returns>
-        public T GetElementByType<T>() where T : GameObject
-        {
-            return (T)Elements.FirstOrDefault(x => x is T);
-        }
-
-        public T GetElementByComponentRef<T>(IComponent component) where T : GameObject
-        {
-            foreach (GameObject element in Elements)
-            {
-                if (element.Components.Contains(component))
+                if (system is T t)
                 {
-                    return element as T;
+                    return t;
                 }
             }
 
-            return null;
-        }
-
-        public T GetElementByCollidableReference<T>(CollidableReference reference) where T : GameObject
-        {
-            foreach (IBodyComponent component in Elements.ColliderComponents)
-            {
-                if (component is IDynamicBodyComponent dynamic)
-                {
-                    if (Simulation.Bodies[dynamic.Handle].CollidableReference == reference)
-                    {
-                        return GetElementByComponentRef<T>(dynamic);
-                    }
-                }
-
-                if (component is IStaticBodyComponent staticBody)
-                {
-                    if (Simulation.Statics[staticBody.Handle].CollidableReference == reference)
-                    {
-                        return GetElementByComponentRef<T>(staticBody);
-                    }
-                }
-            }
-            return null;
-        }
-
-        public T GetElementByBodyHandle<T>(BodyHandle handle) where T : GameObject
-        {
-            foreach (IBodyComponent component in Elements.ColliderComponents)
-            {
-                if (component is IDynamicBodyComponent dynamic)
-                {
-                    if (dynamic.Handle == handle)
-                    {
-                        return GetElementByComponentRef<T>(dynamic);
-                    }
-                }
-            }
-
-            return null;
-        }
-
-        public T GetElementByStaticHandle<T>(StaticHandle handle) where T : GameObject
-        {
-            foreach (IBodyComponent component in Elements.ColliderComponents)
-            {
-                if (component is IStaticBodyComponent staticBody)
-                {
-                    if (staticBody.Handle == handle)
-                    {
-                        return GetElementByComponentRef<T>(staticBody);
-                    }
-                }
-            }
-
-            return null;
+            throw new KeyNotFoundException();
         }
 
         /// <summary>
         /// Adds an scene element.<br/>
-        /// Calls <see cref="GameObject.Initialize"/> if <see cref="initialized"/> == <see langword="true" />
+        /// Calls <see cref="GameObject.Awake"/> if <see cref="initialized"/> == <see langword="true" />
         /// </summary>
-        /// <param name="sceneElement">The scene element.</param>
-        public void Add(GameObject sceneElement)
+        /// <param name="node">The scene element.</param>
+        public void Add(GameObject node)
         {
-            if (initialized)
+            if (semaphore.CurrentCount == 0)
             {
-                dispatcher.Invoke(() =>
-                {
-                    Elements.Add(sceneElement);
-                    sceneElement.Initialize(D3D11DeviceManager.ID3D11Device);
-                });
+                Dispatcher.Invoke(node, root.AddChild);
+                return;
             }
-            else
-            {
-                Elements.Add(sceneElement);
-            }
+            semaphore.Wait();
+            root.AddChild(node);
+            semaphore.Release();
+        }
+
+        public void AddChildUnsafe(GameObject node)
+        {
+            semaphore.Wait();
+            root.AddChild(node);
+            semaphore.Release();
         }
 
         /// <summary>
         /// Removes an scene element.<br/>
-        /// Calls <see cref="GameObject.Uninitialize"/> if <see cref="initialized"/> == <see langword="true" />
+        /// Calls <see cref="GameObject.Destroy"/> if <see cref="initialized"/> == <see langword="true" />
         /// </summary>
-        /// <param name="sceneElement">The scene element.</param>
-        public void Remove(GameObject sceneElement)
+        /// <param name="node">The scene element.</param>
+        public void Remove(GameObject node)
         {
-            if (initialized)
+            if (semaphore.CurrentCount == 0)
             {
-                dispatcher.Invoke(() =>
-                {
-                    Elements.Remove(sceneElement);
-                    sceneElement.Uninitialize();
-                });
+                Dispatcher.Invoke(node, node => root.RemoveChild(node));
+                return;
             }
-            else
-            {
-                Elements.Remove(sceneElement);
-            }
+            semaphore.Wait();
+            root.RemoveChild(node);
+            semaphore.Release();
         }
 
         /// <summary>
@@ -358,32 +222,20 @@
         {
             if (!disposedValue)
             {
-                Elements.ForEach(x => x.Uninitialize());
-                Elements.Dispose();
-                Simulation.Clear();
-                Simulation.Dispose();
-                Simulation = null;
-                BufferPool.Clear();
-                BufferPool = null;
-                Renderer.Uninitialize();
-                Elements = null;
+                Time.FixedUpdate -= FixedUpdate;
+                root.Destroy();
+                foreach (var system in systems[SystemFlags.Destroy])
+                {
+                    system.Destroy();
+                }
+
                 dispatcher = null;
                 Camera = null;
-                Simulation = null;
-                Renderer = null;
+
                 Window = null;
                 initialized = false;
                 disposedValue = true;
             }
-        }
-
-        /// <summary>
-        /// Finalizes an instance of the <see cref="Scene"/> class.
-        /// </summary>
-        ~Scene()
-        {
-            // Do not change this code. Put cleanup code in 'Dispose(bool disposing)' method
-            Dispose(disposing: false);
         }
 
         /// <summary>
@@ -398,12 +250,26 @@
 
         internal void Register(GameObject gameObject)
         {
-            flatList.Add(gameObject);
+            gameObjects.Add(gameObject);
+            GameObjectAdded?.Invoke(this, gameObject);
         }
 
         internal void Unregister(GameObject gameObject)
         {
-            flatList.Remove(gameObject);
+            gameObjects.Remove(gameObject);
+            GameObjectRemoved?.Invoke(this, gameObject);
+        }
+
+        public T? Find<T>()
+        {
+            foreach (var gameObject in gameObjects)
+            {
+                if (gameObject is T t)
+                {
+                    return t;
+                }
+            }
+            return default;
         }
     }
 }

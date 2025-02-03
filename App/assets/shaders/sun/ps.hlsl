@@ -1,21 +1,20 @@
-Texture2D txDiffuse : register(t0);
-SamplerState linear_wrap_sampler : register(s0);
+Texture2D tex : register(t0);
+SamplerState linearWrapSampler : register(s0);
 
 cbuffer SunParams
 {
-    float3 diffuse;
-    float albedo_factor;
+	float3 diffuse;
+	float albedoFactor;
 };
 
-struct PS_INPUT
+struct PSInput
 {
-    float4 Position : SV_POSITION;
-    float2 TexCoord : TEX;
+	float4 Position : SV_POSITION;
+	float2 TexCoord : TEX;
 };
 
-
-float4 main(PS_INPUT IN) : SV_TARGET
+float4 main(PSInput pin) : SV_TARGET
 {
-    float4 texColor = txDiffuse.Sample(linear_wrap_sampler, IN.TexCoord) * float4(diffuse, 1.0) * albedo_factor;
-    return texColor;
+	float4 texColor = tex.Sample(linearWrapSampler, pin.TexCoord) * float4(diffuse, 1.0) * albedoFactor;
+	return texColor;
 }

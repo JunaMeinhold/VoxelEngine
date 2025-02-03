@@ -4,7 +4,7 @@
     using System.Collections;
     using System.Collections.Generic;
 
-    public class ConcurrentList<T> : IList<T>, IReadOnlyList<T>
+    public class BlockingList<T> : IList<T>, IReadOnlyList<T>
     {
         private readonly List<T> _list = new();
 

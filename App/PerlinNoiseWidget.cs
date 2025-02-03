@@ -1,14 +1,16 @@
 ﻿namespace App
 {
-    using System.Numerics;
+    using Hexa.NET.D3D11;
+    using Hexa.NET.DXGI;
     using Hexa.NET.ImGui;
-    using Vortice.Direct3D11;
+    using System.Numerics;
+    using VoxelEngine.Graphics;
+    using VoxelEngine.Graphics.D3D11;
     using VoxelEngine.Mathematics.Noise;
 
-    public class PerlinNoiseWidget
+    public unsafe class PerlinNoiseWidget
     {
-        private readonly ID3D11Texture2D texture;
-        private readonly ID3D11ShaderResourceView shaderResourceView;
+        private readonly Texture2D texture;
 
         private int seed;
 
@@ -23,11 +25,9 @@
 
         private const int size = 256;
 
-        public PerlinNoiseWidget(ID3D11Device device)
+        public PerlinNoiseWidget()
         {
-            Texture2DDescription description = new(Vortice.DXGI.Format.R32G32B32A32_Float, size, size, 1, 1, BindFlags.ShaderResource, ResourceUsage.Dynamic, CpuAccessFlags.Write);
-            texture = device.CreateTexture2D(description);
-            shaderResourceView = device.CreateShaderResourceView(texture);
+            texture = new(Format.R32G32B32A32Float, size, size, cpuAccessFlags: CpuAccessFlags.Write, gpuAccessFlags: GpuAccessFlags.Read);
         }
 
         private static float SaturateOctave(float value, int octaves, float persistence, float amplitude)
@@ -43,7 +43,7 @@
             return value / result;
         }
 
-        public void Draw(ID3D11DeviceContext context)
+        public void Draw(GraphicsContext context)
         {
             if (!ImGui.Begin("Noise"))
             {
@@ -96,14 +96,16 @@
                     }
                 }
 
-                MappedSubresource mapped = context.Map(texture, 0, MapMode.WriteDiscard);
+                MappedSubresource mapped = context.Map(texture, 0, Map.WriteDiscard, 0);
+
                 pixels.CopyTo(mapped.AsSpan<Vector4>(size * size));
+
                 context.Unmap(texture, 0);
             }
 
             ImGui.Separator();
 
-            ImGui.Image((ulong)shaderResourceView.NativePointer, new(size));
+            ImGui.Image((ulong)texture.SRV.Handle, new(size));
 
             ImGui.End();
         }
@@ -111,7 +113,6 @@
         public void Release()
         {
             texture.Dispose();
-            shaderResourceView.Dispose();
         }
     }
 }

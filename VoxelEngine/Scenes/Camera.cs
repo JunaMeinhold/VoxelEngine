@@ -1,17 +1,14 @@
 ﻿namespace VoxelEngine.Scenes
 {
-    using System.Numerics;
     using Hexa.NET.Mathematics;
-    using Vortice.Direct3D11;
-    using Vortice.Mathematics;
+    using System.Numerics;
     using VoxelEngine.Core;
     using VoxelEngine.Core.Windows.Events;
-    using VoxelEngine.Rendering.D3D.Interfaces;
-    using Viewport = Vortice.Mathematics.Viewport;
+    using Viewport = Hexa.NET.Mathematics.Viewport;
 
-    public class Camera : GameObject, IView
+    public class Camera : GameObject
     {
-        public new CameraTransform Transform;
+        public new CameraTransform Transform = new();
         private bool autoSize = true;
 
         /// <summary>
@@ -19,7 +16,7 @@
         /// </summary>
         public Camera()
         {
-            base.Transform = Transform = new();
+            OverwriteTransform(Transform);
         }
 
         public ProjectionType ProjectionType { get => Transform.ProjectionType; set => Transform.ProjectionType = value; }
@@ -30,37 +27,17 @@
 
         public float Near { get => Transform.Near; set => Transform.Near = value; }
 
-        public bool AutoSize { get => autoSize; set => autoSize = value; }
+        public static Camera Current => SceneManager.Current.Camera;
 
-        public float Width { get => Transform.Width; set => Transform.Width = value; }
-
-        public float Height { get => Transform.Height; set => Transform.Height = value; }
-
-        CameraTransform IView.Transform => Transform;
-
-        public override void Initialize(ID3D11Device device)
+        public override void Awake()
         {
-            Application.MainWindow.Resized += Resized;
-            if (Application.MainWindow != null)
-                Application.MainWindow.Resized += Resized;
-            base.Initialize(device);
+            base.Awake();
             if (!autoSize || Application.MainWindow == null) return;
-            Transform.Width = Application.MainWindow.Width;
-            Transform.Height = Application.MainWindow.Height;
         }
 
-        public override void Uninitialize()
+        public override void Destroy()
         {
-            if (Application.MainWindow != null)
-                Application.MainWindow.Resized -= Resized;
-            base.Uninitialize();
-        }
-
-        private void Resized(object? sender, ResizedEventArgs e)
-        {
-            if (!autoSize) return;
-            Transform.Width = e.NewWidth;
-            Transform.Height = e.NewHeight;
+            base.Destroy();
         }
 
         public static implicit operator CameraTransform(Camera camera)
@@ -97,7 +74,10 @@
         public Matrix4x4 ProjInv;
         public Matrix4x4 ViewProj;
         public Matrix4x4 ViewProjInv;
+        public Matrix4x4 RelViewProj;
+        public Matrix4x4 RelViewProjInv;
         public Matrix4x4 PrevViewProj;
+
         public float Far;
         public float Near;
         public Vector2 ScreenDim;
@@ -111,62 +91,18 @@
             ViewProj = Matrix4x4.Transpose(camera.Transform.ViewProjection);
             ViewProjInv = Matrix4x4.Transpose(camera.Transform.ViewProjectionInv);
             PrevViewProj = Matrix4x4.Transpose(camera.Transform.PrevViewProjection);
-            Far = camera.Far;
-            Near = camera.Near;
-            ScreenDim = screenDim;
-        }
 
-        public CBCamera(Camera camera, Viewport screenDim)
-        {
-            Proj = Matrix4x4.Transpose(camera.Transform.Projection);
-            View = Matrix4x4.Transpose(camera.Transform.View);
-            ProjInv = Matrix4x4.Transpose(camera.Transform.ProjectionInv);
-            ViewInv = Matrix4x4.Transpose(camera.Transform.ViewInv);
-            ViewProj = Matrix4x4.Transpose(camera.Transform.ViewProjection);
-            ViewProjInv = Matrix4x4.Transpose(camera.Transform.ViewProjectionInv);
-            PrevViewProj = Matrix4x4.Transpose(camera.Transform.PrevViewProjection);
-            Far = camera.Far;
-            Near = camera.Near;
-            ScreenDim = new(screenDim.Width, screenDim.Height);
-        }
+            Matrix4x4 view = camera.Transform.View;
+            view[3, 0] = 0;
+            view[3, 1] = 0;
+            view[3, 2] = 0;
 
-        public CBCamera(Camera camera, Vector2 screenDim, Matrix4x4 last)
-        {
-            Proj = Matrix4x4.Transpose(camera.Transform.Projection);
-            View = Matrix4x4.Transpose(camera.Transform.View);
-            ProjInv = Matrix4x4.Transpose(camera.Transform.ProjectionInv);
-            ViewInv = Matrix4x4.Transpose(camera.Transform.ViewInv);
-            ViewProj = Matrix4x4.Transpose(camera.Transform.ViewProjection);
-            ViewProjInv = Matrix4x4.Transpose(camera.Transform.ViewProjectionInv);
-            PrevViewProj = Matrix4x4.Transpose(last);
-            Far = camera.Far;
-            Near = camera.Near;
-            ScreenDim = screenDim;
-        }
+            RelViewProj = view * camera.Transform.Projection;
+            Matrix4x4.Invert(RelViewProj, out RelViewProjInv);
 
-        public CBCamera(Camera camera, Vector2 screenDim, CBCamera last)
-        {
-            Proj = Matrix4x4.Transpose(camera.Transform.Projection);
-            View = Matrix4x4.Transpose(camera.Transform.View);
-            ProjInv = Matrix4x4.Transpose(camera.Transform.ProjectionInv);
-            ViewInv = Matrix4x4.Transpose(camera.Transform.ViewInv);
-            ViewProj = Matrix4x4.Transpose(camera.Transform.ViewProjection);
-            ViewProjInv = Matrix4x4.Transpose(camera.Transform.ViewProjectionInv);
-            PrevViewProj = last.ViewProj;
-            Far = camera.Far;
-            Near = camera.Near;
-            ScreenDim = screenDim;
-        }
+            RelViewProj = Matrix4x4.Transpose(RelViewProj);
+            RelViewProjInv = Matrix4x4.Transpose(RelViewProjInv);
 
-        public CBCamera(CameraTransform camera, Vector2 screenDim)
-        {
-            Proj = Matrix4x4.Transpose(camera.Projection);
-            View = Matrix4x4.Transpose(camera.View);
-            ProjInv = Matrix4x4.Transpose(camera.ProjectionInv);
-            ViewInv = Matrix4x4.Transpose(camera.ViewInv);
-            ViewProj = Matrix4x4.Transpose(camera.ViewProjection);
-            ViewProjInv = Matrix4x4.Transpose(camera.ViewProjectionInv);
-            PrevViewProj = Matrix4x4.Transpose(camera.PrevViewProjection);
             Far = camera.Far;
             Near = camera.Near;
             ScreenDim = screenDim;

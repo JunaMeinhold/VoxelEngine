@@ -1,10 +1,10 @@
 ﻿namespace VoxelEngine.Voxel.Metadata
 {
-    using System.Numerics;
+    using Hexa.NET.Mathematics;
 
-    public class BiomeMetadata
+    public unsafe struct BiomeMetadata
     {
-        public byte[] Data = new byte[Chunk.CHUNK_SIZE_SQUARED];
+        public fixed byte Data[Chunk.CHUNK_SIZE_SQUARED];
 
         public BiomeMetadata()
         {
@@ -16,31 +16,28 @@
             set => Data[index] = value;
         }
 
-        public byte this[Vector2 position]
+        public byte this[Point2 position]
         {
-            get => Data[position.MapToIndex(Chunk.CHUNK_SIZE)];
-            set => Data[position.MapToIndex(Chunk.CHUNK_SIZE)] = value;
+            get => Data[position.MapToIndex()];
+            set => Data[position.MapToIndex()] = value;
         }
 
         public void Serialize(Stream stream)
         {
-            BiomeMetadataHeader.Write(stream, Data.Length);
-            stream.Write(Data);
+            fixed (byte* pData = Data)
+            {
+                BiomeMetadataHeader.Write(stream, Chunk.CHUNK_SIZE_SQUARED);
+                stream.Write(new Span<byte>(pData, Chunk.CHUNK_SIZE_SQUARED));
+            }
         }
 
         public void Deserialize(Stream stream)
         {
-            BiomeMetadataHeader.Read(stream, out int dataLength);
-            Data = new byte[dataLength];
-            stream.ReadExactly(Data);
-        }
-
-        public int Deserialize(ReadOnlySpan<byte> data)
-        {
-            int index = BiomeMetadataHeader.Read(data, out int dataLength);
-            Data = new byte[dataLength];
-            data.Slice(index, dataLength).CopyTo(Data);
-            return index + dataLength;
+            fixed (byte* pData = Data)
+            {
+                BiomeMetadataHeader.Read(stream, out int dataLength);
+                stream.ReadExactly(new Span<byte>(pData, dataLength));
+            }
         }
     }
 }

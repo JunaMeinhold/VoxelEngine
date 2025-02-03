@@ -2,109 +2,183 @@
 {
     using System.Collections.Generic;
     using System.Runtime.CompilerServices;
-    using Vortice.Direct3D11;
-    using VoxelEngine.Rendering.D3D;
+    using Hexa.NET.D3D11;
+    using Hexa.NET.DXGI;
+    using Hexa.NET.ImGui.Backends.Vulkan;
+    using Hexa.NET.Utilities;
+    using HexaGen.Runtime.COM;
+    using VoxelEngine.Graphics.D3D11;
     using VoxelEngine.Resources;
 
-    public class IndexBuffer : Resource
+    public unsafe class IndexBuffer<T> : Resource, IBuffer where T : unmanaged
     {
+        private BufferDesc desc;
         private bool isDirty;
+        private UnsafeList<T> indices;
         private int indexCount;
         private int indexCapacity;
-        private readonly List<int> indices;
-        private ID3D11Buffer indexBuffer;
+        private ComPtr<ID3D11Buffer> buffer;
+        private readonly Format format;
+        private readonly IndexFormat indexFormat;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public IndexBuffer()
+        public IndexBuffer(CpuAccessFlags cpuAccessFlags, int capacity)
         {
-            indices = new List<int>();
-            isDirty = true;
+            if (typeof(T) == typeof(uint))
+            {
+                indexFormat = IndexFormat.UInt32;
+            }
+            else if (typeof(T) == typeof(ushort))
+            {
+                indexFormat = IndexFormat.UInt16;
+            }
+            else
+            {
+                throw new("Index buffers can only be type of uint or ushort");
+            }
+            format = typeof(T) == typeof(uint) ? Format.R32Uint : Format.R16Uint;
+
+            var device = D3D11DeviceManager.Device;
+            desc = new((uint)(sizeof(T) * capacity), Usage.Default, (uint)BindFlag.IndexBuffer, (uint)cpuAccessFlags);
+            indexCapacity = capacity;
+            if ((cpuAccessFlags & CpuAccessFlags.Write) != 0)
+            {
+                desc.Usage = Usage.Dynamic;
+            }
+            if ((cpuAccessFlags & CpuAccessFlags.Read) != 0)
+            {
+                desc.Usage = Usage.Staging;
+            }
+            if (cpuAccessFlags == 0)
+            {
+                throw new InvalidOperationException("If cpu access flags are none initial data must be provided");
+            }
+
+            device.CreateBuffer(ref desc, null, out buffer);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public IndexBuffer(ID3D11Device device, IEnumerable<int> indices)
+        public IndexBuffer(CpuAccessFlags cpuAccessFlags, Span<T> indices)
         {
-            this.indices = new List<int>(indices);
-            ResizeBuffers(device);
-            isDirty = true;
-        }
+            if (typeof(T) == typeof(uint))
+            {
+                indexFormat = IndexFormat.UInt32;
+            }
+            else if (typeof(T) == typeof(ushort))
+            {
+                indexFormat = IndexFormat.UInt16;
+            }
+            else
+            {
+                throw new("Index buffers can only be type of uint or ushort");
+            }
+            format = typeof(T) == typeof(uint) ? Format.R32Uint : Format.R16Uint;
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public IndexBuffer(ID3D11Device device, int capacity)
-        {
-            indices = new List<int>(capacity);
-            ResizeBuffers(device);
+            var device = D3D11DeviceManager.Device;
+            desc = new((uint)(sizeof(T) * indices.Length), Usage.Default, (uint)BindFlag.IndexBuffer, (uint)cpuAccessFlags);
+            indexCapacity = indices.Length;
+            if ((cpuAccessFlags & CpuAccessFlags.Write) != 0)
+            {
+                desc.Usage = Usage.Dynamic;
+            }
+            if ((cpuAccessFlags & CpuAccessFlags.Read) != 0)
+            {
+                desc.Usage = Usage.Staging;
+            }
+
+            fixed (T* pData = indices)
+            {
+                SubresourceData subresourceData = new(pData);
+                device.CreateBuffer(ref desc, ref subresourceData, out buffer);
+            }
+            indexCount = indices.Length;
         }
 
         public int Count => indexCount;
 
         public int IndexCapacity => indexCapacity;
 
+        public nint NativePointer => (nint)buffer.Handle;
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private unsafe void ResizeBuffers(ID3D11Device device)
+        private unsafe void ResizeBuffers()
         {
             if (indices.Count <= IndexCapacity)
             {
                 return;
             }
 
-            indexBuffer?.Dispose();
-            indexBuffer = device.CreateBuffer((ReadOnlySpan<int>)indices.ToArray().AsSpan(),
-                new BufferDescription(
-                indices.Count * sizeof(int),
-                BindFlags.IndexBuffer,
-                ResourceUsage.Dynamic,
-                CpuAccessFlags.Write));
-            indexBuffer.DebugName = nameof(IndexBuffer);
+            if (buffer.Handle != null)
+            {
+                buffer.Release();
+                buffer = null;
+            }
+
+            var device = D3D11DeviceManager.Device;
+
+            desc.ByteWidth = (uint)(indices.Count * sizeof(int));
+            SubresourceData subresourceData = new(indices.Data);
+            device.CreateBuffer(ref desc, ref subresourceData, out buffer);
+            //indexBuffer.DebugName = nameof(IndexBuffer);
             indexCapacity = indices.Count;
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private unsafe void UpdateBuffers(ID3D11DeviceContext context)
+        private unsafe void UpdateBuffers(GraphicsContext context)
         {
-            DeviceHelper.Write(context, indexBuffer, indices.ToArray());
+            context.Write(this, indices.Data, indices.Size);
             indexCount = indices.Count;
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Append(int vertex)
+        public void Append(T vertex)
         {
             indices.Add(vertex);
             isDirty = true;
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Append(params int[] vertices)
+        public void Append(IEnumerable<T> indicies)
         {
-            indices.AddRange(vertices);
+            foreach (var idx in indicies)
+            {
+                indices.PushBack(idx);
+            }
+
             isDirty = true;
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Append(T[] indicies)
+        {
+            indices.AppendRange(indicies);
+            isDirty = true;
+        }
+
         public void Clear()
         {
             indices.Clear();
             isDirty = true;
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Bind(ID3D11DeviceContext context)
+        public void Bind(GraphicsContext context)
         {
             if (isDirty)
             {
-                ResizeBuffers(context.Device);
+                ResizeBuffers();
                 UpdateBuffers(context);
 
                 isDirty = false;
             }
 
-            context.IASetIndexBuffer(indexBuffer, Vortice.DXGI.Format.R32_UInt, 0);
+            context.SetIndexBuffer(this, format, 0);
         }
 
-        protected override void Dispose(bool disposing)
+        public static implicit operator ComPtr<ID3D11Buffer>(IndexBuffer<T> buffer) => buffer.buffer;
+
+        protected override void DisposeCore()
         {
-            indexBuffer?.Dispose();
-            indexBuffer = null;
+            if (buffer.Handle != null)
+            {
+                buffer.Release();
+                buffer = null;
+            }
         }
     }
 }

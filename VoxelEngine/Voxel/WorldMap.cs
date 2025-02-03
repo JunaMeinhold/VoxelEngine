@@ -30,12 +30,14 @@
 
         public unsafe bool IsNoBlock(int x, int y, int z)
         {
-            int xglobal = x / Chunk.CHUNK_SIZE;
-            int xlocal = x % Chunk.CHUNK_SIZE;
-            int yglobal = y / Chunk.CHUNK_SIZE;
-            int ylocal = y % Chunk.CHUNK_SIZE;
-            int zglobal = z / Chunk.CHUNK_SIZE;
-            int zlocal = z % Chunk.CHUNK_SIZE;
+            int xglobal = x >> 4;
+            int yglobal = y >> 4;
+            int zglobal = z >> 4;
+
+            int xlocal = x & 15;
+            int ylocal = y & 15;
+            int zlocal = z & 15;
+
             // If it is at the edge of the map, return true
             if (xglobal < CHUNK_AMOUNT_X_MIN || xglobal >= CHUNK_AMOUNT_X ||
                 yglobal < CHUNK_AMOUNT_Y_MIN || yglobal >= CHUNK_AMOUNT_Y ||
@@ -60,7 +62,7 @@
             }
 
             // Chunk data accessed quickly using bit masks
-            return c.Data[Extensions.MapToIndex(xlocal, ylocal, zlocal, Chunk.CHUNK_SIZE, Chunk.CHUNK_SIZE)].Type == Chunk.EMPTY;
+            return c.Data[Extensions.MapToIndex(xlocal, ylocal, zlocal)].Type == Chunk.EMPTY;
         }
 
         public void Set(Chunk chunk, Vector3 pos)

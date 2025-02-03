@@ -1,77 +1,78 @@
 ﻿namespace App.Renderers.Forward
 {
+    using Hexa.NET.D3DCommon;
+    using Hexa.NET.Mathematics;
     using System.Numerics;
-    using System.Runtime.CompilerServices;
-    using App.Pipelines.Forward;
-    using Vortice.Direct3D11;
-    using Vortice.Mathematics;
+    using VoxelEngine.Graphics;
     using VoxelEngine.Graphics.Buffers;
+    using VoxelEngine.Graphics.D3D11;
     using VoxelEngine.Graphics.Primitives;
-    using VoxelEngine.Graphics.Shaders;
-    using VoxelEngine.Rendering.D3D.Interfaces;
     using VoxelEngine.Scenes;
     using VoxelEngine.Voxel;
-    using BoundingBox = Hexa.NET.Mathematics.BoundingBox;
 
-    public class BlockHighlightRenderer : IForwardRenderComponent
+    public class BlockHighlightRenderer : BaseRenderComponent
     {
-        private ConstantBuffer<ModelViewProjBuffer> mvpBuffer;
-        private ConstantBuffer<Color4> colorBuffer;
-        private World _world;
-        private LinePipeline linePipeline;
+        private GraphicsPipelineState linePipeline;
+        private ConstantBuffer<Matrix4x4> mvpBuffer;
+        private ConstantBuffer<Vector4> colorBuffer;
         private LineBox lineBox;
+        private Player player;
 
-        public Color4 Color;
+        public Vector4 Color;
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Initialize(ID3D11Device device, GameObject element)
+        public override int QueueIndex { get; } = (int)RenderQueueIndex.GeometryLast;
+
+        public override void Awake()
         {
-            if (element is World world)
+            if (GameObject is Player player)
             {
-                _world = world;
+                this.player = player;
             }
-            mvpBuffer = new(device, CpuAccessFlags.Write);
-            colorBuffer = new(device, CpuAccessFlags.Write);
-            linePipeline = new(device);
-            linePipeline.ConstantBuffers.Append(mvpBuffer, ShaderStage.Vertex);
-            linePipeline.ConstantBuffers.Append(colorBuffer, ShaderStage.Pixel);
+            mvpBuffer = new(CpuAccessFlags.Write);
+            colorBuffer = new(CpuAccessFlags.Write);
+            linePipeline = GraphicsPipelineState.Create(new()
+            {
+                VertexShader = "forward/line/vs.hlsl",
+                PixelShader = "forward/line/ps.hlsl",
+            }, new GraphicsPipelineStateDesc()
+            {
+                Topology = PrimitiveTopology.Linelist
+            });
+            linePipeline.Bindings.SetCBV("ModelBuffer", mvpBuffer);
+            linePipeline.Bindings.SetCBV("ColorBuffer", colorBuffer);
             Color = Colors.Gray;
             lineBox = new();
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void DrawForward(ID3D11DeviceContext context, IView view)
+        public override void Draw(GraphicsContext context, PassIdentifer pass, Camera camera, object? parameter)
         {
-            if (_world.Player.IsLookingAtBlock)
+            if (pass == PassIdentifer.ForwardPass)
             {
-                mvpBuffer.Update(context, new ModelViewProjBuffer(view, Matrix4x4.CreateScale(0.5f) * Matrix4x4.CreateTranslation(_world.Player.LookAtBlock + new Vector3(0.5f))));
-                colorBuffer.Update(context, Color);
-
-                lineBox.Bind(context);
-                linePipeline.Begin(context);
-                context.DrawIndexed(lineBox.IndexBuffer.Count, 0, 0);
-                linePipeline.End(context);
+                DrawForward(context);
             }
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Uninitialize()
+        public void DrawForward(GraphicsContext context)
         {
-            linePipeline.Dispose();
-            linePipeline = null;
-            mvpBuffer.Dispose();
-            mvpBuffer = null;
-            colorBuffer.Dispose();
-            colorBuffer = null;
-            lineBox.Dispose();
-            lineBox = null;
-            _world = null;
+            if (player == null) return;
+            if (player.IsLookingAtBlock)
+            {
+                mvpBuffer.Update(context, Matrix4x4.Transpose(Matrix4x4.CreateScale(0.51f) * Matrix4x4.CreateTranslation((Vector3)player.LookAtBlock + new Vector3(0.5f))));
+                colorBuffer.Update(context, Color);
+
+                lineBox.Bind(context);
+                context.SetGraphicsPipelineState(linePipeline);
+                context.DrawIndexedInstanced((uint)lineBox.IndexBuffer.Count, 1, 0, 0, 0);
+                context.SetGraphicsPipelineState(null);
+            }
         }
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public BoundingBox GetBoundingBox()
+        public override void Destroy()
         {
-            return new BoundingBox(new Vector3(float.NaN), new Vector3(float.NaN));
+            linePipeline.Dispose();
+            mvpBuffer.Dispose();
+            colorBuffer.Dispose();
+            lineBox.Dispose();
         }
     }
 }

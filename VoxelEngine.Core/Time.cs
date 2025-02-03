@@ -24,6 +24,8 @@
 
         public static int FixedUpdateRate { get => fixedUpdateRate; set => fixedUpdateRate = value; }
 
+        public static float FixedDelta => 1f / FixedUpdateRate;
+
         public static float FixedUpdatePerSecond => 1000F / FixedUpdateRate / 1000f;
 
         public static int FrameRate => frameRate;

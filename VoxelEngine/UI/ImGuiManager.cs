@@ -1,4 +1,4 @@
-﻿namespace HexaEngine.Rendering.Renderers
+﻿namespace VoxelEngine.UI
 {
     using System.Numerics;
     using Hexa.NET.ImGui;
@@ -12,8 +12,9 @@
     using VoxelEngine.Core.Windows;
     using SDLWindow = Hexa.NET.SDL2.SDLWindow;
     using SDLEvent = Hexa.NET.SDL2.SDLEvent;
-    using ID3D11Device = Vortice.Direct3D11.ID3D11Device;
-    using ID3D11DeviceContext = Vortice.Direct3D11.ID3D11DeviceContext;
+    using ID3D11Device = Hexa.NET.D3D11.ID3D11Device;
+    using ID3D11DeviceContext = Hexa.NET.D3D11.ID3D11DeviceContext;
+    using HexaGen.Runtime.COM;
 
     public class ImGuiManager
     {
@@ -23,7 +24,7 @@
 
         private bool disposedValue;
 
-        public unsafe ImGuiManager(CoreWindow window, ID3D11Device device, ID3D11DeviceContext context, ImGuiConfigFlags flags = ImGuiConfigFlags.NavEnableKeyboard | ImGuiConfigFlags.NavEnableGamepad | ImGuiConfigFlags.DockingEnable | ImGuiConfigFlags.ViewportsEnable)
+        public unsafe ImGuiManager(CoreWindow window, ComPtr<ID3D11Device> device, ComPtr<ID3D11DeviceContext> context, ImGuiConfigFlags flags = ImGuiConfigFlags.NavEnableKeyboard | ImGuiConfigFlags.NavEnableGamepad | ImGuiConfigFlags.DockingEnable | ImGuiConfigFlags.ViewportsEnable)
         {
             guiContext = ImGui.CreateContext(null);
             ImGui.SetCurrentContext(guiContext);
@@ -59,7 +60,7 @@
             ImGuiImplSDL2.InitForD3D((Hexa.NET.ImGui.Backends.SDL2.SDLWindow*)windowPtr);
 
             ImGuiImplD3D11.SetCurrentContext(guiContext);
-            ImGuiImplD3D11.Init(new((Hexa.NET.ImGui.Backends.D3D11.ID3D11Device*)device.NativePointer), new((Hexa.NET.ImGui.Backends.D3D11.ID3D11DeviceContext*)context.NativePointer));
+            ImGuiImplD3D11.Init(new((Hexa.NET.ImGui.Backends.D3D11.ID3D11Device*)device.Handle), new((Hexa.NET.ImGui.Backends.D3D11.ID3D11DeviceContext*)context.Handle));
             ImGuiImplD3D11.NewFrame();
 
             Application.RegisterHook(MessageHook);

@@ -1,22 +1,19 @@
 ﻿namespace App.Scripts
 {
-    using System.Numerics;
-    using System.Runtime.CompilerServices;
     using App.Objects;
-    using BepuPhysics.Collidables;
     using Hexa.NET.ImGui;
     using Hexa.NET.Mathematics;
+    using System.Numerics;
+    using System.Runtime.CompilerServices;
     using VoxelEngine.Core;
     using VoxelEngine.Core.Input;
-    using VoxelEngine.Mathematics;
     using VoxelEngine.Physics;
-    using VoxelEngine.Physics.Characters;
     using VoxelEngine.Scenes;
     using VoxelEngine.Scripting;
     using VoxelEngine.Voxel;
     using VoxelEngine.Voxel.Blocks;
 
-    public class PlayerController : ScriptFrameComponent
+    public class PlayerController : ScriptComponent
     {
         public float Speed = 20F;
         public float AngluarSpeed = 20F;
@@ -25,18 +22,21 @@
         private bool midDown;
         private Camera camera;
         private CPlayer player;
-        public CharacterInput character;
-        private RayHitHandler rayHitHandler;
+        private World world;
+        private Vector3 teleportLocation;
 
         public override void Awake()
         {
-            player = Parent as CPlayer;
+            player = GameObject as CPlayer;
             player.Respawned += Player_Respawned;
             camera = Scene.Camera;
 
-            character = new(Parent.Scene.CharacterControllers, Parent.Transform.Position, new Capsule(0.25f, 1.5f), 0.1f, 1.25f, 100, 100, 5, 4, MathF.PI * 0.4f);
-            rayHitHandler = new(Parent.Scene.Simulation, CollidableMobility.Static);
             Keyboard.KeyUp += Keyboard_OnKeyUp;
+            world = Scene.Find<World>()!;
+
+            var origin = player.Transform.GlobalPosition;
+            origin.Y = 256;
+            var result = PhysicsSystem.CastRay(origin, -Vector3.UnitY, float.MaxValue, world);
         }
 
         private void Keyboard_OnKeyUp(object sender, VoxelEngine.Core.Input.Events.KeyboardEventArgs e)
@@ -59,14 +59,20 @@
 
         private void Player_Respawned(object sender, EventArgs e)
         {
-            Parent.Scene.Simulation.Bodies[character.BodyHandle].Pose.Position = player.Spawnpoint;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveOptimization)]
         public override void Update()
         {
-            if (ImGui.Begin("Blocks"))
+            if (ImGui.Begin("Player"))
             {
+                ImGui.InputFloat3("Location", ref teleportLocation);
+                ImGui.SameLine();
+                if (ImGui.Button("Teleport"))
+                {
+                    camera.Transform.GlobalPosition = teleportLocation;
+                    world.WorldLoader.Reset();
+                }
                 ImGui.Text(player.SelectedBlock.Name);
             }
             ImGui.End();
@@ -78,12 +84,13 @@
             }
 
             HandleFreeCamera();
-            Parent.Transform.Position = transform.Position - new Vector3(0, 1f, 0);
+            GameObject.Transform.Position = transform.Position - new Vector3(0, 1f, 0);
 
-            RaycastResult result = rayHitHandler.Raycast(transform.Position, transform.Forward, 10);
+            var result = PhysicsSystem.CastRay(transform.Position, transform.Forward, 20, player.World);
+
             if (result.Hit)
             {
-                Vector3 hitLocation = transform.Position + transform.Forward * result.T + transform.Forward * 0.01f;
+                Vector3 hitLocation = result.Position; //transform.Position + transform.Forward * result.T + transform.Forward * 0.01f;
                 player.IsLookingAtBlock = true;
                 player.LookAtBlock = new((int)Math.Floor(hitLocation.X), (int)Math.Floor(hitLocation.Y), (int)Math.Floor(hitLocation.Z));
             }
@@ -111,9 +118,9 @@
                 leftDown = true;
                 if (player.IsLookingAtBlock)
                 {
-                    Scene.Dispatcher.Invoke(() =>
+                    Scene.Dispatcher.Invoke(player, player =>
                     {
-                        player.World.SetBlock((int)player.LookAtBlock.X, (int)player.LookAtBlock.Y, (int)player.LookAtBlock.Z, default);
+                        player.World.SetBlock(player.LookAtBlock, Block.Air);
                     });
                 }
             }
@@ -121,14 +128,11 @@
             if (Mouse.IsDown(MouseButton.Right) & !rightDown)
             {
                 rightDown = true;
+
                 if (player.IsLookingAtBlock)
                 {
-                    Vector3 hitLocation = transform.Position + transform.Forward * result.T + transform.Forward * 0.01f;
-                    Vector3? index = CalculateAddIndex(hitLocation, player.LookAtBlock);
-                    if (index.HasValue)
-                    {
-                        player.World.SetBlock((int)index.Value.X, (int)index.Value.Y, (int)index.Value.Z, player.SelectedBlock);
-                    }
+                    Point3 hitLocation = (Point3)(result.Position + result.Normal);
+                    player.World.SetBlock(hitLocation, player.SelectedBlock);
                 }
             }
 
@@ -137,9 +141,9 @@
                 midDown = true;
                 if (player.IsLookingAtBlock)
                 {
-                    Scene.Dispatcher.Invoke(() =>
+                    Scene.Dispatcher.Invoke(player, player =>
                     {
-                        player.SelectedBlockId = player.World.GetBlock((int)player.LookAtBlock.X, (int)player.LookAtBlock.Y, (int)player.LookAtBlock.Z).Type;
+                        player.SelectedBlockId = player.World.GetBlock(player.LookAtBlock).Type;
                     });
                 }
             }

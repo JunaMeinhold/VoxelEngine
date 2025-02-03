@@ -1,12 +1,11 @@
 ﻿namespace VoxelEngine.Voxel
 {
+    using Hexa.NET.Mathematics;
     using System;
     using System.Buffers.Binary;
     using System.Collections;
     using System.IO;
     using System.Numerics;
-    using System.Runtime.CompilerServices;
-    using BepuUtilities.Memory;
     using VoxelEngine.IO;
 
     public struct ChunkSegment
@@ -33,6 +32,54 @@
             private Chunk chunk13;
             private Chunk chunk14;
             private Chunk chunk15;
+
+            public unsafe void SetBlock(Point3 pos, Block block)
+            {
+                if (pos.Y < 0 || pos.Y > 255) return;
+                int index = pos.Y >> 4;
+                int height = pos.Y & 15;
+
+                var chunk = this[index];
+
+                int heightAccess = new Point2(pos.X, pos.Z).MapToIndex();
+                if (block.Type == 0)
+                {
+                    if (chunk.MaxY[heightAccess] == height + 1)
+                    {
+                        byte newMaxY = 0;
+                        for (int y = height; y >= 0; y--)
+                        {
+                            if (chunk.Data[new Point3(pos.X, y, pos.Z).MapToIndex()].Type != 0)
+                            {
+                                newMaxY = (byte)(y + 1);
+                                break;
+                            }
+                        }
+                        chunk.MaxY[heightAccess] = newMaxY;
+                    }
+
+                    if (chunk.MinY[heightAccess] == height)
+                    {
+                        byte newMinY = 15;
+                        for (int y = height; y <= 16; y++)
+                        {
+                            if (chunk.Data[new Point3(pos.X, y, pos.Z).MapToIndex()].Type != 0)
+                            {
+                                newMinY = (byte)y;
+                                break;
+                            }
+                        }
+                        chunk.MinY[heightAccess] = newMinY;
+                    }
+                }
+                else
+                {
+                    chunk.MinY[heightAccess] = Math.Min(chunk.MinY[heightAccess], (byte)height);
+                    chunk.MaxY[heightAccess] = Math.Max(chunk.MaxY[heightAccess], (byte)(height + 1));
+                }
+
+                chunk.Data[new Point3(pos.X, height, pos.Z).MapToIndex()] = block;
+            }
 
             public Chunk this[int index]
             {
@@ -146,7 +193,7 @@
             world.Generator.GenerateBatch(ref Chunks, world, new(Position.X, 0, Position.Y));
         }
 
-        public readonly void Load(BufferPool pool, bool loadToSimulation)
+        public readonly void Load(bool loadToSimulation)
         {
             if (loadToSimulation)
             {
@@ -154,7 +201,6 @@
                 {
                     Chunk chunk = Chunks[i];
                     chunk.Update();
-                    chunk.LoadToSimulation(pool);
                 }
             }
             else
@@ -182,15 +228,6 @@
             {
                 Chunk chunk = Chunks[i];
                 chunk.UnloadFromGPU();
-            }
-        }
-
-        public readonly void UnloadFromSimulation()
-        {
-            for (int i = 0; i < CHUNK_SEGMENT_SIZE; i++)
-            {
-                Chunk chunk = Chunks[i];
-                chunk.UnloadFormSimulation();
             }
         }
 
@@ -229,7 +266,7 @@
             }
 
             string filename = Path.Combine(world.Path, $"r.{Position.X}.{Position.Y}.vxr");
-            FileStream fs = File.Create(filename);
+            using FileStream fs = File.Create(filename);
             Span<byte> buffer = stackalloc byte[4];
             BinaryPrimitives.WriteInt32LittleEndian(buffer, CHUNK_SEGMENT_SIZE);
             fs.Write(buffer);
@@ -246,7 +283,7 @@
         public unsafe void LoadFromDisk(WorldMap world)
         {
             string filename = Path.Combine(world.Path, $"r.{Position.X}.{Position.Y}.vxr");
-            FileStream fs = File.OpenRead(filename);
+            using FileStream fs = File.OpenRead(filename);
 
             int count = fs.ReadInt32();
 
@@ -300,7 +337,7 @@
             return !(left == right);
         }
 
-        public override readonly bool Equals(object obj)
+        public override readonly bool Equals(object? obj)
         {
             if (obj is ChunkSegment region)
             {

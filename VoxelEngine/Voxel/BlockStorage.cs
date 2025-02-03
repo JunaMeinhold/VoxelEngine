@@ -1,15 +1,13 @@
 ﻿namespace VoxelEngine.Voxel
 {
-    using System.Runtime.InteropServices;
-
-    public unsafe class BlockStorage
+    public unsafe struct BlockStorage
     {
         private readonly int blockCount;
         private int maxBlockId;
         private int bitsPerBlock;
 
         private readonly Dictionary<ushort, ushort> blockPalette = new() { { 0, 0 } };
-        private readonly List<ushort> reversePalette = new() { 0 };
+        private readonly List<ushort> reversePalette = [0];
 
         private byte* data;
 
@@ -27,7 +25,7 @@
             bitsPerBlock = (int)Math.Ceiling(Math.Log2(maxBlockId + 1));
             int totalBits = blockCount * bitsPerBlock;
             int totalBytes = (totalBits + 7) / 8;
-            data = (byte*)Marshal.AllocHGlobal(totalBytes);
+            data = AllocT<byte>(totalBytes);
             for (int i = 0; i < totalBytes; i++)
             {
                 data[i] = 0;
@@ -40,7 +38,7 @@
         {
             if (data != null)
             {
-                Marshal.FreeHGlobal((IntPtr)data);
+                Free(data);
                 data = null;
             }
             maxBlockId = 0;
@@ -121,7 +119,7 @@
 
             int newTotalBits = blockCount * newBitsPerBlock;
             int newTotalBytes = (newTotalBits + 7) / 8;
-            byte* newData = (byte*)Marshal.AllocHGlobal(newTotalBytes);
+            byte* newData = AllocT<byte>(newTotalBytes);
 
             for (int i = 0; i < newTotalBytes; i++)
             {
@@ -167,7 +165,7 @@
                 }
             }
 
-            Marshal.FreeHGlobal((IntPtr)data);
+            Free(data);
             data = newData;
             bitsPerBlock = newBitsPerBlock;
             maxBlockId = newMaxBlockId;

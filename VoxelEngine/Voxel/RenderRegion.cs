@@ -1,29 +1,30 @@
 ﻿namespace VoxelEngine.Voxel
 {
+    using Hexa.NET.Mathematics;
     using System.Collections.Generic;
     using System.Numerics;
-    using Hexa.NET.Mathematics;
-    using Vortice.Direct3D11;
+    using VoxelEngine.Graphics;
+    using VoxelEngine.Voxel.Meshing;
 
     public class RenderRegion
     {
+        private readonly Lock @lock = new();
         private readonly List<ChunkSegment> ChunkSegments = new();
-        public BlockVertexBuffer vertexBuffer = new();
+        public RegionVertexBuffer vertexBuffer = new();
         public Vector3 Position;
         public Vector2 Offset;
         public Vector2 Size;
         public BoundingBox BoundingBox;
-        public string Name;
+        public int IsDirty;
 
         public RenderRegion(Vector2 offset, Vector2 size)
         {
             Position = new(offset.X, 0, offset.Y);
             Offset = offset;
             Size = size;
-            Name = offset.ToString();
         }
 
-        public BlockVertexBuffer VertexBuffer => vertexBuffer;
+        public RegionVertexBuffer VertexBuffer => vertexBuffer;
 
         public int RegionCount
         {
@@ -38,23 +39,25 @@
 
         public void AddRegion(ChunkSegment region)
         {
-            lock (ChunkSegments)
+            lock (@lock)
             {
                 ChunkSegments.Add(region);
+                IsDirty++;
             }
         }
 
         public void RemoveRegion(ChunkSegment region)
         {
-            lock (ChunkSegments)
+            lock (@lock)
             {
                 ChunkSegments.Remove(region);
+                IsDirty++;
             }
         }
 
         public bool ContainsRegion(ChunkSegment region)
         {
-            lock (ChunkSegments)
+            lock (@lock)
             {
                 return ChunkSegments.Contains(region);
             }
@@ -70,25 +73,55 @@
             return false;
         }
 
-        public void Update(ID3D11Device device, ID3D11DeviceContext context)
+        public bool SetDirty()
         {
-            vertexBuffer.Reset();
-            var max = Offset + Size;
-            BoundingBox = new(new Vector3(Offset.X, 0, Offset.Y) * Chunk.CHUNK_SIZE, new Vector3(max.X, World.CHUNK_AMOUNT_Y, max.Y) * Chunk.CHUNK_SIZE);
-            for (int i = 0; i < ChunkSegments.Count; i++)
+            lock (@lock)
             {
-                ChunkSegment region = ChunkSegments[i];
-                for (int j = 0; j < ChunkSegment.CHUNK_SEGMENT_SIZE; j++)
-                {
-                    Chunk chunk = region.Chunks[j];
-
-#if !USE_LEGACY_LOADER
-                    vertexBuffer.BufferData(chunk.VertexBuffer, chunk.Position * Chunk.CHUNK_SIZE);
-#endif
-                }
+                IsDirty++;
+                return true;
             }
+        }
 
-            vertexBuffer.BufferData(device);
+        public void Update(GraphicsContext context)
+        {
+            lock (@lock)
+            {
+                int value = IsDirty;
+                if (value == 0) return;
+                IsDirty = 0;
+
+                int verts = 0;
+
+                for (int i = 0; i < ChunkSegments.Count; i++)
+                {
+                    ChunkSegment region = ChunkSegments[i];
+                    for (int j = 0; j < ChunkSegment.CHUNK_SEGMENT_SIZE; j++)
+                    {
+                        Chunk chunk = region.Chunks[j];
+                        chunk.VertexBuffer.Lock();
+                        verts += chunk.VertexBuffer.Count;
+                    }
+                }
+
+                vertexBuffer.Map(context, verts);
+
+                var min = new Vector3(Offset.X, 0, Offset.Y);
+                var max = Offset + Size;
+                BoundingBox = new(new Vector3(Offset.X, 0, Offset.Y) * Chunk.CHUNK_SIZE, new Vector3(max.X, World.CHUNK_AMOUNT_Y, max.Y) * Chunk.CHUNK_SIZE);
+
+                for (int i = 0; i < ChunkSegments.Count; i++)
+                {
+                    ChunkSegment region = ChunkSegments[i];
+                    for (int j = 0; j < ChunkSegment.CHUNK_SEGMENT_SIZE; j++)
+                    {
+                        Chunk chunk = region.Chunks[j];
+                        vertexBuffer.BufferData(chunk.VertexBuffer, (chunk.Position - min) * Chunk.CHUNK_SIZE);
+                        chunk.VertexBuffer.ReleaseLock();
+                    }
+                }
+
+                vertexBuffer.Unmap(context);
+            }
         }
 
         public void Release()
@@ -96,9 +129,9 @@
             vertexBuffer?.Dispose();
         }
 
-        public void Bind(ID3D11DeviceContext context)
+        public bool Bind(GraphicsContext context)
         {
-            vertexBuffer.Bind(context);
+            return vertexBuffer.Bind(context);
         }
     }
 }
