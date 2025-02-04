@@ -1,20 +1,15 @@
 ﻿namespace VoxelEngine.Voxel
 {
+    using Hexa.NET.Mathematics;
     using System.Collections.Generic;
     using System.IO;
-    using System.Linq;
     using System.Numerics;
     using System.Runtime.CompilerServices;
-    using Hexa.NET.D3D11;
-    using Hexa.NET.Mathematics;
     using VoxelEngine.Voxel.WorldGen;
 
-    public class World : WorldMap
+    public partial class World
     {
-        //private Vector3 CurrentPlayerChunkPos;
-        //private bool invalidate = true;
-
-        public World(string path)
+        public World(string path, int dimId = 0)
         {
             Name = nameof(World);
             DirectoryInfo dir = Directory.CreateDirectory(path);
@@ -25,6 +20,8 @@
 
             Chunks = new();
             Path = dir.FullName;
+            DimId = dimId;
+            DimensionManager.AddWorld(this);
         }
 
         public IChunkGenerator Generator { get; set; }
@@ -37,9 +34,9 @@
 
         public IReadOnlyList<ChunkSegment> LoadedChunkSegments => WorldLoader.LoadedChunkSegments;
 
-#if !USE_LEGACY_LOADER
         public IReadOnlyList<RenderRegion> LoadedRenderRegions => WorldLoader.LoadedRenderRegions;
-#endif
+
+        public int DimId { get; }
 
         public WorldLoader WorldLoader;
 
@@ -61,31 +58,18 @@
             int ylocal = y & 15;
             int zlocal = z & 15;
 
-            // If it is at the edge of the map, return true
-            if (xglobal < CHUNK_AMOUNT_X_MIN || xglobal >= CHUNK_AMOUNT_X ||
-                yglobal < CHUNK_AMOUNT_Y_MIN || yglobal >= CHUNK_AMOUNT_Y ||
-                zglobal < CHUNK_AMOUNT_Z_MIN || zglobal >= CHUNK_AMOUNT_Z)
+            if (xglobal < CHUNK_AMOUNT_X_MIN || xglobal >= CHUNK_AMOUNT_X || yglobal < CHUNK_AMOUNT_Y_MIN || yglobal >= CHUNK_AMOUNT_Y || zglobal < CHUNK_AMOUNT_Z_MIN || zglobal >= CHUNK_AMOUNT_Z)
             {
                 return;
             }
 
-            if (xlocal < 0 || xlocal >= Chunk.CHUNK_SIZE ||
-                ylocal < 0 || ylocal >= Chunk.CHUNK_SIZE ||
-                zlocal < 0 || zlocal >= Chunk.CHUNK_SIZE)
-            {
-                return;
-            }
+            Chunk? c = Chunks[xglobal, yglobal, zglobal];
 
-            // Chunk accessed quickly using bitwise shifts
-            Chunk c = Chunks[xglobal, yglobal, zglobal];
-
-            // To lower memory usage, a chunk is null if it has no blocks
             if (c == null)
             {
                 return;
             }
 
-            // Chunk data accessed quickly using bit masks
             c.SetBlockInternal(block, xlocal, ylocal, zlocal);
 
             UpdateChunk(xglobal, yglobal, zglobal, true);
@@ -118,15 +102,10 @@
                 return default;
             }
 
-            if (xlocal < 0 || xlocal >= Chunk.CHUNK_SIZE ||
-                ylocal < 0 || ylocal >= Chunk.CHUNK_SIZE ||
-                zlocal < 0 || zlocal >= Chunk.CHUNK_SIZE)
-            {
-                return default;
-            }
-
             // Chunk accessed quickly using bitwise shifts
-            Chunk c = Chunks[xglobal, yglobal, zglobal];
+            Chunk? c = Chunks[xglobal, yglobal, zglobal];
+
+            if (c == null) return Block.Air;
 
             return c.GetBlockInternal(xlocal, ylocal, zlocal);
         }
@@ -178,6 +157,7 @@
             WorldLoader.Dispose();
             Chunks.Clear();
             Chunks = null;
+            DimensionManager.RemoveWorld(this);
         }
     }
 }

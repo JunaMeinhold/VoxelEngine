@@ -430,7 +430,8 @@
                 }
 
                 mainWindow.Render();
-                mainWindow.ClearState();
+                Keyboard.Flush();
+                Mouse.Flush();
                 Time.FrameUpdate();
             }
 

@@ -6,7 +6,6 @@
     public unsafe class ChunkVertexBuffer : IDisposable, IVoxelVertexBuffer
     {
         private const int DefaultCapacity = 4096;
-        private readonly int stride;
         private int count;
         private int capacity;
 
@@ -16,7 +15,6 @@
 
         public ChunkVertexBuffer()
         {
-            stride = sizeof(int);
             capacity = DefaultCapacity;
             Data = AllocT<VoxelVertex>(capacity);
             ZeroMemoryT(Data, capacity);

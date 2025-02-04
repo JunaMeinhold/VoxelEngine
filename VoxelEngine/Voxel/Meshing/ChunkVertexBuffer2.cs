@@ -3,13 +3,58 @@
     using Hexa.NET.Utilities;
     using System.Runtime.CompilerServices;
 
+    public struct SemaphoreLight
+    {
+        private volatile int count;
+        private readonly int maxCount;
+
+        public SemaphoreLight(int initialCount, int maxCount)
+        {
+            if (initialCount < 0 || maxCount <= 0 || initialCount > maxCount)
+            {
+                throw new ArgumentException("Invalid semaphore initialization values.");
+            }
+
+            count = initialCount;
+            this.maxCount = maxCount;
+        }
+
+        public readonly int CurrentCount => count;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Wait()
+        {
+            while (true)
+            {
+                int oldCount = count;
+                if (count > 0 && Interlocked.CompareExchange(ref count, oldCount - 1, oldCount) == oldCount)
+                {
+                    return;
+                }
+
+                Thread.Yield();
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Release()
+        {
+            if (count >= maxCount)
+            {
+                throw new SemaphoreFullException("Semaphore already at maximum count.");
+            }
+
+            Interlocked.Increment(ref count);
+        }
+    }
+
     public unsafe struct ChunkVertexBuffer2
     {
         private const int DefaultCapacity = 4096;
         private readonly int stride;
         private int count;
         private int capacity;
-        private SemaphoreLight semaphore;
+        private SemaphoreLight semaphore = new(1, 1);
 
         public VoxelVertex* Data;
 

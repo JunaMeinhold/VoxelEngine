@@ -146,6 +146,11 @@
 
             DebugDraw.SetCamera(camera.Transform.ViewProjection);
 
+            ImGui.InputFloat("LightDistanceFactor", ref directionalLight.Config.LightDistanceFactor);
+            ImGui.InputFloat("FarFactor", ref directionalLight.Config.FarFactor);
+            ImGui.InputFloat("PixelSnap", ref directionalLight.Config.PixelSnap);
+            ImGui.Checkbox("Stabilize", ref directionalLight.Config.Stabilize);
+
             cameraBuffer.Update(context, new CBCamera(camera, new Vector2(rendererWidth, rendererHeight)));
 
             resourceBuilder.OutputViewport = swapChain.Viewport;

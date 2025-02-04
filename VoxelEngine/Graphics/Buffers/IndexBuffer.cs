@@ -1,25 +1,21 @@
 ﻿namespace VoxelEngine.Graphics.Buffers
 {
-    using System.Collections.Generic;
-    using System.Runtime.CompilerServices;
     using Hexa.NET.D3D11;
     using Hexa.NET.DXGI;
-    using Hexa.NET.ImGui.Backends.Vulkan;
-    using Hexa.NET.Utilities;
     using HexaGen.Runtime.COM;
+    using System.Runtime.CompilerServices;
     using VoxelEngine.Graphics.D3D11;
     using VoxelEngine.Resources;
 
     public unsafe class IndexBuffer<T> : Resource, IBuffer where T : unmanaged
     {
         private BufferDesc desc;
-        private bool isDirty;
-        private UnsafeList<T> indices;
         private int indexCount;
-        private int indexCapacity;
         private ComPtr<ID3D11Buffer> buffer;
         private readonly Format format;
         private readonly IndexFormat indexFormat;
+        private readonly bool canWrite;
+        private readonly bool canRead;
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public IndexBuffer(CpuAccessFlags cpuAccessFlags, int capacity)
@@ -40,14 +36,16 @@
 
             var device = D3D11DeviceManager.Device;
             desc = new((uint)(sizeof(T) * capacity), Usage.Default, (uint)BindFlag.IndexBuffer, (uint)cpuAccessFlags);
-            indexCapacity = capacity;
+            indexCount = capacity;
             if ((cpuAccessFlags & CpuAccessFlags.Write) != 0)
             {
                 desc.Usage = Usage.Dynamic;
+                canWrite = true;
             }
             if ((cpuAccessFlags & CpuAccessFlags.Read) != 0)
             {
                 desc.Usage = Usage.Staging;
+                canRead = true;
             }
             if (cpuAccessFlags == 0)
             {
@@ -76,14 +74,16 @@
 
             var device = D3D11DeviceManager.Device;
             desc = new((uint)(sizeof(T) * indices.Length), Usage.Default, (uint)BindFlag.IndexBuffer, (uint)cpuAccessFlags);
-            indexCapacity = indices.Length;
+            indexCount = indices.Length;
             if ((cpuAccessFlags & CpuAccessFlags.Write) != 0)
             {
                 desc.Usage = Usage.Dynamic;
+                canWrite = true;
             }
             if ((cpuAccessFlags & CpuAccessFlags.Read) != 0)
             {
                 desc.Usage = Usage.Staging;
+                canRead = true;
             }
 
             fixed (T* pData = indices)
@@ -91,23 +91,21 @@
                 SubresourceData subresourceData = new(pData);
                 device.CreateBuffer(ref desc, ref subresourceData, out buffer);
             }
-            indexCount = indices.Length;
         }
 
         public int Count => indexCount;
 
-        public int IndexCapacity => indexCapacity;
-
         public nint NativePointer => (nint)buffer.Handle;
 
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private unsafe void ResizeBuffers()
-        {
-            if (indices.Count <= IndexCapacity)
-            {
-                return;
-            }
+        public IndexFormat IndexFormat => indexFormat;
 
+        public bool CanWrite => canWrite;
+
+        public bool CanRead => canRead;
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public unsafe void Resize(int size)
+        {
             if (buffer.Handle != null)
             {
                 buffer.Release();
@@ -116,57 +114,18 @@
 
             var device = D3D11DeviceManager.Device;
 
-            desc.ByteWidth = (uint)(indices.Count * sizeof(int));
-            SubresourceData subresourceData = new(indices.Data);
-            device.CreateBuffer(ref desc, ref subresourceData, out buffer);
-            //indexBuffer.DebugName = nameof(IndexBuffer);
-            indexCapacity = indices.Count;
+            desc.ByteWidth = (uint)(size * sizeof(T));
+            device.CreateBuffer(ref desc, null, out buffer);
+            indexCount = size;
         }
 
-        private unsafe void UpdateBuffers(GraphicsContext context)
+        public void Write(GraphicsContext context, T* verts, int count)
         {
-            context.Write(this, indices.Data, indices.Size);
-            indexCount = indices.Count;
-        }
-
-        public void Append(T vertex)
-        {
-            indices.Add(vertex);
-            isDirty = true;
-        }
-
-        public void Append(IEnumerable<T> indicies)
-        {
-            foreach (var idx in indicies)
-            {
-                indices.PushBack(idx);
-            }
-
-            isDirty = true;
-        }
-
-        public void Append(T[] indicies)
-        {
-            indices.AppendRange(indicies);
-            isDirty = true;
-        }
-
-        public void Clear()
-        {
-            indices.Clear();
-            isDirty = true;
+            context.Write(this, verts, count);
         }
 
         public void Bind(GraphicsContext context)
         {
-            if (isDirty)
-            {
-                ResizeBuffers();
-                UpdateBuffers(context);
-
-                isDirty = false;
-            }
-
             context.SetIndexBuffer(this, format, 0);
         }
 

@@ -3,15 +3,12 @@
     using Hexa.NET.D3D11;
     using Hexa.NET.DXGI;
     using Hexa.NET.Mathematics;
-    using HexaGen.Runtime.COM;
-    using System;
     using System.Numerics;
     using VoxelEngine.Core;
     using VoxelEngine.Graphics;
     using VoxelEngine.Graphics.Buffers;
     using VoxelEngine.Graphics.D3D11;
     using VoxelEngine.Lights;
-    using VoxelEngine.Mathematics;
     using VoxelEngine.Scenes;
 
     public class DirectionalLight : Light
@@ -25,6 +22,7 @@
             {
                 ShadowFrustra[i] = new();
             }
+            Transform.Near = 0.1f;
         }
 
         public override LightType Type => LightType.Directional;
@@ -37,6 +35,7 @@
         public int Size = Nucleus.Settings.ShadowMapSize;
         public float LightBleedingReduction;
         private ShadowData data;
+        public CSMConfig Config = new();
 
         public override bool HasShadowMap => ShadowMap != null;
 
@@ -82,14 +81,10 @@
             Matrix4x4* views = ShadowData.GetViews(shadow);
             float* cascades = ShadowData.GetCascades(shadow);
 
-            CSMConfig config = new()
-            {
-                CascadeCount = CascadeCount,
-                ShadowMapSize = Size,
-                Stabilize = true,
-            };
+            Config.CascadeCount = CascadeCount;
+            Config.ShadowMapSize = Size;
 
-            CSMHelper.GetLightSpaceMatrices(camera, Transform, views, cascades, ShadowFrustra, config);
+            CSMHelper.GetLightSpaceMatrices(camera, Transform, views, cascades, ShadowFrustra, Config);
 
             data = *shadow;
         }

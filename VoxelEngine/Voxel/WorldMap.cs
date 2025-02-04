@@ -1,11 +1,10 @@
 ﻿namespace VoxelEngine.Voxel
 {
-    using System.Numerics;
     using Hexa.NET.Mathematics;
-    using VoxelEngine.Mathematics;
+    using System.Numerics;
     using VoxelEngine.Scenes;
 
-    public class WorldMap : GameObject
+    public partial class World : GameObject
     {
         public ChunkArray Chunks;
         public const byte SHIFT = 5;
@@ -17,11 +16,7 @@
         public const int CHUNK_AMOUNT_Y_MIN = 0;
         public const int CHUNK_AMOUNT_Z_MIN = int.MinValue;
 
-        public string Path { get; protected set; }
-
-        public WorldMap()
-        {
-        }
+        public string Path { get; private set; }
 
         public bool IsNoBlock(Vector3 pos)
         {

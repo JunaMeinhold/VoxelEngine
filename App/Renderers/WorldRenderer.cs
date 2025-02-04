@@ -100,8 +100,11 @@
             geometry.Bindings.SetCBV("WorldData", worldDataBuffer);
             geometry.Bindings.SetCBV("TexData", blockBuffer);
 
+            csmPass.Bindings.SetSRV("shaderTexture", textures);
+            csmPass.Bindings.SetSampler("Sampler", samplerState);
             csmPass.Bindings.SetCBV("MatrixBuffer", mvpBuffer);
             csmPass.Bindings.SetCBV("WorldData", worldDataBuffer);
+            csmPass.Bindings.SetCBV("TexData", blockBuffer);
         }
 
         public override void Destroy()
@@ -166,7 +169,7 @@
                 {
                     ChunkSegment chunk = world.LoadedChunkSegments[j];
                     Vector3 min = new Vector3(chunk.Position.X, 0, chunk.Position.Y) * Chunk.CHUNK_SIZE;
-                    Vector3 max = min + new Vector3(Chunk.CHUNK_SIZE) * new Vector3(1, WorldMap.CHUNK_AMOUNT_Y, 1);
+                    Vector3 max = min + new Vector3(Chunk.CHUNK_SIZE) * new Vector3(1, World.CHUNK_AMOUNT_Y, 1);
 
                     DebugDraw.DrawBoundingBox(min, max, new(1, 1, 1, 0.4f));
                 }

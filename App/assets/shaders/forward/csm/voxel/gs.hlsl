@@ -21,6 +21,8 @@ void main(triangle GeometryInput input[3], inout TriangleStream<PixelInput> triS
 					output.position = mul(float4(input[j].position, 1), views[i]);
 					output.rtvIndex = i;
 					output.depth = output.position.z / output.position.w;
+					output.texID = input[j].texID;
+					output.uv = input[j].uv;
 					triStream.Append(output);
 				}
 			triStream.RestartStrip();

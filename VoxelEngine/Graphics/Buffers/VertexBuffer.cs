@@ -1,31 +1,25 @@
 ﻿namespace VoxelEngine.Graphics.Buffers
 {
     using Hexa.NET.D3D11;
-    using Hexa.NET.Utilities;
     using HexaGen.Runtime.COM;
-    using System.Runtime.CompilerServices;
     using VoxelEngine.Graphics.D3D11;
     using VoxelEngine.Resources;
 
     public unsafe class VertexBuffer<T> : Resource, IBuffer where T : unmanaged
     {
         private BufferDesc desc;
-        private bool isDirty;
         private int vertexCount;
         private ComPtr<ID3D11Buffer> vertexBuffer;
         private readonly uint stride;
-        private readonly CpuAccessFlags cpuAccessFlags;
         private readonly bool canWrite;
         private readonly bool canRead;
 
         public VertexBuffer(CpuAccessFlags cpuAccessFlags, int capacity)
         {
             var device = D3D11DeviceManager.Device;
-            this.cpuAccessFlags = cpuAccessFlags;
             vertexCount = capacity;
             stride = (uint)sizeof(T);
             if (cpuAccessFlags == 0) throw new ArgumentException("Vertex Buffer cannot be immutable", nameof(cpuAccessFlags));
-            isDirty = true;
 
             Usage usage = Usage.Immutable;
             if ((cpuAccessFlags & CpuAccessFlags.Write) != 0)
@@ -46,7 +40,6 @@
         public VertexBuffer(CpuAccessFlags cpuAccessFlags, Span<T> vertices)
         {
             var device = D3D11DeviceManager.Device;
-            this.cpuAccessFlags = cpuAccessFlags;
             stride = (uint)sizeof(T);
 
             Usage usage = Usage.Immutable;
@@ -76,6 +69,10 @@
         public unsafe int Stride { get; } = sizeof(T);
 
         public nint NativePointer => (nint)vertexBuffer.Handle;
+
+        public bool CanWrite => canWrite;
+
+        public bool CanRead => canRead;
 
         public void Resize(int size)
         {

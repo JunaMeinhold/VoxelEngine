@@ -7,12 +7,12 @@
 
     public static unsafe class VoxelMeshFactory
     {
-        public static void GenerateMesh(ChunkVertexBuffer vertexBuffer, Chunk chunk)
+        public static void GenerateMesh(ChunkVertexBuffer2* vertexBuffer, Chunk chunk)
         {
-            vertexBuffer.Lock();
+            vertexBuffer->Lock();
             // Default 4096, else use the lase size + 1024
-            int newSize = vertexBuffer.Count == 0 ? 4096 : vertexBuffer.Count;
-            vertexBuffer.Reset(newSize);
+            int newSize = vertexBuffer->Count == 0 ? 4096 : vertexBuffer->Count;
+            vertexBuffer->Reset(newSize);
 
             Vector3 position = chunk.Position;
 
@@ -47,7 +47,7 @@
             }
 
             // Positive Y side
-            chunk.cYP = chunk.Position.Y < WorldMap.CHUNK_AMOUNT_Y - 1 ? chunk.Map.Chunks[(int)position.X, (int)(position.Y + 1), (int)position.Z] : null;
+            chunk.cYP = chunk.Position.Y < World.CHUNK_AMOUNT_Y - 1 ? chunk.Map.Chunks[(int)position.X, (int)(position.Y + 1), (int)position.Z] : null;
             if (chunk.cYP is not null)
             {
                 if (!chunk.cYP.InMemory)
@@ -129,11 +129,11 @@
                 }
             }
 
-            vertexBuffer.ReleaseLock();
+            vertexBuffer->ReleaseLock();
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void CreateRun(ChunkVertexBuffer vertexBuffer, Chunk chunk, Block* b, int i, int j, int k, int i1, int k1, int y, int access, bool minX, bool maxX, bool minY, bool maxY, bool minZ, bool maxZ, int iCS, int kCS2)
+        private static void CreateRun(ChunkVertexBuffer2* vertexBuffer, Chunk chunk, Block* b, int i, int j, int k, int i1, int k1, int y, int access, bool minX, bool maxX, bool minY, bool maxY, bool minZ, bool maxZ, int iCS, int kCS2)
         {
             Block* data = chunk.Data.Data;
             int type = b->Type;

@@ -16,8 +16,7 @@ namespace VoxelEngine.Voxel
         public const int CHUNK_SIZE_MINUS_ONE = 15;
         public const int CHUNK_SIZE_SHIFTED = 16 << 6;
 
-        public string Name;
-        public WorldMap Map;
+        public int DimId;
         public Vector3 Position;
         public BoundingBox BoundingBox;
 
@@ -28,7 +27,7 @@ namespace VoxelEngine.Voxel
         public BlockMetadataCollection BlockMetadata = new();
         public BiomeMetadata BiomeMetadata = new();
 
-        public ChunkVertexBuffer VertexBuffer = new();
+        public ChunkVertexBuffer2 VertexBuffer = new();
 
         public ChunkHelper ChunkHelper;
         public Chunk? cXN, cXP, cYN, cYP, cZN, cZP;
@@ -39,20 +38,19 @@ namespace VoxelEngine.Voxel
 
         private InternalChunkFlags flags;
 
-        public Chunk(WorldMap map, int x, int y, int z, bool generated = false)
+        public Chunk(World map, int x, int y, int z, bool generated = false)
         {
             MinY = AllocT<byte>(CHUNK_SIZE_SQUARED);
             ZeroMemoryT(MinY, CHUNK_SIZE_SQUARED);
             MaxY = AllocT<byte>(CHUNK_SIZE_SQUARED);
             ZeroMemoryT(MaxY, CHUNK_SIZE_SQUARED);
-            Map = map;
+            DimId = map.DimId;
             Position = new(x, y, z);
 
             Vector3 realPos = new Vector3(x, y, z) * CHUNK_SIZE;
             BoundingBox = new BoundingBox(realPos, realPos + new Vector3(CHUNK_SIZE, CHUNK_SIZE, CHUNK_SIZE));
             Memset(MinY, CHUNK_SIZE, CHUNK_SIZE_SQUARED);
-            DirtyDisk = generated;
-            Name = $"<{x},{y},{z}>";
+            DiskDirty = generated;
         }
 
         private enum InternalChunkFlags : byte
@@ -64,6 +62,8 @@ namespace VoxelEngine.Voxel
             Dirty = 8,
             DiskDirty = 16,
         }
+
+        public World Map => DimensionManager.GetWorld(DimId);
 
         public bool InBuffer
         {
@@ -115,7 +115,7 @@ namespace VoxelEngine.Voxel
             }
         }
 
-        public bool DirtyDisk
+        public bool DiskDirty
         {
             get => (flags & InternalChunkFlags.DiskDirty) != 0;
             private set
@@ -168,8 +168,7 @@ namespace VoxelEngine.Voxel
         {
             lock (_lock)
             {
-                Map.Chunks.Remove(this);
-                Map = null;
+                DimensionManager.GetWorld(DimId).Chunks.Remove(this);
                 cXN?.RemoveRefsFrom(this);
                 cXP?.RemoveRefsFrom(this);
                 cYN?.RemoveRefsFrom(this);
@@ -223,8 +222,7 @@ namespace VoxelEngine.Voxel
             lock (_lock)
             {
                 InBuffer = false;
-                VertexBuffer?.Dispose();
-                VertexBuffer = null;
+                VertexBuffer.Dispose();
             }
         }
 
@@ -232,7 +230,7 @@ namespace VoxelEngine.Voxel
         {
             lock (_lock)
             {
-                DirtyDisk = true;
+                DiskDirty = true;
                 Dirty = true;
 
                 int index = Extensions.MapToIndex(x, y, z);
@@ -307,14 +305,17 @@ namespace VoxelEngine.Voxel
 
         private void GenerateMesh()
         {
-            VoxelMeshFactory.GenerateMesh(VertexBuffer, this);
+            fixed (ChunkVertexBuffer2* vertexBuffer = &VertexBuffer)
+            {
+                VoxelMeshFactory.GenerateMesh(vertexBuffer, this);
+            }
         }
 
         public unsafe void Serialize(Stream stream)
         {
             lock (_lock)
             {
-                DirtyDisk = false;
+                DiskDirty = false;
                 ChunkSerializer.Serialize(stream, this);
             }
         }
@@ -329,7 +330,8 @@ namespace VoxelEngine.Voxel
 
         private string GetDebuggerDisplay()
         {
-            return $"{Name}, Flags: {flags}";
+            var name = $"<{Position.X},{Position.Y},{Position.Z}>";
+            return $"{name}, Flags: {flags}";
         }
     }
 }

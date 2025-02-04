@@ -220,10 +220,5 @@
         /// </summary>
         /// <returns>A pointer to the native window.</returns>
         unsafe SDLWindow* GetWindow();
-
-        /// <summary>
-        /// Clears the input state for the window.
-        /// </summary>
-        internal void ClearState();
     }
 }

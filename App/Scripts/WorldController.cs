@@ -86,10 +86,13 @@
 
             if (directionalLight != null)
             {
-                Vector3 rot = directionalLight.Transform.Rotation;
-                rot.Y = 360 * Time.GameTimeNormalized - 90;
-                float ro = rot.Y - 180F;
-                directionalLight.Transform.Rotation = rot.NormalizeEulerAngleDegrees();
+                float deltaTime = Time.GameTimeNormalized * MathUtil.PI2 - MathUtil.PIDIV2;
+
+                Quaternion rotation = Quaternion.CreateFromAxisAngle(Vector3.UnitX, deltaTime);
+
+                directionalLight.Transform.Orientation = rotation;
+
+                /*
                 if (rot.Y > 45 && rot.Y < 135)
                 {
                     directionalLight.Color = new Vector4(196 / 255f, 220 / 255f, 1, 1);
@@ -107,6 +110,9 @@
                     directionalLight.Color = new Vector4(196 / 255f, 220 / 255f, 1, 1) * MathUtil.Lerp(0.2f, 1, (ro - 135) / 90);
                 }
                 directionalLight.Color *= 5;
+                */
+
+                ImGui.Text(directionalLight.Transform.Rotation.ToString());
             }
         }
     }

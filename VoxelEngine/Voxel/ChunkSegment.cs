@@ -12,7 +12,7 @@
     {
         public Vector2 Position;
         public ChunkArray Chunks;
-        public const int CHUNK_SEGMENT_SIZE = WorldMap.CHUNK_AMOUNT_Y;
+        public const int CHUNK_SEGMENT_SIZE = World.CHUNK_AMOUNT_Y;
 
         public struct ChunkArray : IEnumerable<Chunk>
         {
@@ -183,7 +183,7 @@
 
         public readonly bool InSimulation => Chunks[0] is not null && Chunks[0].InSimulation;
 
-        public readonly bool ExistOnDisk(WorldMap world)
+        public readonly bool ExistOnDisk(World world)
         {
             return File.Exists(Path.Combine(world.Path, $"r.{Position.X}.{Position.Y}.vxr"));
         }
@@ -248,12 +248,12 @@
             SaveToDisk(Chunks[0].Map);
         }
 
-        public readonly unsafe void SaveToDisk(WorldMap world)
+        public readonly unsafe void SaveToDisk(World world)
         {
             bool dirty = false;
             for (int i = 0; i < CHUNK_SEGMENT_SIZE; i++)
             {
-                if (Chunks[i].DirtyDisk)
+                if (Chunks[i].DiskDirty)
                 {
                     dirty = true;
                     break;
@@ -280,7 +280,7 @@
             fs.Dispose();
         }
 
-        public unsafe void LoadFromDisk(WorldMap world)
+        public unsafe void LoadFromDisk(World world)
         {
             string filename = Path.Combine(world.Path, $"r.{Position.X}.{Position.Y}.vxr");
             using FileStream fs = File.OpenRead(filename);
@@ -305,10 +305,10 @@
             fs.Dispose();
         }
 
-        public static ChunkSegment CreateFrom(WorldMap world, Vector3 pos)
+        public static ChunkSegment CreateFrom(World world, Vector3 pos)
         {
             ChunkSegment segment = new(new Vector2(pos.X, pos.Z));
-            for (int y = 0; y < WorldMap.CHUNK_AMOUNT_Y; y++)
+            for (int y = 0; y < World.CHUNK_AMOUNT_Y; y++)
             {
                 segment.Chunks[y] = world.Get(new Vector3(pos.X, y, pos.Z));
             }
@@ -316,10 +316,10 @@
             return segment;
         }
 
-        public static ChunkSegment CreateFrom(WorldMap world, float x, float z)
+        public static ChunkSegment CreateFrom(World world, float x, float z)
         {
             ChunkSegment segment = new(new Vector2(x, z));
-            for (int i = 0; i < WorldMap.CHUNK_AMOUNT_Y; i++)
+            for (int i = 0; i < World.CHUNK_AMOUNT_Y; i++)
             {
                 segment.Chunks[i] = world.Get(new Vector3(x, i, z));
             }

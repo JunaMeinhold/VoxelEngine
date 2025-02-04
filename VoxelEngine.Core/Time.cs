@@ -17,7 +17,6 @@
         private static float gameTime = 12;
         private static float gameTimeNormalized;
 
-        // Properties
         public static float Delta { get => delta; private set => delta = value; }
 
         public static float CumulativeFrameTime { get => cumulativeFrameTime; private set => cumulativeFrameTime = value; }
@@ -34,11 +33,10 @@
 
         public static float GameTimeNormalized => gameTimeNormalized;
 
-        public static float TimeScale = 60;
+        public static float TimeScale = 10;
 
-        public static event EventHandler FixedUpdate;
+        public static event EventHandler? FixedUpdate;
 
-        // Public Methods
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static void Initialize()
         {
@@ -57,12 +55,12 @@
             fixedTime += delta;
             frameTime += delta;
 
-            gameTime += delta * TimeScale / 60 / 60;
-            if (gameTime > 24)
+            gameTime += (float)(delta * TimeScale / 60.0 / 60.0);
+            if (gameTime > 24f)
             {
-                gameTime -= 24;
+                gameTime -= 24f;
             }
-            gameTimeNormalized = gameTime / 24;
+            gameTimeNormalized = gameTime / 24f;
 
             frame++;
 
@@ -76,7 +74,7 @@
             while (fixedTime > FixedUpdatePerSecond)
             {
                 fixedTime -= FixedUpdatePerSecond;
-                FixedUpdate?.Invoke(null, null);
+                FixedUpdate?.Invoke(null, EventArgs.Empty);
             }
         }
     }

@@ -10,11 +10,11 @@ namespace VoxelEngine.Voxel.Meshing
         ];
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void AppendQuadX(ChunkVertexBuffer buffer, int x, int yL, int yR, int kL, int kR, int normal, int light, uint tint)
+        public static void AppendQuadX(ChunkVertexBuffer2* buffer, int x, int yL, int yR, int kL, int kR, int normal, int light, uint tint)
         {
             int shared = x | light | normal;
 
-            VoxelVertex* ptr = buffer.Increase(6);
+            VoxelVertex* ptr = buffer->Increase(6);
 
             VoxelVertex v0 = new(yL | kL | shared, default, tint);
             VoxelVertex v1 = new(yR | kL | shared, default, tint);
@@ -30,11 +30,11 @@ namespace VoxelEngine.Voxel.Meshing
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void AppendQuadY(ChunkVertexBuffer buffer, int xL, int xR, int y, int zL, int zR, int normal, int light, uint tint)
+        public static void AppendQuadY(ChunkVertexBuffer2* buffer, int xL, int xR, int y, int zL, int zR, int normal, int light, uint tint)
         {
             int shared = y | light | normal;
 
-            VoxelVertex* ptr = buffer.Increase(6);
+            VoxelVertex* ptr = buffer->Increase(6);
 
             VoxelVertex v0 = new(xL | zL | shared, default, tint);
             VoxelVertex v1 = new(xL | zR | shared, default, tint);
@@ -50,11 +50,11 @@ namespace VoxelEngine.Voxel.Meshing
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void AppendQuadZ(ChunkVertexBuffer buffer, int xL, int xR, int yL, int yR, int z, int normal, int light, uint tint)
+        public static void AppendQuadZ(ChunkVertexBuffer2* buffer, int xL, int xR, int yL, int yR, int z, int normal, int light, uint tint)
         {
             int shared = z | light | normal;
 
-            VoxelVertex* ptr = buffer.Increase(6);
+            VoxelVertex* ptr = buffer->Increase(6);
 
             VoxelVertex v0 = new(xR | yL | shared, default, tint);
             VoxelVertex v1 = new(xR | yR | shared, default, tint);

@@ -14,7 +14,6 @@ namespace VoxelEngine.Voxel.Meshing
         private readonly uint stride = (uint)sizeof(VoxelVertex);
 
         private bool dirty = false;
-        private bool bufferResized = false;
 
         private readonly Lock _lock = new();
 
@@ -46,8 +45,6 @@ namespace VoxelEngine.Voxel.Meshing
                 }
 
                 vertexBuffer = VertexBufferPool<VoxelVertex>.Shared.Rent(size);
-
-                bufferResized = false;
             }
 
             mappedResource = context.Map(vertexBuffer, 0, Hexa.NET.D3D11.Map.WriteDiscard, 0);
@@ -77,7 +74,7 @@ namespace VoxelEngine.Voxel.Meshing
             return true;
         }
 
-        public bool BufferData(ChunkVertexBuffer vertexBuffer, Vector3 offset)
+        public bool BufferData(ChunkVertexBuffer2 vertexBuffer, Vector3 offset)
         {
             if (vertexBuffer.Count == 0) return true;
             bool result = AppendRange(vertexBuffer.Data, vertexBuffer.Count, offset);

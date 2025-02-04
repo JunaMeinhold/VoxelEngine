@@ -1,5 +1,6 @@
 ﻿namespace VoxelEngine.Voxel.Blocks
 {
+    using System;
     using System.Collections.Concurrent;
     using System.Collections.Generic;
 
@@ -143,6 +144,16 @@
                     yield return desc;
                 }
             }
+        }
+
+        public static bool IsTransparent(Block block)
+        {
+            return alphaTest.Contains(block);
+        }
+
+        public static bool IsSolid(Block block)
+        {
+            return !alphaTest.Contains(block);
         }
     }
 }
