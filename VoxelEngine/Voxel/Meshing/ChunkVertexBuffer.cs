@@ -1,23 +1,22 @@
 ﻿namespace VoxelEngine.Voxel.Meshing
 {
     using System.Runtime.CompilerServices;
-    using System.Threading;
 
-    public unsafe class ChunkVertexBuffer : IDisposable, IVoxelVertexBuffer
+    public unsafe struct ChunkVertexBuffer
     {
         private const int DefaultCapacity = 4096;
+        private readonly int stride;
         private int count;
         private int capacity;
+        private SemaphoreLight semaphore = new(1, 1);
 
         public VoxelVertex* Data;
 
-        private readonly SemaphoreSlim _lock = new(1);
-
         public ChunkVertexBuffer()
         {
+            stride = sizeof(int);
             capacity = DefaultCapacity;
             Data = AllocT<VoxelVertex>(capacity);
-            ZeroMemoryT(Data, capacity);
         }
 
         public VoxelVertex this[int index]
@@ -28,7 +27,7 @@
 
         public int Capacity
         {
-            get => capacity;
+            readonly get => capacity;
             set
             {
                 if (Data == null)
@@ -41,20 +40,19 @@
                 Data = ReAllocT(Data, value);
                 capacity = value;
                 count = capacity < count ? capacity : count;
-                ZeroMemoryT(Data + count, capacity - count);
             }
         }
 
-        public int Count => count;
+        public readonly int Count => count;
 
         public void Lock()
         {
-            _lock.Wait();
+            semaphore.Wait();
         }
 
         public void ReleaseLock()
         {
-            _lock.Release();
+            semaphore.Release();
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -117,7 +115,6 @@
                 capacity = 0;
                 count = 0;
             }
-            GC.SuppressFinalize(this);
             ReleaseLock();
         }
     }

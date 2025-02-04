@@ -20,14 +20,14 @@ namespace VoxelEngine.Voxel
         public Vector3 Position;
         public BoundingBox BoundingBox;
 
-        public BlockStorage2 Data = new(CHUNK_SIZE_CUBED);
+        public BlockStorage Data = new(CHUNK_SIZE_CUBED);
         public byte* MinY;
         public byte* MaxY;
 
         public BlockMetadataCollection BlockMetadata = new();
         public BiomeMetadata BiomeMetadata = new();
 
-        public ChunkVertexBuffer2 VertexBuffer = new();
+        public ChunkVertexBuffer VertexBuffer = new();
 
         public ChunkHelper ChunkHelper;
         public Chunk? cXN, cXP, cYN, cYP, cZN, cZP;
@@ -305,7 +305,7 @@ namespace VoxelEngine.Voxel
 
         private void GenerateMesh()
         {
-            fixed (ChunkVertexBuffer2* vertexBuffer = &VertexBuffer)
+            fixed (ChunkVertexBuffer* vertexBuffer = &VertexBuffer)
             {
                 VoxelMeshFactory.GenerateMesh(vertexBuffer, this);
             }

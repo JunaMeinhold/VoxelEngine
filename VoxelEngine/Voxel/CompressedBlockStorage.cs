@@ -1,17 +1,19 @@
 ﻿namespace VoxelEngine.Voxel
 {
-    public unsafe struct BlockStorage
+    using Hexa.NET.Utilities;
+
+    public unsafe struct CompressedBlockStorage
     {
         private readonly int blockCount;
         private int maxBlockId;
         private int bitsPerBlock;
 
-        private readonly Dictionary<ushort, ushort> blockPalette = new() { { 0, 0 } };
-        private readonly List<ushort> reversePalette = [0];
+        private readonly UnsafeDictionary<ushort, ushort> blockPalette = new() { { 0, 0 } };
+        private readonly UnsafeList<ushort> reversePalette = [0];
 
         private byte* data;
 
-        public BlockStorage(int maxBlockId, int blockCount)
+        public CompressedBlockStorage(int maxBlockId, int blockCount)
         {
             this.maxBlockId = maxBlockId;
             this.blockCount = blockCount;
@@ -32,7 +34,7 @@
             }
         }
 
-        public bool IsAllocated => data != null;
+        public readonly bool IsAllocated => data != null;
 
         public void Dispose()
         {
@@ -41,6 +43,8 @@
                 Free(data);
                 data = null;
             }
+            blockPalette.Release();
+            reversePalette.Release();
             maxBlockId = 0;
         }
 

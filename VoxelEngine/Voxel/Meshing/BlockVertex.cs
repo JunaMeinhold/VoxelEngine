@@ -10,7 +10,7 @@ namespace VoxelEngine.Voxel.Meshing
         ];
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void AppendQuadX(ChunkVertexBuffer2* buffer, int x, int yL, int yR, int kL, int kR, int normal, int light, uint tint)
+        public static void AppendQuadX(ChunkVertexBuffer* buffer, int x, int yL, int yR, int kL, int kR, int normal, int light, uint tint)
         {
             int shared = x | light | normal;
 
@@ -30,7 +30,7 @@ namespace VoxelEngine.Voxel.Meshing
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void AppendQuadY(ChunkVertexBuffer2* buffer, int xL, int xR, int y, int zL, int zR, int normal, int light, uint tint)
+        public static void AppendQuadY(ChunkVertexBuffer* buffer, int xL, int xR, int y, int zL, int zR, int normal, int light, uint tint)
         {
             int shared = y | light | normal;
 
@@ -50,7 +50,7 @@ namespace VoxelEngine.Voxel.Meshing
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public static void AppendQuadZ(ChunkVertexBuffer2* buffer, int xL, int xR, int yL, int yR, int z, int normal, int light, uint tint)
+        public static void AppendQuadZ(ChunkVertexBuffer* buffer, int xL, int xR, int yL, int yR, int z, int normal, int light, uint tint)
         {
             int shared = z | light | normal;
 

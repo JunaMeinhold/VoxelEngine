@@ -1,10 +1,10 @@
 ﻿namespace VoxelEngine.Voxel
 {
-    public unsafe struct BlockStorage2
+    public unsafe struct BlockStorage
     {
         public Block* Data;
 
-        public BlockStorage2(int size)
+        public BlockStorage(int size)
         {
             Data = AllocT<Block>(size);
             ZeroMemoryT(Data, size);

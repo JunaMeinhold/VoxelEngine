@@ -7,7 +7,7 @@
 
     public static unsafe class VoxelMeshFactory
     {
-        public static void GenerateMesh(ChunkVertexBuffer2* vertexBuffer, Chunk chunk)
+        public static void GenerateMesh(ChunkVertexBuffer* vertexBuffer, Chunk chunk)
         {
             vertexBuffer->Lock();
             // Default 4096, else use the lase size + 1024
@@ -133,7 +133,7 @@
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void CreateRun(ChunkVertexBuffer2* vertexBuffer, Chunk chunk, Block* b, int i, int j, int k, int i1, int k1, int y, int access, bool minX, bool maxX, bool minY, bool maxY, bool minZ, bool maxZ, int iCS, int kCS2)
+        private static void CreateRun(ChunkVertexBuffer* vertexBuffer, Chunk chunk, Block* b, int i, int j, int k, int i1, int k1, int y, int access, bool minX, bool maxX, bool minY, bool maxY, bool minZ, bool maxZ, int iCS, int kCS2)
         {
             Block* data = chunk.Data.Data;
             int type = b->Type;
