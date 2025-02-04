@@ -6,7 +6,7 @@
     using VoxelEngine.Graphics;
     using VoxelEngine.Voxel.Meshing;
 
-    public class RenderRegion
+    public unsafe class RenderRegion
     {
         private readonly Lock @lock = new();
         private readonly List<ChunkSegment> ChunkSegments = new();
@@ -97,15 +97,15 @@
                     ChunkSegment region = ChunkSegments[i];
                     for (int j = 0; j < ChunkSegment.CHUNK_SEGMENT_SIZE; j++)
                     {
-                        Chunk chunk = region.Chunks[j];
-                        chunk.VertexBuffer.Lock();
-                        verts += chunk.VertexBuffer.Count;
+                        Chunk* chunk = region.Chunks[j];
+                        chunk->VertexBuffer.Lock();
+                        verts += chunk->VertexBuffer.Count;
                     }
                 }
 
                 vertexBuffer.Map(context, verts);
 
-                var min = new Vector3(Offset.X, 0, Offset.Y);
+                var min = new Point3((int)Offset.X, 0, (int)Offset.Y);
                 var max = Offset + Size;
                 BoundingBox = new(new Vector3(Offset.X, 0, Offset.Y) * Chunk.CHUNK_SIZE, new Vector3(max.X, World.CHUNK_AMOUNT_Y, max.Y) * Chunk.CHUNK_SIZE);
 
@@ -114,9 +114,9 @@
                     ChunkSegment region = ChunkSegments[i];
                     for (int j = 0; j < ChunkSegment.CHUNK_SEGMENT_SIZE; j++)
                     {
-                        Chunk chunk = region.Chunks[j];
-                        vertexBuffer.BufferData(chunk.VertexBuffer, (chunk.Position - min) * Chunk.CHUNK_SIZE);
-                        chunk.VertexBuffer.ReleaseLock();
+                        Chunk* chunk = region.Chunks[j];
+                        vertexBuffer.BufferData(chunk->VertexBuffer, (chunk->Position - min) * Chunk.CHUNK_SIZE);
+                        chunk->VertexBuffer.ReleaseLock();
                     }
                 }
 

@@ -4,7 +4,7 @@
     using System.Numerics;
     using VoxelEngine.Scenes;
 
-    public partial class World : GameObject
+    public unsafe partial class World : GameObject
     {
         public ChunkArray Chunks;
         public const byte SHIFT = 5;
@@ -48,7 +48,7 @@
                 return true;
             }
 
-            Chunk c = Chunks[xglobal, yglobal, zglobal];
+            Chunk* c = Chunks[xglobal, yglobal, zglobal];
 
             // To lower memory usage, a chunk is null if it has no blocks
             if (c == null)
@@ -57,10 +57,10 @@
             }
 
             // Chunk data accessed quickly using bit masks
-            return c.Data[Extensions.MapToIndex(xlocal, ylocal, zlocal)].Type == Chunk.EMPTY;
+            return c->Data[Extensions.MapToIndex(xlocal, ylocal, zlocal)].Type == Chunk.EMPTY;
         }
 
-        public void Set(Chunk chunk, Vector3 pos)
+        public void Set(Chunk* chunk, Vector3 pos)
         {
             if (pos.X < CHUNK_AMOUNT_X_MIN || pos.X >= CHUNK_AMOUNT_X ||
                 pos.Y < CHUNK_AMOUNT_Y_MIN || pos.Y >= CHUNK_AMOUNT_Y ||
@@ -72,7 +72,7 @@
             Chunks[(int)pos.X, (int)pos.Y, (int)pos.Z] = chunk;
         }
 
-        public void Set(Chunk chunk, float x, float y, float z)
+        public void Set(Chunk* chunk, float x, float y, float z)
         {
             if (x < CHUNK_AMOUNT_X_MIN || x >= CHUNK_AMOUNT_X ||
                 y < CHUNK_AMOUNT_Y_MIN || y >= CHUNK_AMOUNT_Y ||
@@ -84,7 +84,7 @@
             Chunks[(int)x, (int)y, (int)z] = chunk;
         }
 
-        public Chunk Get(Vector3 pos)
+        public Chunk* Get(Vector3 pos)
         {
             if (pos.X < CHUNK_AMOUNT_X_MIN || pos.X >= CHUNK_AMOUNT_X ||
                 pos.Y < CHUNK_AMOUNT_Y_MIN || pos.Y >= CHUNK_AMOUNT_Y ||
@@ -96,7 +96,7 @@
             return Chunks[(int)pos.X, (int)pos.Y, (int)pos.Z];
         }
 
-        public Chunk Get(float x, float y, float z)
+        public Chunk* Get(float x, float y, float z)
         {
             if (x < CHUNK_AMOUNT_X_MIN || x >= CHUNK_AMOUNT_X ||
                 y < CHUNK_AMOUNT_Y_MIN || y >= CHUNK_AMOUNT_Y ||

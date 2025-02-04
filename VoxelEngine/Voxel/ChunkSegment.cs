@@ -1,39 +1,41 @@
 ﻿namespace VoxelEngine.Voxel
 {
     using Hexa.NET.Mathematics;
+    using Hexa.NET.Utilities;
     using System;
     using System.Buffers.Binary;
     using System.Collections;
     using System.IO;
     using System.Numerics;
+    using System.Reflection;
     using VoxelEngine.IO;
 
-    public struct ChunkSegment
+    public unsafe struct ChunkSegment
     {
         public Vector2 Position;
         public ChunkArray Chunks;
         public const int CHUNK_SEGMENT_SIZE = World.CHUNK_AMOUNT_Y;
 
-        public struct ChunkArray : IEnumerable<Chunk>
+        public struct ChunkArray : IEnumerable<Pointer<Chunk>>
         {
-            private Chunk chunk0;
-            private Chunk chunk1;
-            private Chunk chunk2;
-            private Chunk chunk3;
-            private Chunk chunk4;
-            private Chunk chunk5;
-            private Chunk chunk6;
-            private Chunk chunk7;
-            private Chunk chunk8;
-            private Chunk chunk9;
-            private Chunk chunk10;
-            private Chunk chunk11;
-            private Chunk chunk12;
-            private Chunk chunk13;
-            private Chunk chunk14;
-            private Chunk chunk15;
+            private Chunk* chunk0;
+            private Chunk* chunk1;
+            private Chunk* chunk2;
+            private Chunk* chunk3;
+            private Chunk* chunk4;
+            private Chunk* chunk5;
+            private Chunk* chunk6;
+            private Chunk* chunk7;
+            private Chunk* chunk8;
+            private Chunk* chunk9;
+            private Chunk* chunk10;
+            private Chunk* chunk11;
+            private Chunk* chunk12;
+            private Chunk* chunk13;
+            private Chunk* chunk14;
+            private Chunk* chunk15;
 
-            public unsafe void SetBlock(Point3 pos, Block block)
+            public void SetBlock(Point3 pos, Block block)
             {
                 if (pos.Y < 0 || pos.Y > 255) return;
                 int index = pos.Y >> 4;
@@ -44,44 +46,44 @@
                 int heightAccess = new Point2(pos.X, pos.Z).MapToIndex();
                 if (block.Type == 0)
                 {
-                    if (chunk.MaxY[heightAccess] == height + 1)
+                    if (chunk->MaxY[heightAccess] == height + 1)
                     {
                         byte newMaxY = 0;
                         for (int y = height; y >= 0; y--)
                         {
-                            if (chunk.Data[new Point3(pos.X, y, pos.Z).MapToIndex()].Type != 0)
+                            if (chunk->Data[new Point3(pos.X, y, pos.Z).MapToIndex()].Type != 0)
                             {
                                 newMaxY = (byte)(y + 1);
                                 break;
                             }
                         }
-                        chunk.MaxY[heightAccess] = newMaxY;
+                        chunk->MaxY[heightAccess] = newMaxY;
                     }
 
-                    if (chunk.MinY[heightAccess] == height)
+                    if (chunk->MinY[heightAccess] == height)
                     {
                         byte newMinY = 15;
                         for (int y = height; y <= 16; y++)
                         {
-                            if (chunk.Data[new Point3(pos.X, y, pos.Z).MapToIndex()].Type != 0)
+                            if (chunk->Data[new Point3(pos.X, y, pos.Z).MapToIndex()].Type != 0)
                             {
                                 newMinY = (byte)y;
                                 break;
                             }
                         }
-                        chunk.MinY[heightAccess] = newMinY;
+                        chunk->MinY[heightAccess] = newMinY;
                     }
                 }
                 else
                 {
-                    chunk.MinY[heightAccess] = Math.Min(chunk.MinY[heightAccess], (byte)height);
-                    chunk.MaxY[heightAccess] = Math.Max(chunk.MaxY[heightAccess], (byte)(height + 1));
+                    chunk->MinY[heightAccess] = Math.Min(chunk->MinY[heightAccess], (byte)height);
+                    chunk->MaxY[heightAccess] = Math.Max(chunk->MaxY[heightAccess], (byte)(height + 1));
                 }
 
-                chunk.Data[new Point3(pos.X, height, pos.Z).MapToIndex()] = block;
+                chunk->Data[new Point3(pos.X, height, pos.Z).MapToIndex()] = block;
             }
 
-            public Chunk this[int index]
+            public Chunk* this[int index]
             {
                 get => index switch
                 {
@@ -128,7 +130,7 @@
                 }
             }
 
-            private struct Enumerator : IEnumerator<Chunk>
+            private struct Enumerator : IEnumerator<Pointer<Chunk>>
             {
                 private int _index;
                 private ChunkArray array;
@@ -138,7 +140,7 @@
                     this.array = array;
                 }
 
-                public Chunk Current => array[_index];
+                public Pointer<Chunk> Current => array[_index];
 
                 object IEnumerator.Current => Current;
 
@@ -159,7 +161,7 @@
                 }
             }
 
-            public readonly IEnumerator<Chunk> GetEnumerator()
+            public readonly IEnumerator<Pointer<Chunk>> GetEnumerator()
             {
                 return new Enumerator(this);
             }
@@ -177,11 +179,11 @@
 
         public readonly bool IsEmpty => Chunks[0] is null;
 
-        public readonly bool IsLoaded => Chunks[0] is not null && Chunks[0].InBuffer;
+        public readonly bool IsLoaded => Chunks[0] is not null && Chunks[0]->InBuffer;
 
-        public readonly bool InMemory => Chunks[0] is not null && Chunks[0].InMemory;
+        public readonly bool InMemory => Chunks[0] is not null && Chunks[0]->InMemory;
 
-        public readonly bool InSimulation => Chunks[0] is not null && Chunks[0].InSimulation;
+        public readonly bool InSimulation => Chunks[0] is not null && Chunks[0]->InSimulation;
 
         public readonly bool ExistOnDisk(World world)
         {
@@ -199,53 +201,33 @@
             {
                 for (int i = 0; i < CHUNK_SEGMENT_SIZE; i++)
                 {
-                    Chunk chunk = Chunks[i];
-                    chunk.Update();
+                    Chunk* chunk = Chunks[i];
+                    chunk->Update(chunk);
                 }
             }
             else
             {
                 for (int i = 0; i < CHUNK_SEGMENT_SIZE; i++)
                 {
-                    Chunk chunk = Chunks[i];
-                    chunk.Update();
+                    Chunk* chunk = Chunks[i];
+                    chunk->Update(chunk);
                 }
             }
         }
 
-        public readonly void UnloadFromMem()
-        {
-            for (int i = 0; i < CHUNK_SEGMENT_SIZE; i++)
-            {
-                Chunk chunk = Chunks[i];
-                chunk.UnloadFromMem();
-            }
-        }
-
-        public readonly void UnloadFromGPU()
-        {
-            for (int i = 0; i < CHUNK_SEGMENT_SIZE; i++)
-            {
-                Chunk chunk = Chunks[i];
-                chunk.UnloadFromGPU();
-            }
-        }
-
-        /// <summary>
-        /// This will completely unload the chunks from cpu / gpu / physics
-        /// </summary>
         public readonly void Unload()
         {
             for (int i = 0; i < CHUNK_SEGMENT_SIZE; i++)
             {
-                Chunk chunk = Chunks[i];
-                chunk.Unload();
+                Chunk* chunk = Chunks[i];
+                chunk->Unload(chunk);
+                chunk->Dispose(chunk);
             }
         }
 
         public readonly void SaveToDisk()
         {
-            SaveToDisk(Chunks[0].Map);
+            SaveToDisk(Chunks[0]->Map);
         }
 
         public readonly unsafe void SaveToDisk(World world)
@@ -253,7 +235,7 @@
             bool dirty = false;
             for (int i = 0; i < CHUNK_SEGMENT_SIZE; i++)
             {
-                if (Chunks[i].DiskDirty)
+                if (Chunks[i]->DiskDirty)
                 {
                     dirty = true;
                     break;
@@ -272,8 +254,8 @@
             fs.Write(buffer);
             for (int i = 0; i < CHUNK_SEGMENT_SIZE; i++)
             {
-                Chunk chunk = Chunks[i];
-                chunk.Serialize(fs);
+                Chunk* chunk = Chunks[i];
+                chunk->Serialize(chunk, fs);
             }
             fs.Flush();
             fs.Close();
@@ -294,10 +276,10 @@
 
             for (int i = 0; i < count; i++)
             {
-                Chunk chunk = new(world, (int)Position.X, i, (int)Position.Y);
-                chunk.Deserialize(fs);
+                Chunk* chunk = ChunkAllocator.New(world, (int)Position.X, i, (int)Position.Y);
+                chunk->Deserialize(chunk, fs);
                 Chunks[i] = chunk;
-                world.Chunks[Chunks[i].Position] = chunk;
+                world.Chunks[Chunks[i]->Position] = chunk;
             }
 
             world.Set(this);

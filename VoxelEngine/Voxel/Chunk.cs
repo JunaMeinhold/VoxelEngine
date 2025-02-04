@@ -7,7 +7,7 @@ namespace VoxelEngine.Voxel
     using VoxelEngine.Voxel.Metadata;
 
     [DebuggerDisplay($"{{{nameof(GetDebuggerDisplay)}(),nq}}")]
-    public unsafe class Chunk
+    public unsafe struct Chunk
     {
         public const int EMPTY = 0;
         public const int CHUNK_SIZE = 16;
@@ -17,7 +17,7 @@ namespace VoxelEngine.Voxel
         public const int CHUNK_SIZE_SHIFTED = 16 << 6;
 
         public int DimId;
-        public Vector3 Position;
+        public Point3 Position;
         public BoundingBox BoundingBox;
 
         public BlockStorage Data = new(CHUNK_SIZE_CUBED);
@@ -30,13 +30,12 @@ namespace VoxelEngine.Voxel
         public ChunkVertexBuffer VertexBuffer = new();
 
         public ChunkHelper ChunkHelper;
-        public Chunk? cXN, cXP, cYN, cYP, cZN, cZP;
-
-        public bool HasMissingNeighbours;
 
         public SemaphoreLight _lock = new(1, 1);
 
         private InternalChunkFlags flags;
+
+        private int refCount = 1;
 
         public Chunk(World map, int x, int y, int z, bool generated = false)
         {
@@ -53,6 +52,19 @@ namespace VoxelEngine.Voxel
             DiskDirty = generated;
         }
 
+        public void AddRef()
+        {
+            Interlocked.Increment(ref refCount);
+        }
+
+        public void Dispose(Chunk* self)
+        {
+            int count = Interlocked.Decrement(ref refCount);
+            if (count != 0) return;
+
+            ChunkAllocator.Free(self);
+        }
+
         private enum InternalChunkFlags : byte
         {
             None = 0,
@@ -63,7 +75,7 @@ namespace VoxelEngine.Voxel
             DiskDirty = 16,
         }
 
-        public World Map => DimensionManager.GetWorld(DimId);
+        public readonly World Map => DimensionManager.GetWorld(DimId);
 
         public bool InBuffer
         {
@@ -131,57 +143,30 @@ namespace VoxelEngine.Voxel
             }
         }
 
-        private void RemoveRefsFrom(Chunk chunk)
-        {
-            if (cXN == chunk)
-            {
-                cXN = null;
-            }
-
-            if (cXP == chunk)
-            {
-                cXP = null;
-            }
-
-            if (cYN == chunk)
-            {
-                cYN = null;
-            }
-
-            if (cYP == chunk)
-            {
-                cYP = null;
-            }
-
-            if (cZN == chunk)
-            {
-                cZN = null;
-            }
-
-            if (cZP == chunk)
-            {
-                cZP = null;
-            }
-        }
-
-        public void UnloadFromMem()
+        public void Unload(Chunk* self)
         {
             _lock.Wait();
             try
             {
-                DimensionManager.GetWorld(DimId).Chunks.Remove(this);
-                cXN?.RemoveRefsFrom(this);
-                cXP?.RemoveRefsFrom(this);
-                cYN?.RemoveRefsFrom(this);
-                cYP?.RemoveRefsFrom(this);
-                cZN?.RemoveRefsFrom(this);
-                cZP?.RemoveRefsFrom(this);
-                cXN = cXP = cYN = cYP = cZN = cZP = null;
+                InBuffer = false;
+                VertexBuffer.Dispose();
+
+                DimensionManager.GetWorld(DimId).Chunks.Remove(self);
+
                 Data.Dispose();
-                Free(MinY);
-                Free(MaxY);
-                MinY = null;
-                MaxY = null;
+
+                if (MinY != null)
+                {
+                    Free(MinY);
+                    MinY = null;
+                }
+
+                if (MaxY != null)
+                {
+                    Free(MaxY);
+                    MaxY = null;
+                }
+
                 BlockMetadata.Release();
             }
             finally
@@ -191,18 +176,9 @@ namespace VoxelEngine.Voxel
         }
 
         /// <summary>
-        /// This will completely unload the chunk from cpu and gpu and physics
-        /// </summary>
-        public void Unload()
-        {
-            UnloadFromGPU();
-            UnloadFromMem();
-        }
-
-        /// <summary>
         /// Generates the chunk mesh
         /// </summary>
-        public void Update()
+        public void Update(Chunk* self)
         {
             _lock.Wait();
             try
@@ -213,27 +189,10 @@ namespace VoxelEngine.Voxel
                 }
 
                 ChunkHelper = new();
-                GenerateMesh();
+                VoxelMeshFactory.GenerateMesh(self);
                 Dirty = false;
                 ChunkHelper.Release();
                 ChunkHelper = default;
-            }
-            finally
-            {
-                _lock.Release();
-            }
-        }
-
-        /// <summary>
-        /// Frees the memory on the gpu
-        /// </summary>
-        public void UnloadFromGPU()
-        {
-            _lock.Wait();
-            try
-            {
-                InBuffer = false;
-                VertexBuffer.Dispose();
             }
             finally
             {
@@ -323,21 +282,13 @@ namespace VoxelEngine.Voxel
             SetBlockInternal(block, (int)pos.X, (int)pos.Y, (int)pos.Z);
         }
 
-        private void GenerateMesh()
-        {
-            fixed (ChunkVertexBuffer* vertexBuffer = &VertexBuffer)
-            {
-                VoxelMeshFactory.GenerateMesh(vertexBuffer, this);
-            }
-        }
-
-        public unsafe void Serialize(Stream stream)
+        public unsafe void Serialize(Chunk* self, Stream stream)
         {
             _lock.Wait();
             try
             {
                 DiskDirty = false;
-                ChunkSerializer.Serialize(stream, this);
+                ChunkSerializer.Serialize(self, stream);
             }
             finally
             {
@@ -345,12 +296,12 @@ namespace VoxelEngine.Voxel
             }
         }
 
-        public unsafe void Deserialize(Stream stream)
+        public unsafe void Deserialize(Chunk* self, Stream stream)
         {
             _lock.Wait();
             try
             {
-                ChunkSerializer.Deserialize(this, stream);
+                ChunkSerializer.Deserialize(self, stream);
             }
             finally
             {

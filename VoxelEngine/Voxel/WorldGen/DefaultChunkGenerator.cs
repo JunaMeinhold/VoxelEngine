@@ -141,7 +141,7 @@
         }
     }
 
-    public class DefaultChunkGenerator : DisposableBase, IChunkGenerator
+    public unsafe class DefaultChunkGenerator : DisposableBase, IChunkGenerator
     {
         private readonly GenericNoise genericNoise;
         private readonly PerlinNoise perlinNoise;
@@ -202,7 +202,7 @@
         {
             for (int i = 0; i < ChunkSegment.CHUNK_SEGMENT_SIZE; i++)
             {
-                Chunk chunk = new(world, (int)position.X, i, (int)position.Z, true);
+                Chunk* chunk = ChunkAllocator.New(world, (int)position.X, i, (int)position.Z, true);
                 world.Set(chunk, new(position.X, i, position.Z));
                 chunks[i] = chunk;
             }

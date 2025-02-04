@@ -76,7 +76,7 @@
             ImGui.Text($"Local Position: {CurrentPlayerLocalChunkPos}");
             ImGui.Text($"Position: {CurrentPlayerPos}");
             ImGui.Separator();
-            ImGui.Text($"Loader: loads/unloads/updates: {world.WorldLoader.LoadQueueCount}/{world.WorldLoader.UnloadQueueCount}/{world.WorldLoader.UpdateQueueCount}, gen {world.WorldLoader.GenerationQueueCount}, uploads: {world.WorldLoader.UploadQueueCount}, {(world.WorldLoader.Idle ? "Idle" : "")}");
+            ImGui.Text($"Loader: loads/updates: {world.WorldLoader.LoadQueueCount}/{world.WorldLoader.UpdateQueueCount}, gen {world.WorldLoader.GenerationQueueCount}, uploads: {world.WorldLoader.UploadQueueCount}, {(world.WorldLoader.Idle ? "Idle" : "")}");
             ImGui.Text($"IO: loads/unloads/saves: {world.WorldLoader.LoadIOQueueCount}/{world.WorldLoader.UnloadIOQueueCount}/{world.WorldLoader.SaveIOQueueCount}, {(world.WorldLoader.IOIdle ? "Idle" : "")}");
             ImGui.Text($"Loaded Render Regions: {world.WorldLoader.RenderRegionCount}");
             ImGui.Text($"Loaded Chunk Segments: {world.WorldLoader.ChunkSegmentCount}");

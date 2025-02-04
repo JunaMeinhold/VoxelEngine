@@ -1,13 +1,14 @@
 ﻿namespace VoxelEngine.Voxel
 {
     using Hexa.NET.Mathematics;
+    using Hexa.NET.Utilities;
     using System.Collections.Generic;
     using System.IO;
     using System.Numerics;
     using System.Runtime.CompilerServices;
     using VoxelEngine.Voxel.WorldGen;
 
-    public partial class World
+    public unsafe partial class World
     {
         public World(string path, int dimId = 0)
         {
@@ -30,7 +31,7 @@
 
         public VoxelHelper VoxelHelper { get; } = new(Matrix4x4.Identity);
 
-        public IReadOnlyList<Chunk> LoadedChunks => WorldLoader.LoadedChunks;
+        public IReadOnlyList<Pointer<Chunk>> LoadedChunks => WorldLoader.LoadedChunks;
 
         public IReadOnlyList<ChunkSegment> LoadedChunkSegments => WorldLoader.LoadedChunkSegments;
 
@@ -63,14 +64,14 @@
                 return;
             }
 
-            Chunk? c = Chunks[xglobal, yglobal, zglobal];
+            Chunk* c = Chunks[xglobal, yglobal, zglobal];
 
             if (c == null)
             {
                 return;
             }
 
-            c.SetBlockInternal(block, xlocal, ylocal, zlocal);
+            c->SetBlockInternal(block, xlocal, ylocal, zlocal);
 
             UpdateChunk(xglobal, yglobal, zglobal, true);
 
@@ -103,11 +104,11 @@
             }
 
             // Chunk accessed quickly using bitwise shifts
-            Chunk? c = Chunks[xglobal, yglobal, zglobal];
+            Chunk* c = Chunks[xglobal, yglobal, zglobal];
 
             if (c == null) return Block.Air;
 
-            return c.GetBlockInternal(xlocal, ylocal, zlocal);
+            return c->GetBlockInternal(xlocal, ylocal, zlocal);
         }
 
         public static bool InWorldLimits(int x, int y, int z)
@@ -138,7 +139,7 @@
         {
             for (int i = 0; i < CHUNK_AMOUNT_Y; i++)
             {
-                Chunk chunk = new(this, (int)pos.X, i, (int)pos.Z);
+                Chunk* chunk = ChunkAllocator.New(this, (int)pos.X, i, (int)pos.Z);
                 Set(chunk, (int)pos.X, i, (int)pos.Z);
             }
         }

@@ -135,11 +135,11 @@
 
             for (float t = 0; t < maxDistance;)
             {
-                Chunk chunk = world.Get(x >> 4, y >> 4, z >> 4);
-                if (chunk == null || !chunk.InMemory)
+                Chunk* chunk = world.Get(x >> 4, y >> 4, z >> 4);
+                if (chunk == null || !chunk->InMemory)
                     return new RaycastHit { Hit = false }; // No chunk exists
 
-                Block block = chunk.GetBlockInternal(x & 15, y & 15, z & 15);
+                Block block = chunk->GetBlockInternal(x & 15, y & 15, z & 15);
                 if (block.Type != 0) // Hit a solid block
                 {
                     Vector3 normal = lastStepAxis == 0 ? new Vector3(-stepX, 0, 0) :

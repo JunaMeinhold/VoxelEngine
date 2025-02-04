@@ -1,7 +1,7 @@
 ﻿namespace VoxelEngine.Voxel
 {
+    using Hexa.NET.Mathematics;
     using System;
-    using System.Numerics;
 
     public struct LocalChunkPoint : IEquatable<LocalChunkPoint>
     {
@@ -9,12 +9,12 @@
         public byte Y;
         public byte Z;
 
-        public readonly Vector3 ToGlobal(Chunk chunk)
+        public readonly Point3 ToGlobal(Chunk chunk)
         {
-            return chunk.Position + new Vector3(X, Y, Z);
+            return chunk.Position + new Point3(X, Y, Z);
         }
 
-        public override readonly bool Equals(object obj)
+        public override readonly bool Equals(object? obj)
         {
             return obj is LocalChunkPoint point && Equals(point);
         }

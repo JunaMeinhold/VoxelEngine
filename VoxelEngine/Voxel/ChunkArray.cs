@@ -1,33 +1,97 @@
 ﻿namespace VoxelEngine.Voxel
 {
+    using Hexa.NET.Mathematics;
+    using Hexa.NET.Utilities;
+    using Hexa.NET.Utilities.Threading;
+    using System.Formats.Tar;
     using System.Numerics;
 
-    public class ChunkArray
+    public unsafe class ChunkArray
     {
-        private readonly Dictionary<Vector3, Chunk> chunks = new();
-        private readonly Lock _lock = new();
+        private readonly Dictionary<Point3, Pointer<Chunk>> chunks = [];
+
+        private readonly ManualResetEventSlim writeLock = new(true);
+        private readonly ManualResetEventSlim readLock = new(true);
+
+        private readonly SemaphoreSlim readSemaphore = new(maxReader);
+        private readonly SemaphoreSlim writeSemaphore = new(maxWriter);
+        private const int maxReader = 32;
+        private const int maxWriter = 1;
 
         public ChunkArray()
         {
         }
 
-        public Chunk? this[int x, int y, int z]
+        public Chunk* this[int x, int y, int z]
         {
             get => Get(new(x, y, z));
             set => Set(new(x, y, z), value);
         }
 
-        public Chunk? this[Vector3 pos]
+        public Chunk* this[Point3 pos]
         {
-            get => Get(new((int)pos.X, (int)pos.Y, (int)pos.Z));
-            set => Set(new((int)pos.X, (int)pos.Y, (int)pos.Z), value);
+            get => Get(pos);
+            set => Set(pos, value);
         }
 
-        public Chunk? Get(Vector3 pos)
+        public void BeginRead()
         {
-            lock (_lock)
+            writeLock.Wait();
+
+            readLock.Reset();
+
+            readSemaphore.Wait();
+        }
+
+        public void EndRead()
+        {
+            var value = readSemaphore.Release();
+            if (value == maxReader - 1)
             {
-                if (chunks.TryGetValue(pos, out Chunk? chunk))
+                readLock.Set();
+            }
+        }
+
+        public void BeginWrite()
+        {
+            readLock.Wait();
+
+            writeLock.Reset();
+
+            writeSemaphore.Wait();
+        }
+
+        public void EndWrite()
+        {
+            var value = writeSemaphore.Release();
+            if (value == maxWriter - 1)
+            {
+                writeLock.Set();
+            }
+        }
+
+        public int Count
+        {
+            get
+            {
+                BeginRead();
+                try
+                {
+                    return chunks.Count;
+                }
+                finally
+                {
+                    EndRead();
+                }
+            }
+        }
+
+        public Chunk* Get(Point3 pos)
+        {
+            BeginRead();
+            try
+            {
+                if (chunks.TryGetValue(pos, out Pointer<Chunk> chunk))
                 {
                     return chunk;
                 }
@@ -36,11 +100,16 @@
                     return null;
                 }
             }
+            finally
+            {
+                EndRead();
+            }
         }
 
-        public void Set(Vector3 pos, Chunk? value)
+        public void Set(Point3 pos, Chunk* value)
         {
-            lock (_lock)
+            BeginWrite();
+            try
             {
                 if (value == null)
                 {
@@ -51,37 +120,48 @@
                     chunks[pos] = value;
                 }
             }
+            finally
+            {
+                EndWrite();
+            }
         }
 
-        public void Remove(Vector3 pos)
+        public void Remove(Point3 pos)
         {
-            lock (_lock)
+            BeginWrite();
+            try
             {
                 chunks.Remove(pos, out _);
             }
-        }
-
-        public void Remove(Chunk value)
-        {
-            lock (_lock)
+            finally
             {
-                chunks.Remove(value.Position);
+                EndWrite();
             }
         }
 
-        public int Count()
+        public void Remove(Chunk* value)
         {
-            lock (_lock)
+            BeginWrite();
+            try
             {
-                return chunks.Count;
+                chunks.Remove(value->Position);
+            }
+            finally
+            {
+                EndWrite();
             }
         }
 
         public void Clear()
         {
-            lock (_lock)
+            BeginWrite();
+            try
             {
                 chunks.Clear();
+            }
+            finally
+            {
+                EndWrite();
             }
         }
     }

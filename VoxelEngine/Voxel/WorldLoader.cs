@@ -34,7 +34,7 @@
         }
     }
 
-    public class WorldLoader : IDisposable
+    public unsafe class WorldLoader : IDisposable
     {
         private Vector2[] indicesRenderCache;
         private HashSet<Vector2> indicesSimulationCache;
@@ -56,9 +56,6 @@
         // Contains chunks that will be added to LoadedChunks list.
         private readonly BlockingQueue<ChunkSegment> integrationQueue = new();
 
-        // Contains chunks that will be unloaded form the simulation and LoadedChunks list.
-        private readonly BlockingQueue<ChunkSegment> unloadQueue = new();
-
         // Contains chunks that will be unloaded from the gpu and will be send to unloadQueue.
         private readonly BlockingQueue<ChunkSegment> unloadIOQueue = new();
 
@@ -68,7 +65,7 @@
         private readonly BlockingList<ChunkSegment> loadedInternal = new();
 
         // Contains chunks that will be rendered and simulated.
-        private readonly List<Chunk> loadedChunks = new();
+        private readonly List<Pointer<Chunk>> loadedChunks = new();
 
         private readonly BlockingList<RenderRegion> renderRegions = new();
 
@@ -132,7 +129,7 @@
 
         public World World { get; }
 
-        public IReadOnlyList<Chunk> LoadedChunks => loadedChunks;
+        public IReadOnlyList<Pointer<Chunk>> LoadedChunks => loadedChunks;
 
         public IReadOnlyList<ChunkSegment> LoadedChunkSegments => loadedInternal;
 
@@ -149,8 +146,6 @@
         public int GenerationQueueCount => generationQueue.Count;
 
         public int LoadQueueCount => loadQueue.Count;
-
-        public int UnloadQueueCount => unloadQueue.Count;
 
         public int UnloadIOQueueCount => unloadIOQueue.Count;
 
@@ -434,9 +429,9 @@
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Dispatch(Chunk chunk, bool save)
+        public void Dispatch(Chunk* chunk, bool save)
         {
-            ChunkSegment segment = World.GetSegment(chunk.Position);
+            ChunkSegment segment = World.GetSegment(chunk->Position);
             if (updateQueue.Contains(segment))
             {
                 return;
@@ -453,7 +448,7 @@
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Upload(GraphicsContext context)
         {
-            if (uploadQueue.IsEmpty & unloadQueue.IsEmpty)
+            if (uploadQueue.IsEmpty)
             {
                 return;
             }
@@ -479,17 +474,6 @@
                 loadedChunks.AddRange(segment.Chunks);
             }
 
-            Profiler.Begin("Upload.Unload");
-            while (unloadQueue.TryDequeue(out ChunkSegment segment))
-            {
-                for (int i = 0; i < ChunkSegment.CHUNK_SEGMENT_SIZE; i++)
-                {
-                    Chunk chunk = segment.Chunks[i];
-                    chunk.UnloadFromGPU();
-                    _ = loadedChunks.Remove(chunk);
-                }
-            }
-            Profiler.End("Upload.Unload");
             Profiler.End("Upload.Total");
         }
 
@@ -579,9 +563,8 @@
             }
 
             segment.SaveToDisk();
-            segment.UnloadFromMem();
+            segment.Unload();
             loadedInternal.Remove(segment);
-            unloadQueue.Enqueue(segment);
         }
 
         private UnsafeHashSet<Vector2> loadedChunksIndices = new(Nucleus.Settings.ChunkRenderDistance * 2 * Nucleus.Settings.ChunkRenderDistance * 2);

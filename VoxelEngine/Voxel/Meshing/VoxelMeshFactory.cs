@@ -7,76 +7,17 @@
 
     public static unsafe class VoxelMeshFactory
     {
-        public static void GenerateMesh(ChunkVertexBuffer* vertexBuffer, Chunk chunk)
+        public static void GenerateMesh(Chunk* chunk)
         {
+            ChunkVertexBuffer* vertexBuffer = &chunk->VertexBuffer;
             vertexBuffer->Lock();
             // Default 4096, else use the lase size + 1024
             int newSize = vertexBuffer->Count == 0 ? 4096 : vertexBuffer->Count;
             vertexBuffer->Reset(newSize);
 
-            Vector3 position = chunk.Position;
+            Vector3 position = chunk->Position;
 
-            // Negative X side
-            chunk.cXN = chunk.Map.Chunks[(int)(position.X - 1), (int)position.Y, (int)position.Z];
-            if (chunk.cXN is not null)
-            {
-                if (!chunk.cXN.InMemory)
-                {
-                    chunk.cXN = null;
-                }
-            }
-
-            // Positive X side
-            chunk.cXP = chunk.Map.Chunks[(int)(position.X + 1), (int)position.Y, (int)position.Z];
-            if (chunk.cXP is not null)
-            {
-                if (!chunk.cXP.InMemory)
-                {
-                    chunk.cXP = null;
-                }
-            }
-
-            // Negative Y side
-            chunk.cYN = chunk.Position.Y > 0 ? chunk.Map.Chunks[(int)position.X, (int)(position.Y - 1), (int)position.Z] : null;
-            if (chunk.cYN is not null)
-            {
-                if (!chunk.cYN.InMemory)
-                {
-                    chunk.cYN = null;
-                }
-            }
-
-            // Positive Y side
-            chunk.cYP = chunk.Position.Y < World.CHUNK_AMOUNT_Y - 1 ? chunk.Map.Chunks[(int)position.X, (int)(position.Y + 1), (int)position.Z] : null;
-            if (chunk.cYP is not null)
-            {
-                if (!chunk.cYP.InMemory)
-                {
-                    chunk.cYP = null;
-                }
-            }
-
-            // Negative Z neighbour
-            chunk.cZN = chunk.Map.Chunks[(int)position.X, (int)position.Y, (int)(position.Z - 1)];
-            if (chunk.cZN is not null)
-            {
-                if (!chunk.cZN.InMemory)
-                {
-                    chunk.cZN = null;
-                }
-            }
-
-            // Positive Z side
-            chunk.cZP = chunk.Map.Chunks[(int)position.X, (int)position.Y, (int)(position.Z + 1)];
-            if (chunk.cZP is not null)
-            {
-                if (!chunk.cZP.InMemory)
-                {
-                    chunk.cZP = null;
-                }
-            }
-
-            chunk.HasMissingNeighbours = chunk.cXN == null || chunk.cXP == null || chunk.cYN == null || chunk.cYP == null || chunk.cZN == null || chunk.cZP == null;
+            ChunkNeighbours neighbours = NeighbourVisitor.Visit(chunk);
 
             // Precalculate the map-relative Y position of the chunk in the map
             int chunkY = (int)(position.Y * Chunk.CHUNK_SIZE);
@@ -102,8 +43,8 @@
                 for (int i = 0; i < Chunk.CHUNK_SIZE; i++, i1++)
                 {
                     // Determine where to start the innermost loop
-                    j = chunk.MinY[heightMapAccess];
-                    topJ = chunk.MaxY[heightMapAccess];
+                    j = chunk->MinY[heightMapAccess];
+                    topJ = chunk->MaxY[heightMapAccess];
                     heightMapAccess++;
 
                     // Calculate this once, rather than multiple times in the inner loop
@@ -119,11 +60,11 @@
                     // X and Z runs search upwards to create runs, so start at the botto
                     for (; j < topJ; j++, access++)
                     {
-                        Block* b = chunk.Data.Data + access;
+                        Block* b = chunk->Data.Data + access;
 
                         if (b->Type != Chunk.EMPTY)
                         {
-                            CreateRun(vertexBuffer, chunk, b, i, j, k << 12, i1, k1 << 12, j + chunkY, access, minX, maxX, j == 0, j == Chunk.CHUNK_SIZE_MINUS_ONE, minZ, maxZ, iCS, kCS2);
+                            CreateRun(vertexBuffer, &neighbours, chunk, b, i, j, k << 12, i1, k1 << 12, j + chunkY, access, minX, maxX, j == 0, j == Chunk.CHUNK_SIZE_MINUS_ONE, minZ, maxZ, iCS, kCS2);
                         }
                     }
                 }
@@ -133,11 +74,11 @@
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static void CreateRun(ChunkVertexBuffer* vertexBuffer, Chunk chunk, Block* b, int i, int j, int k, int i1, int k1, int y, int access, bool minX, bool maxX, bool minY, bool maxY, bool minZ, bool maxZ, int iCS, int kCS2)
+        private static void CreateRun(ChunkVertexBuffer* vertexBuffer, ChunkNeighbours* neighbours, Chunk* chunk, Block* b, int i, int j, int k, int i1, int k1, int y, int access, bool minX, bool maxX, bool minY, bool maxY, bool minZ, bool maxZ, int iCS, int kCS2)
         {
-            Block* data = chunk.Data.Data;
+            Block* data = chunk->Data.Data;
             int type = b->Type;
-            ChunkHelper chunkHelper = chunk.ChunkHelper;
+            ChunkHelper chunkHelper = chunk->ChunkHelper;
             int textureHealth16 = BlockVertex.IndexToTextureShifted[type];
             int accessIncremented = access + 1;
             int chunkAccess;
@@ -148,7 +89,7 @@
             uint tint = GetTint(type, access);
 
             // Left (X-)
-            if (!chunkHelper.visitXN[access] && DrawFaceXN(chunk, j, access, minX, kCS2))
+            if (!chunkHelper.visitXN[access] && DrawFaceXN(neighbours, chunk, j, access, minX, kCS2))
             {
                 chunkHelper.visitXN[access] = true;
                 chunkAccess = accessIncremented;
@@ -168,7 +109,7 @@
             }
 
             // Right (X+)
-            if (!chunkHelper.visitXP[access] && DrawFaceXP(chunk, j, access, maxX, kCS2))
+            if (!chunkHelper.visitXP[access] && DrawFaceXP(neighbours, chunk, j, access, maxX, kCS2))
             {
                 chunkHelper.visitXP[access] = true;
 
@@ -188,7 +129,7 @@
             }
 
             // Back (Z-)
-            if (!chunkHelper.visitZN[access] && DrawFaceZN(chunk, j, access, minZ, iCS))
+            if (!chunkHelper.visitZN[access] && DrawFaceZN(neighbours, chunk, j, access, minZ, iCS))
             {
                 chunkHelper.visitZN[access] = true;
 
@@ -208,7 +149,7 @@
             }
 
             // Front (Z+)
-            if (!chunkHelper.visitZP[access] && DrawFaceZP(chunk, j, access, maxZ, iCS))
+            if (!chunkHelper.visitZP[access] && DrawFaceZP(neighbours, chunk, j, access, maxZ, iCS))
             {
                 chunkHelper.visitZP[access] = true;
 
@@ -228,7 +169,7 @@
             }
 
             // Bottom (Y-)
-            if (!chunkHelper.visitYN[access] && DrawFaceYN(chunk, access, minY, iCS, kCS2))
+            if (!chunkHelper.visitYN[access] && DrawFaceYN(neighbours, chunk, access, minY, iCS, kCS2))
             {
                 chunkHelper.visitYN[access] = true;
 
@@ -250,7 +191,7 @@
             }
 
             // Top (Y+)
-            if (!chunkHelper.visitYP[access] && DrawFaceYP(chunk, access, maxY, iCS, kCS2))
+            if (!chunkHelper.visitYP[access] && DrawFaceYP(neighbours, chunk, access, maxY, iCS, kCS2))
             {
                 chunkHelper.visitYP[access] = true;
 
@@ -283,112 +224,112 @@
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static bool DrawFaceXN(Chunk chunk, int j, int access, bool min, int kCS2)
+        private static bool DrawFaceXN(ChunkNeighbours* neighbours, Chunk* chunk, int j, int access, bool min, int kCS2)
         {
             if (min)
             {
-                if (chunk.cXN == null || !chunk.cXN.InMemory)
+                if (neighbours->cXN == null || !neighbours->cXN->InMemory)
                 {
                     return true;
                 }
 
                 // If it is outside this chunk, get the block from the neighbouring chunk
-                return chunk.cXN.Data[Chunk.CHUNK_SIZE_MINUS_ONE * Chunk.CHUNK_SIZE + j + kCS2].Type == 0;
+                return neighbours->cXN->Data[Chunk.CHUNK_SIZE_MINUS_ONE * Chunk.CHUNK_SIZE + j + kCS2].Type == 0;
             }
 
-            return chunk.Data[access - Chunk.CHUNK_SIZE].Type == 0;
+            return chunk->Data[access - Chunk.CHUNK_SIZE].Type == 0;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static bool DrawFaceXP(Chunk chunk, int j, int access, bool max, int kCS2)
+        private static bool DrawFaceXP(ChunkNeighbours* neighbours, Chunk* chunk, int j, int access, bool max, int kCS2)
         {
             if (max)
             {
-                if (chunk.cXP == null || !chunk.cXP.InMemory)
+                if (neighbours->cXP == null || !neighbours->cXP->InMemory)
                 {
                     return true;
                 }
 
                 // If it is outside this chunk, get the block from the neighbouring chunk
-                return chunk.cXP.Data[j + kCS2].Type == 0;
+                return neighbours->cXP->Data[j + kCS2].Type == 0;
             }
 
-            return chunk.Data[access + Chunk.CHUNK_SIZE].Type == 0;
+            return chunk->Data[access + Chunk.CHUNK_SIZE].Type == 0;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static bool DrawFaceYN(Chunk chunk, int access, bool min, int iCS, int kCS2)
+        private static bool DrawFaceYN(ChunkNeighbours* neighbours, Chunk* chunk, int access, bool min, int iCS, int kCS2)
         {
             if (min)
             {
-                if (chunk.Position.Y == 0)
+                if (chunk->Position.Y == 0)
                 {
                     return true;
                 }
 
-                if (chunk.cYN == null || !chunk.cYN.InMemory)
+                if (neighbours->cYN == null || !neighbours->cYN->InMemory)
                 {
                     return true;
                 }
 
                 // If it is outside this chunk, get the block from the neighbouring chunk
-                return chunk.cYN.Data[iCS + Chunk.CHUNK_SIZE_MINUS_ONE + kCS2].Type == 0;
+                return neighbours->cYN->Data[iCS + Chunk.CHUNK_SIZE_MINUS_ONE + kCS2].Type == 0;
             }
 
-            return chunk.Data[access - 1].Type == 0;
+            return chunk->Data[access - 1].Type == 0;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static bool DrawFaceYP(Chunk chunk, int access, bool max, int iCS, int kCS2)
+        private static bool DrawFaceYP(ChunkNeighbours* neighbours, Chunk* chunk, int access, bool max, int iCS, int kCS2)
         {
             if (max)
             {
                 // Don't check chunkYPos here as players can move above the map
-                if (chunk.cYP == null || !chunk.cYP.InMemory)
+                if (neighbours->cYP == null || !neighbours->cYP->InMemory)
                 {
                     return true;
                 }
                 else
                 {
-                    return chunk.cYP.Data[iCS + kCS2].Type == 0;
+                    return neighbours->cYP->Data[iCS + kCS2].Type == 0;
                 }
             }
             else
             {
-                return chunk.Data[access + 1].Type == 0;
+                return chunk->Data[access + 1].Type == 0;
             }
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static bool DrawFaceZN(Chunk chunk, int j, int access, bool min, int iCS)
+        private static bool DrawFaceZN(ChunkNeighbours* neighbours, Chunk* chunk, int j, int access, bool min, int iCS)
         {
             if (min)
             {
-                if (chunk.cZN == null || chunk.cZN.InMemory)
+                if (neighbours->cZN == null || neighbours->cZN->InMemory)
                 {
                     return true;
                 }
 
-                return chunk.cZN.Data[iCS + j + Chunk.CHUNK_SIZE_MINUS_ONE * Chunk.CHUNK_SIZE_SQUARED].Type == 0;
+                return neighbours->cZN->Data[iCS + j + Chunk.CHUNK_SIZE_MINUS_ONE * Chunk.CHUNK_SIZE_SQUARED].Type == 0;
             }
 
-            return chunk.Data[access - Chunk.CHUNK_SIZE_SQUARED].Type == 0;
+            return chunk->Data[access - Chunk.CHUNK_SIZE_SQUARED].Type == 0;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private static bool DrawFaceZP(Chunk chunk, int j, int access, bool max, int iCS)
+        private static bool DrawFaceZP(ChunkNeighbours* neighbours, Chunk* chunk, int j, int access, bool max, int iCS)
         {
             if (max)
             {
-                if (chunk.cZP == null || !chunk.cZP.InMemory)
+                if (neighbours->cZP == null || !neighbours->cZP->InMemory)
                 {
                     return true;
                 }
 
-                return chunk.cZP.Data[iCS + j].Type == 0;
+                return neighbours->cZP->Data[iCS + j].Type == 0;
             }
 
-            return chunk.Data[access + Chunk.CHUNK_SIZE_SQUARED].Type == 0;
+            return chunk->Data[access + Chunk.CHUNK_SIZE_SQUARED].Type == 0;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
