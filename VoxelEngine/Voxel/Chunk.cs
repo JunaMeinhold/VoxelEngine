@@ -34,7 +34,7 @@ namespace VoxelEngine.Voxel
 
         public bool HasMissingNeighbours;
 
-        public readonly Lock _lock = new();
+        public SemaphoreLight _lock = new(1, 1);
 
         private InternalChunkFlags flags;
 
@@ -166,7 +166,8 @@ namespace VoxelEngine.Voxel
 
         public void UnloadFromMem()
         {
-            lock (_lock)
+            _lock.Wait();
+            try
             {
                 DimensionManager.GetWorld(DimId).Chunks.Remove(this);
                 cXN?.RemoveRefsFrom(this);
@@ -182,6 +183,10 @@ namespace VoxelEngine.Voxel
                 MinY = null;
                 MaxY = null;
                 BlockMetadata.Release();
+            }
+            finally
+            {
+                _lock.Release();
             }
         }
 
@@ -199,7 +204,8 @@ namespace VoxelEngine.Voxel
         /// </summary>
         public void Update()
         {
-            lock (_lock)
+            _lock.Wait();
+            try
             {
                 if (!Data.IsAllocated)
                 {
@@ -212,6 +218,10 @@ namespace VoxelEngine.Voxel
                 ChunkHelper.Release();
                 ChunkHelper = default;
             }
+            finally
+            {
+                _lock.Release();
+            }
         }
 
         /// <summary>
@@ -219,16 +229,22 @@ namespace VoxelEngine.Voxel
         /// </summary>
         public void UnloadFromGPU()
         {
-            lock (_lock)
+            _lock.Wait();
+            try
             {
                 InBuffer = false;
                 VertexBuffer.Dispose();
+            }
+            finally
+            {
+                _lock.Release();
             }
         }
 
         public void SetBlockInternal(Block block, int x, int y, int z)
         {
-            lock (_lock)
+            _lock.Wait();
+            try
             {
                 DiskDirty = true;
                 Dirty = true;
@@ -274,6 +290,10 @@ namespace VoxelEngine.Voxel
                     MaxY[heightAccess] = Math.Max(MaxY[heightAccess], (byte)(y + 1));
                 }
             }
+            finally
+            {
+                _lock.Release();
+            }
         }
 
         public Block GetBlockInternal(int x, int y, int z)
@@ -313,18 +333,28 @@ namespace VoxelEngine.Voxel
 
         public unsafe void Serialize(Stream stream)
         {
-            lock (_lock)
+            _lock.Wait();
+            try
             {
                 DiskDirty = false;
                 ChunkSerializer.Serialize(stream, this);
+            }
+            finally
+            {
+                _lock.Release();
             }
         }
 
         public unsafe void Deserialize(Stream stream)
         {
-            lock (_lock)
+            _lock.Wait();
+            try
             {
                 ChunkSerializer.Deserialize(this, stream);
+            }
+            finally
+            {
+                _lock.Release();
             }
         }
 

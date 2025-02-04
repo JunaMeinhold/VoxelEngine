@@ -8,8 +8,8 @@
         private int maxBlockId;
         private int bitsPerBlock;
 
-        private readonly UnsafeDictionary<ushort, ushort> blockPalette = new() { { 0, 0 } };
-        private readonly UnsafeList<ushort> reversePalette = [0];
+        private UnsafeDictionary<ushort, ushort> blockPalette = new() { { 0, 0 } };
+        private UnsafeList<ushort> reversePalette = [0];
 
         private byte* data;
 
