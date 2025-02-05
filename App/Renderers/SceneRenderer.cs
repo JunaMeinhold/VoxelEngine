@@ -41,8 +41,8 @@
         public void Initialize(GameWindow window)
         {
             swapChain = window.SwapChain;
-            rendererWidth = 2560;
-            rendererHeight = 1440;
+            rendererWidth = 1920;//2560;
+            rendererHeight = 1080;//1440;
 
             anisotropicClampSampler = new(SamplerStateDescription.AnisotropicClamp);
             pointClampSampler = new(SamplerStateDescription.PointClamp);
@@ -109,7 +109,7 @@
         {
         }
 
-        private UnsafeRingBuffer<float> frames = new(512);
+        private UnsafeRingBuffer<float> frames = new(512) { AverageValues = false };
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe void Render(GraphicsContext context, Camera camera, Scene scene)

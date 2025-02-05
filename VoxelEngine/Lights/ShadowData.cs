@@ -2,6 +2,7 @@
 {
     using System.Numerics;
     using System.Runtime.CompilerServices;
+    using VoxelEngine.Lightning;
 
     public struct ShadowData
     {
@@ -34,6 +35,16 @@
         public Vector4 Region8;
         public float Bias;
         public float SlopeBias;
+
+        public ShadowData(DirectionalLight light, float size)
+        {
+            View1 = light.Transform.View;
+            Size = size;
+            Softness = light.LightBleedingReduction;
+            CascadeCount = (uint)light.cascadeCount;
+            Bias = 0;
+            SlopeBias = 0;
+        }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public static unsafe Matrix4x4* GetViews(ShadowData* data)

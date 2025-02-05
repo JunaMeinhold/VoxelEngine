@@ -17,7 +17,7 @@
 
         public override void Execute(GraphicsContext context, Scene scene, Camera camera, GraphResourceBuilder creator)
         {
-            context.SetRenderTarget(creator.Output, depthStencil.Value!);
+            context.SetRenderTarget(creator.Output, null);
             scene.RenderSystem.Draw(context, RenderQueueIndex.Overlay, PassIdentifer.ForwardPass, camera);
         }
     }

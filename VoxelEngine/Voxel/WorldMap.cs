@@ -1,5 +1,6 @@
 ﻿namespace VoxelEngine.Voxel
 {
+    using Hexa.NET.ImGui;
     using Hexa.NET.Mathematics;
     using System.Numerics;
     using VoxelEngine.Scenes;
@@ -17,11 +18,6 @@
         public const int CHUNK_AMOUNT_Z_MIN = int.MinValue;
 
         public string Path { get; private set; }
-
-        public bool IsNoBlock(Vector3 pos)
-        {
-            return IsNoBlock(MathUtil.Round(pos.X), MathUtil.Round(pos.Y), MathUtil.Round(pos.Z));
-        }
 
         public unsafe bool IsNoBlock(int x, int y, int z)
         {
@@ -60,7 +56,7 @@
             return c->Data[Extensions.MapToIndex(xlocal, ylocal, zlocal)].Type == Chunk.EMPTY;
         }
 
-        public void Set(Chunk* chunk, Vector3 pos)
+        public void Set(Chunk* chunk, Point3 pos)
         {
             if (pos.X < CHUNK_AMOUNT_X_MIN || pos.X >= CHUNK_AMOUNT_X ||
                 pos.Y < CHUNK_AMOUNT_Y_MIN || pos.Y >= CHUNK_AMOUNT_Y ||
@@ -69,10 +65,10 @@
                 return;
             }
 
-            Chunks[(int)pos.X, (int)pos.Y, (int)pos.Z] = chunk;
+            Chunks[pos.X, pos.Y, pos.Z] = chunk;
         }
 
-        public void Set(Chunk* chunk, float x, float y, float z)
+        public void Set(Chunk* chunk, int x, int y, int z)
         {
             if (x < CHUNK_AMOUNT_X_MIN || x >= CHUNK_AMOUNT_X ||
                 y < CHUNK_AMOUNT_Y_MIN || y >= CHUNK_AMOUNT_Y ||
@@ -81,10 +77,10 @@
                 return;
             }
 
-            Chunks[(int)x, (int)y, (int)z] = chunk;
+            Chunks[x, y, z] = chunk;
         }
 
-        public Chunk* Get(Vector3 pos)
+        public Chunk* Get(Point3 pos)
         {
             if (pos.X < CHUNK_AMOUNT_X_MIN || pos.X >= CHUNK_AMOUNT_X ||
                 pos.Y < CHUNK_AMOUNT_Y_MIN || pos.Y >= CHUNK_AMOUNT_Y ||
@@ -93,10 +89,10 @@
                 return null;
             }
 
-            return Chunks[(int)pos.X, (int)pos.Y, (int)pos.Z];
+            return Chunks[pos.X, pos.Y, pos.Z];
         }
 
-        public Chunk* Get(float x, float y, float z)
+        public Chunk* Get(int x, int y, int z)
         {
             if (x < CHUNK_AMOUNT_X_MIN || x >= CHUNK_AMOUNT_X ||
                 y < CHUNK_AMOUNT_Y_MIN || y >= CHUNK_AMOUNT_Y ||
@@ -105,7 +101,7 @@
                 return null;
             }
 
-            return Chunks[(int)x, (int)y, (int)z];
+            return Chunks[x, y, z];
         }
 
         public void Set(ChunkSegment region)
@@ -122,7 +118,7 @@
             }
         }
 
-        public ChunkSegment GetSegment(Vector3 pos)
+        public ChunkSegment GetSegment(Point3 pos)
         {
             if (pos.X < CHUNK_AMOUNT_X_MIN || pos.X >= CHUNK_AMOUNT_X ||
                 pos.Y < CHUNK_AMOUNT_Y_MIN || pos.Y >= CHUNK_AMOUNT_Y ||
@@ -134,7 +130,7 @@
             return ChunkSegment.CreateFrom(this, pos);
         }
 
-        public ChunkSegment GetSegment(float x, float z)
+        public ChunkSegment GetSegment(int x, int z)
         {
             if (x < CHUNK_AMOUNT_X_MIN || x >= CHUNK_AMOUNT_X ||
                 z < CHUNK_AMOUNT_Y_MIN || z >= CHUNK_AMOUNT_Z)

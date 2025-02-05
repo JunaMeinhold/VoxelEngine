@@ -7,12 +7,11 @@
     using System.Collections;
     using System.IO;
     using System.Numerics;
-    using System.Reflection;
     using VoxelEngine.IO;
 
     public unsafe struct ChunkSegment
     {
-        public Vector2 Position;
+        public Point2 Position;
         public ChunkArray Chunks;
         public const int CHUNK_SEGMENT_SIZE = World.CHUNK_AMOUNT_Y;
 
@@ -172,7 +171,7 @@
             }
         }
 
-        public ChunkSegment(Vector2 position)
+        public ChunkSegment(Point2 position)
         {
             Position = position;
         }
@@ -276,7 +275,7 @@
 
             for (int i = 0; i < count; i++)
             {
-                Chunk* chunk = ChunkAllocator.New(world, (int)Position.X, i, (int)Position.Y);
+                Chunk* chunk = ChunkAllocator.New(world, Position.X, i, Position.Y);
                 chunk->Deserialize(chunk, fs);
                 Chunks[i] = chunk;
                 world.Chunks[Chunks[i]->Position] = chunk;
@@ -287,23 +286,23 @@
             fs.Dispose();
         }
 
-        public static ChunkSegment CreateFrom(World world, Vector3 pos)
+        public static ChunkSegment CreateFrom(World world, Point3 pos)
         {
-            ChunkSegment segment = new(new Vector2(pos.X, pos.Z));
+            ChunkSegment segment = new(new Point2(pos.X, pos.Z));
             for (int y = 0; y < World.CHUNK_AMOUNT_Y; y++)
             {
-                segment.Chunks[y] = world.Get(new Vector3(pos.X, y, pos.Z));
+                segment.Chunks[y] = world.Get(new Point3(pos.X, y, pos.Z));
             }
 
             return segment;
         }
 
-        public static ChunkSegment CreateFrom(World world, float x, float z)
+        public static ChunkSegment CreateFrom(World world, int x, int z)
         {
-            ChunkSegment segment = new(new Vector2(x, z));
+            ChunkSegment segment = new(new Point2(x, z));
             for (int i = 0; i < World.CHUNK_AMOUNT_Y; i++)
             {
-                segment.Chunks[i] = world.Get(new Vector3(x, i, z));
+                segment.Chunks[i] = world.Get(new Point3(x, i, z));
             }
 
             return segment;

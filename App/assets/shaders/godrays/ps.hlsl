@@ -1,5 +1,5 @@
 #define DITHER          //Dithering toggle
-#define QUALITY     3   //0- low, 1- medium, 2- high
+#define QUALITY     1   //0- low, 1- medium, 2- high
 
 #define DECAY       .974
 #define EXPOSURE    .24

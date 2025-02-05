@@ -226,6 +226,11 @@
             SetPipelineState(pso);
         }
 
+        public void SetComputePipelineState(ComputePipelineState? pso)
+        {
+            SetPipelineState(pso);
+        }
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Write(IBuffer buffer, void* value, int size)
         {

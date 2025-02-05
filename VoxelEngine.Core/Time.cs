@@ -7,15 +7,15 @@
     public static class Time
     {
         private static long last;
-        private static int frame;
-        private static int frameRate;
-        private static float frameTime;
+        private static uint frame;
         private static float fixedTime;
         private static float delta;
         private static float cumulativeFrameTime;
         private static int fixedUpdateRate = 10;
         private static float gameTime = 12;
         private static float gameTimeNormalized;
+
+        public static uint Frame => frame;
 
         public static float Delta { get => delta; private set => delta = value; }
 
@@ -26,8 +26,6 @@
         public static float FixedDelta => 1f / FixedUpdateRate;
 
         public static float FixedUpdatePerSecond => 1000F / FixedUpdateRate / 1000f;
-
-        public static int FrameRate => frameRate;
 
         public static float GameTime { get => gameTime; set => gameTime = value; }
 
@@ -53,7 +51,6 @@
             // Calculate the frame time by the time difference over the timer speed resolution.
             cumulativeFrameTime += delta;
             fixedTime += delta;
-            frameTime += delta;
 
             gameTime += (float)(delta * TimeScale / 60.0 / 60.0);
             if (gameTime > 24f)
@@ -63,13 +60,6 @@
             gameTimeNormalized = gameTime / 24f;
 
             frame++;
-
-            while (frameTime > 1)
-            {
-                frameTime--;
-                frameRate = frame;
-                frame = 0;
-            }
 
             while (fixedTime > FixedUpdatePerSecond)
             {

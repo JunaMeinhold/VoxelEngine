@@ -40,14 +40,15 @@
                         buffer = new(1024);
                         stages[stage] = buffer;
                     }
+                    float value = Math.Max(profiler[stage], 0);
 
-                    buffer.Add(profiler[stage] * 1000);
+                    buffer.Add(value * 1000);
 
                     ImPlot.PushStyleVar(ImPlotStyleVar.FillAlpha, 0.25f);
-                    ImPlot.PlotShaded(stage, ref buffer.Values[0], buffer.Length, fill, 1, 0, ImPlotShadedFlags.None, buffer.Head);
+                    ImPlot.PlotShaded(stage, ref buffer.Raw[0], buffer.Length, fill, 1, 0, ImPlotShadedFlags.None, buffer.Head);
                     ImPlot.PopStyleVar();
 
-                    ImPlot.PlotLine(stage, ref buffer.Values[0], buffer.Length, 1, 0, ImPlotLineFlags.None, buffer.Head);
+                    ImPlot.PlotLine(stage, ref buffer.Raw[0], buffer.Length, 1, 0, ImPlotLineFlags.None, buffer.Head);
                 }
                 ImPlot.EndPlot();
             }

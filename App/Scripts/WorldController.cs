@@ -2,6 +2,7 @@
 {
     using Hexa.NET.ImGui;
     using Hexa.NET.Mathematics;
+    using Hexa.NET.Utilities.Text;
     using System.Numerics;
     using VoxelEngine.Core;
     using VoxelEngine.Graphics.D3D11;
@@ -66,21 +67,90 @@
 
             invalidate = false;
             CurrentPlayerChunkSegmentPos = chunkPos;
-            world.WorldLoader.Dispatch(chunkPos);
+            world.WorldLoader.Dispatch((Point3)chunkPos);
         }
 
-        public override void Update()
+        public override unsafe void Update()
         {
-            ImGui.Text($"Chunk Segment: {CurrentPlayerChunkSegmentPos}");
-            ImGui.Text($"Chunk: {CurrentPlayerChunkPos}");
-            ImGui.Text($"Local Position: {CurrentPlayerLocalChunkPos}");
-            ImGui.Text($"Position: {CurrentPlayerPos}");
+            byte* buffer = stackalloc byte[2048];
+            StrBuilder sb = new(buffer, 2048);
+
+            sb.Reset();
+            sb.Append("Chunk Segment: "u8);
+            sb.Append(CurrentPlayerChunkSegmentPos);
+            sb.End();
+            ImGui.Text(sb);
+
+            // Reset and reuse sb for other texts
+            sb.Reset();
+            sb.Append("Chunk: "u8);
+            sb.Append(CurrentPlayerChunkPos);
+            sb.End();
+            ImGui.Text(sb);
+
+            sb.Reset();
+            sb.Append("Local Position: "u8);
+            sb.Append(CurrentPlayerLocalChunkPos);
+            sb.End();
+            ImGui.Text(sb);
+
+            sb.Reset();
+            sb.Append("Position: "u8);
+            sb.Append(CurrentPlayerPos);
+            sb.End();
+            ImGui.Text(sb);
+
             ImGui.Separator();
-            ImGui.Text($"Loader: loads/updates: {world.WorldLoader.LoadQueueCount}/{world.WorldLoader.UpdateQueueCount}, gen {world.WorldLoader.GenerationQueueCount}, uploads: {world.WorldLoader.UploadQueueCount}, {(world.WorldLoader.Idle ? "Idle" : "")}");
-            ImGui.Text($"IO: loads/unloads/saves: {world.WorldLoader.LoadIOQueueCount}/{world.WorldLoader.UnloadIOQueueCount}/{world.WorldLoader.SaveIOQueueCount}, {(world.WorldLoader.IOIdle ? "Idle" : "")}");
-            ImGui.Text($"Loaded Render Regions: {world.WorldLoader.RenderRegionCount}");
-            ImGui.Text($"Loaded Chunk Segments: {world.WorldLoader.ChunkSegmentCount}");
-            ImGui.Text($"Loaded Chunks: {world.WorldLoader.ChunkCount}");
+
+            sb.Reset();
+            sb.Append("Worker Threads: loads/updates: "u8);
+            sb.Append(world.WorldLoader.LoadQueueCount);
+            sb.Append('/');
+            sb.Append(world.WorldLoader.UpdateQueueCount);
+            sb.Append(", gen "u8);
+            sb.Append(world.WorldLoader.GenerationQueueCount);
+            sb.Append(", uploads: "u8);
+            sb.Append(world.WorldLoader.UploadQueueCount);
+            if (world.WorldLoader.Idle)
+                sb.Append(", Idle"u8);
+            sb.End();
+            ImGui.Text(sb);
+
+            sb.Reset();
+            sb.Append("IO Threads: loads/unloads/saves: "u8);
+            sb.Append(world.WorldLoader.LoadIOQueueCount);
+            sb.Append('/');
+            sb.Append(world.WorldLoader.UnloadIOQueueCount);
+            sb.Append('/');
+            sb.Append(world.WorldLoader.SaveIOQueueCount);
+            if (world.WorldLoader.IOIdle)
+                sb.Append(", Idle"u8);
+            sb.End();
+            ImGui.Text(sb);
+
+            sb.Reset();
+            sb.Append("Loaded Render Regions: "u8);
+            sb.Append(world.WorldLoader.RenderRegionCount);
+            sb.End();
+            ImGui.Text(sb);
+
+            sb.Reset();
+            sb.Append("Loaded Chunk Segments: "u8);
+            sb.Append(world.WorldLoader.ChunkSegmentCount);
+            sb.End();
+            ImGui.Text(sb);
+
+            sb.Reset();
+            sb.Append("Loaded Chunks: "u8);
+            sb.Append(world.WorldLoader.ChunkCount);
+            sb.End();
+            ImGui.Text(sb);
+
+            sb.Reset();
+            sb.Append("Allocated Chunks: "u8);
+            sb.Append(ChunkAllocator.AllocatedAmount);
+            sb.End();
+            ImGui.Text(sb);
 
             var directionalLight = Scene.LightSystem.ActiveDirectionalLight;
 
@@ -114,6 +184,20 @@
 
                 ImGui.Text(directionalLight.Transform.Rotation.ToString());
             }
+        }
+    }
+
+    public static class StrBuilderExtensions
+    {
+        public static void Append(this ref StrBuilder builder, Vector3 vector)
+        {
+            builder.Append("<"u8);
+            builder.Append(vector.X);
+            builder.Append(", "u8);
+            builder.Append(vector.Y);
+            builder.Append(", "u8);
+            builder.Append(vector.Z);
+            builder.Append(">"u8);
         }
     }
 }

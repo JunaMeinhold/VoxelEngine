@@ -1,25 +1,28 @@
 ﻿namespace VoxelEngine.Voxel
 {
+    using Hexa.NET.Mathematics;
     using Hexa.NET.Utilities;
     using System.Collections.Generic;
     using System.Diagnostics;
     using System.Linq;
     using System.Numerics;
     using System.Runtime.CompilerServices;
+    using System.Runtime.Intrinsics;
+    using System.Runtime.Intrinsics.X86;
     using System.Threading;
     using VoxelEngine.Core;
     using VoxelEngine.Debugging;
     using VoxelEngine.Graphics;
     using VoxelEngine.Threading;
 
-    public readonly struct SpatialSorter : IComparer<Vector2>
+    public readonly unsafe struct SpatialSorter : IComparer<Point2>
     {
         public static readonly SpatialSorter Default;
 
-        public int Compare(Vector2 x, Vector2 y)
+        public int Compare(Point2 x, Point2 y)
         {
-            float da = Vector2.Distance(Vector2.Zero, x);
-            float db = Vector2.Distance(Vector2.Zero, y);
+            float da = Point2.Distance(Point2.Zero, x);
+            float db = Point2.Distance(Point2.Zero, y);
 
             if (da < db)
             {
@@ -36,12 +39,12 @@
 
     public unsafe class WorldLoader : IDisposable
     {
-        private Vector2[] indicesRenderCache;
-        private HashSet<Vector2> indicesSimulationCache;
+        private Point2[] indicesRenderCache;
+        private HashSet<Point2> indicesSimulationCache;
 
-        private readonly HashSet<Vector2> loadedRegionIds = new();
+        private readonly HashSet<Point2> loadedRegionIds = new();
 
-        private readonly BlockingQueue<Vector3> loadIOQueue = new();
+        private readonly BlockingQueue<Point3> loadIOQueue = new();
 
         private readonly BlockingQueue<ChunkSegment> generationQueue = new();
 
@@ -163,13 +166,13 @@
 
         public int RenderDistance { get; private set; } = 16;
 
-        private static IEnumerable<Vector2> GetIndices(Vector3 center, int radius)
+        private static IEnumerable<Point2> GetIndices(Point3 center, int radius)
         {
             for (int x = -radius; x <= radius; x++)
             {
                 for (int z = -radius; z <= radius; z++)
                 {
-                    yield return new Vector2(x, z) + new Vector2(center.X, center.Z);
+                    yield return new Point2(x, z) + new Point2(center.X, center.Z);
                 }
             }
         }
@@ -193,12 +196,12 @@
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void RegenerateCache()
         {
-            indicesRenderCache = GetIndices(Vector3.Zero, Nucleus.Settings.ChunkRenderDistance).ToArray();
+            indicesRenderCache = GetIndices(Point3.Zero, Nucleus.Settings.ChunkRenderDistance).ToArray();
 
-            static int compare(Vector2 a, Vector2 b)
+            static int compare(Point2 a, Point2 b)
             {
-                float da = Vector2.Distance(Vector2.Zero, a);
-                float db = Vector2.Distance(Vector2.Zero, b);
+                float da = Point2.Distance(Point2.Zero, a);
+                float db = Point2.Distance(Point2.Zero, b);
 
                 if (da < db)
                 {
@@ -211,7 +214,7 @@
 
                 return 0;
             }
-            indicesSimulationCache = [.. GetIndices(Vector3.Zero, Nucleus.Settings.ChunkSimulationDistance).Order(SpatialSorter.Default)];
+            indicesSimulationCache = [.. GetIndices(Point3.Zero, Nucleus.Settings.ChunkSimulationDistance).Order(SpatialSorter.Default)];
             Array.Sort(indicesRenderCache, compare);
         }
 
@@ -251,14 +254,14 @@
             return region;
         }
 
-        private Vector3 lastPos;
+        private Point3 lastPos;
 
         public void Reset()
         {
             first = true;
         }
 
-        public unsafe void DispatchInitial(Vector3 pos)
+        public unsafe void DispatchInitial(Point3 pos)
         {
             lastPos = pos;
 
@@ -268,10 +271,10 @@
 
             for (int i = 0; i < indicesRenderCache.Length; i++)
             {
-                Vector2 vector = indicesRenderCache[i];
-                Vector2 vec = new(vector.X + pos.X, vector.Y + pos.Z);
+                Point2 vector = indicesRenderCache[i];
+                Point2 vec = new(vector.X + pos.X, vector.Y + pos.Z);
                 loadedChunksIndices.Add(vec);
-                Vector3 chunkVGlobal = new(vec.X, 0, vec.Y);
+                Point3 chunkVGlobal = new(vec.X, 0, vec.Y);
 
                 if (!loadedRegionIds.Add(vec))
                 {
@@ -320,7 +323,7 @@
 
         private bool first = true;
 
-        public void Dispatch(Vector3 pos)
+        public void Dispatch(Point3 pos)
         {
             if (first)
             {
@@ -333,7 +336,7 @@
             loadedChunksIndices.Clear();
             unloadChunksIndices.Clear();
 
-            Vector3 delta = lastPos - pos;
+            Point3 delta = lastPos - pos;
 
             // ignore y axis since we use a 2D plane for chunk loading.
             int dX = (int)delta.X;
@@ -351,7 +354,7 @@
                     int unloadX = (int)lastPos.X - dirX * (RenderDistance + x); // Move further out based on distance
                     for (int z = (int)lastPos.Z - RenderDistance; z <= (int)lastPos.Z + RenderDistance; z++)
                     {
-                        Vector2 chunkToUnload = new(unloadX, z);
+                        Point2 chunkToUnload = new(unloadX, z);
                         unloadChunksIndices.Add(chunkToUnload);
                     }
                 }
@@ -361,7 +364,7 @@
                     int unloadZ = (int)lastPos.Z - dirY * (RenderDistance + y);
                     for (int x = (int)lastPos.X - RenderDistance; x <= (int)lastPos.X + RenderDistance; x++)
                     {
-                        Vector2 chunkToUnload = new(x, unloadZ);
+                        Point2 chunkToUnload = new(x, unloadZ);
                         unloadChunksIndices.Add(chunkToUnload);
                     }
                 }
@@ -371,10 +374,10 @@
                     int loadX = (int)pos.X + dirX * (RenderDistance - x); // Move closer based on distance
                     for (int z = (int)pos.Z - RenderDistance; z <= (int)pos.Z + RenderDistance; z++)
                     {
-                        Vector2 chunkToLoad = new(loadX, z);
+                        Point2 chunkToLoad = new(loadX, z);
                         if (World.InWorldLimits((int)chunkToLoad.X, 0, (int)chunkToLoad.Y) && loadedChunksIndices.Add(chunkToLoad))
                         {
-                            Vector3 chunkVGlobal = new(chunkToLoad.X, 0, chunkToLoad.Y);
+                            Point3 chunkVGlobal = new(chunkToLoad.X, 0, chunkToLoad.Y);
                             loadIOQueue.EnqueueUnsafe(chunkVGlobal);
                             loadedRegionIds.Add(chunkToLoad);
                         }
@@ -386,10 +389,10 @@
                     int loadZ = (int)pos.Z + dirY * (RenderDistance - y);
                     for (int x = (int)pos.X - RenderDistance; x <= (int)pos.X + RenderDistance; x++)
                     {
-                        Vector2 chunkToLoad = new(x, loadZ);
+                        Point2 chunkToLoad = new(x, loadZ);
                         if (World.InWorldLimits((int)chunkToLoad.X, 0, (int)chunkToLoad.Y) && loadedChunksIndices.Add(chunkToLoad))
                         {
-                            Vector3 chunkVGlobal = new(chunkToLoad.X, 0, chunkToLoad.Y);
+                            Point3 chunkVGlobal = new(chunkToLoad.X, 0, chunkToLoad.Y);
                             loadIOQueue.EnqueueUnsafe(chunkVGlobal);
                             loadedRegionIds.Add(chunkToLoad);
                         }
@@ -567,8 +570,8 @@
             loadedInternal.Remove(segment);
         }
 
-        private UnsafeHashSet<Vector2> loadedChunksIndices = new(Nucleus.Settings.ChunkRenderDistance * 2 * Nucleus.Settings.ChunkRenderDistance * 2);
-        private UnsafeHashSet<Vector2> unloadChunksIndices = new(Nucleus.Settings.ChunkRenderDistance * 2 * Nucleus.Settings.ChunkRenderDistance * 2);
+        private UnsafeHashSet<Point2> loadedChunksIndices = new(Nucleus.Settings.ChunkRenderDistance * 2 * Nucleus.Settings.ChunkRenderDistance * 2);
+        private UnsafeHashSet<Point2> unloadChunksIndices = new(Nucleus.Settings.ChunkRenderDistance * 2 * Nucleus.Settings.ChunkRenderDistance * 2);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void LoadVoid(object param)
@@ -643,7 +646,7 @@
 
                 {
                     signal |= !loadIOQueue.IsEmpty;
-                    if (loadIOQueue.TryDequeue(out Vector3 chunkVGlobal) && running)
+                    if (loadIOQueue.TryDequeue(out Point3 chunkVGlobal) && running)
                     {
                         ChunkSegment segment = World.GetSegment(chunkVGlobal);
                         LoadIORegion(segment);

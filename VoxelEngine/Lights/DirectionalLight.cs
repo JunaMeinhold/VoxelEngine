@@ -3,6 +3,7 @@
     using Hexa.NET.D3D11;
     using Hexa.NET.DXGI;
     using Hexa.NET.Mathematics;
+    using System;
     using System.Numerics;
     using VoxelEngine.Core;
     using VoxelEngine.Graphics;
@@ -29,7 +30,7 @@
 
         public BoundingFrustum[] ShadowFrustra = new BoundingFrustum[8];
 
-        public int CascadeCount = 4;
+        public int cascadeCount = 4;
         public Texture2D? ShadowMap;
         public DepthStencil? DepthStencil;
         public int Size = Nucleus.Settings.ShadowMapSize;
@@ -47,9 +48,9 @@
         public override void CreateShadowMap()
         {
             if (ShadowMap != null) return;
-            ShadowMap = new(Format.R32G32Float, Size, Size, CascadeCount - 1, gpuAccessFlags: GpuAccessFlags.RW);
+            ShadowMap = new(Format.R32G32Float, Size, Size, cascadeCount - 1, gpuAccessFlags: GpuAccessFlags.All);
             ShadowMap.CreateArraySlices();
-            DepthStencil = new(Format.D32Float, Size, Size, CascadeCount - 1);
+            DepthStencil = new(Format.D32Float, Size, Size, cascadeCount - 1);
         }
 
         public override void DestroyShadowMap()
@@ -61,47 +62,124 @@
             DepthStencil = null;
         }
 
-        public unsafe void Update(GraphicsContext context, ConstantBuffer<CSMBuffer> csmMatrixBuffer)
+        private Vector3 camOldPos;
+        private Vector3 camOldRot;
+
+        private Vector3 oldRot;
+
+        private uint dirtyCascades;
+        private ShadowData shadowDataLast;
+
+        public unsafe bool UpdateShadowMap(GraphicsContext context, StructuredBuffer<ShadowData> buffer, ConstantBuffer<CSMShadowParams> csmConstantBuffer, Camera camera, out uint updateMask, out bool reproject)
+        {
+            if (ShadowMap == null)
+            {
+                updateMask = 0;
+                reproject = false;
+                return false;
+            }
+
+            var rot = Transform.GlobalOrientation.ToYawPitchRoll();
+
+            var rotDelta = rot - oldRot;
+
+            var camPos = camera.Transform.GlobalPosition;
+            var camRot = camera.Transform.GlobalOrientation.ToYawPitchRoll();
+
+            var camPosDelta = camPos - camOldPos;
+            var camRotDelta = camRot - camOldRot;
+
+            const float motionEpsilon = 0.00000001f;
+            // Determine if we need to update based on camera movement
+            bool positionChanged = camPosDelta.LengthSquared() > motionEpsilon;
+            bool rotationChanged = camRotDelta.LengthSquared() > motionEpsilon || rotDelta.LengthSquared() > 0;
+
+            // Check if we need to update the cascade shadow maps
+            if (!positionChanged && !rotationChanged)
+            {
+                reproject = false;
+                if (dirtyCascades == 0)
+                {
+                    updateMask = 0;
+                    return false; // No significant changes, skip update
+                }
+            }
+            else
+            {
+                dirtyCascades = (1u << (cascadeCount - 1)) - 1;  // set cascadeCount - 1 bits only
+                reproject = true; // signal caller to reproject/reuse depth values.
+            }
+
+            oldRot = rot;
+
+            camOldPos = camPos;
+            camOldRot = camRot;
+
+            var frame = Time.Frame;
+            updateMask = 0;
+
+            for (int i = 0; i < cascadeCount - 1; i++)
+            {
+                var frequency = 1u << i; // equivalent to pow(2, i), this might get changed.
+                var flag = 1u << i;
+                if (frame % frequency == 0 && (dirtyCascades & flag) != 0)
+                {
+                    updateMask |= flag;
+                    dirtyCascades &= ~flag; // clear dirty flag.
+                }
+            }
+
+            ShadowData* data = buffer.Items + ShadowMapIndex;
+
+            Matrix4x4* views = ShadowData.GetViews(data);
+            float* cascades = ShadowData.GetCascades(data);
+
+            CSMShadowParams shadowParams = default;
+
+            if (reproject) // only update matrices if needed if not use the last, because updating everytime would cause numerical instability and performance penalties.
+            {
+                Config.CascadeCount = cascadeCount;
+                Config.ShadowMapSize = Size;
+
+                var matrices = CSMHelper.GetLightSpaceMatrices(camera, Transform, views, cascades, ShadowFrustra, Config);
+                MemcpyT(matrices, &shadowParams.View0, cascadeCount - 1);
+                shadowDataLast = *data;
+            }
+            else
+            {
+                *data = shadowDataLast;
+                MemcpyT(views, &shadowParams.View0, cascadeCount - 1);
+            }
+
+            shadowParams.CascadeCount = (uint)(cascadeCount - 1);
+            shadowParams.ActiveCascades = updateMask;
+
+            *csmConstantBuffer.Local = shadowParams;
+            csmConstantBuffer.Update(context);
+
+            return true;
+        }
+
+        public unsafe void Update(GraphicsContext context, ConstantBuffer<CSMShadowParams> csmMatrixBuffer)
         {
             ShadowData shadow = data;
             Matrix4x4* views = ShadowData.GetViews(&shadow);
-            CSMBuffer buffer = new(views, (uint)(CascadeCount - 1));
+            CSMShadowParams buffer = new(views, (uint)(cascadeCount - 1));
             csmMatrixBuffer.Update(context, buffer);
         }
 
-        public override unsafe void Update(GraphicsContext context, Camera camera, StructuredBuffer<LightData> lightBuffer, StructuredBuffer<ShadowData> shadowDataBuffer)
+        public override unsafe void UpdateShadowBuffer(StructuredBuffer<ShadowData> buffer, Camera camera)
         {
-            lightBuffer.Add(new(this));
-            if (!CastShadows) return;
-            ShadowData* shadow = &shadowDataBuffer.Items[ShadowMapIndex];
-            shadow->Size = Size;
-            shadow->CascadeCount = (uint)(CascadeCount - 1);
-            shadow->Softness = LightBleedingReduction;
+            ShadowData* data = buffer.Items + ShadowMapIndex;
+            data->Softness = LightBleedingReduction;
 
-            Matrix4x4* views = ShadowData.GetViews(shadow);
-            float* cascades = ShadowData.GetCascades(shadow);
+            Matrix4x4* views = ShadowData.GetViews(data);
+            float* cascades = ShadowData.GetCascades(data);
 
-            Config.CascadeCount = CascadeCount;
+            Config.CascadeCount = cascadeCount;
             Config.ShadowMapSize = Size;
 
-            CSMHelper.GetLightSpaceMatrices(camera, Transform, views, cascades, ShadowFrustra, Config);
-
-            data = *shadow;
-        }
-
-        public unsafe void PrepareDraw(GraphicsContext context)
-        {
-            if (ShadowMap == null || DepthStencil == null) return;
-            context.ClearDepthStencilView(DepthStencil, ClearFlag.Depth, 1, 0);
-            context.ClearRenderTargetView(ShadowMap, default);
-            context.SetViewport(ShadowMap.Viewport);
-            context.SetRenderTarget(ShadowMap, DepthStencil);
-        }
-
-        public void Dispose()
-        {
-            ShadowMap.Dispose();
-            DepthStencil.Dispose();
+            CSMHelper.GetLightSpaceMatrices(camera.Transform, Transform, views, cascades, ShadowFrustra, Config);
         }
     }
 }

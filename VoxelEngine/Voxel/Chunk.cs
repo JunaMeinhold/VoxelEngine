@@ -5,6 +5,7 @@ namespace VoxelEngine.Voxel
     using System.Numerics;
     using VoxelEngine.Voxel.Meshing;
     using VoxelEngine.Voxel.Metadata;
+    using VoxelEngine.Voxel.Serialization;
 
     [DebuggerDisplay($"{{{nameof(GetDebuggerDisplay)}(),nq}}")]
     public unsafe struct Chunk
@@ -141,6 +142,24 @@ namespace VoxelEngine.Voxel
                     flags &= ~InternalChunkFlags.DiskDirty;
                 }
             }
+        }
+
+        public void FreeMemory()
+        {
+            InBuffer = false;
+            VertexBuffer.Dispose();
+            Data.Dispose();
+            if (MinY != null)
+            {
+                Free(MinY);
+                MinY = null;
+            }
+            if (MaxY != null)
+            {
+                Free(MaxY);
+                MaxY = null;
+            }
+            BlockMetadata.Release();
         }
 
         public void Unload(Chunk* self)

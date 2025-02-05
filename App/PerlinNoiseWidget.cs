@@ -105,7 +105,7 @@
 
             ImGui.Separator();
 
-            ImGui.Image((ulong)texture.SRV.Handle, new(size));
+            ImGui.Image((ulong)texture.SRV.NativePointer, new(size));
 
             ImGui.End();
         }

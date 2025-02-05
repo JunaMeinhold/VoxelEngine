@@ -2,7 +2,7 @@
 {
     public struct ComputePipelineDesc
     {
-        public string Shader;
+        public string Path;
         public string ShaderEntry = "main";
         public ShaderMacro[]? Macros;
 

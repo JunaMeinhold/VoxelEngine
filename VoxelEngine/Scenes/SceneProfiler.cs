@@ -67,7 +67,7 @@
 
         public override string ToString()
         {
-            return $"FPS: {Time.FrameRate} / {Time.Delta:N4}s\nSimulation: {SimulationTicks:N2}ms\nUpdate: {UpdateTicks:N2}ms\nRender: {RenderTicks:N2}ms\nDispatch: {DispatchTicks:N2}ms\nFrame: {FrameTicks:N2}ms";
+            return $"FPS: {1 / Time.Delta} / {Time.Delta:N4}s\nSimulation: {SimulationTicks:N2}ms\nUpdate: {UpdateTicks:N2}ms\nRender: {RenderTicks:N2}ms\nDispatch: {DispatchTicks:N2}ms\nFrame: {FrameTicks:N2}ms";
         }
     }
 }

@@ -78,10 +78,10 @@
             var device = D3D11DeviceManager.Device;
             ShaderMacro[] macros = GetShaderMacros();
 
-            if (desc.Shader is not null)
+            if (desc.Path is not null)
             {
                 Shader* shader;
-                ShaderCompiler.GetShaderOrCompileFile(desc.ShaderEntry, desc.Shader, "cs_5_0", macros, &shader, bypassCache);
+                ShaderCompiler.GetShaderOrCompileFile(desc.ShaderEntry, desc.Path, "cs_5_0", macros, &shader, bypassCache);
                 if (shader == null)
                 {
                     valid = false;

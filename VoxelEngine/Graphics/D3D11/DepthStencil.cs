@@ -107,9 +107,9 @@
             Utils.SetDebugName(shaderResourceView, $"{dbgName}.{nameof(SRV)}");
         }
 
-        public ComPtr<ID3D11DepthStencilView> DSV => depthStencilView;
+        public DepthStencilView DSV => depthStencilView;
 
-        public ComPtr<ID3D11ShaderResourceView> SRV => shaderResourceView;
+        public ShaderResourceView SRV => shaderResourceView;
 
         nint IDepthStencilView.NativePointer => (nint)depthStencilView.Handle;
 

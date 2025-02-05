@@ -14,7 +14,7 @@
 
         public int Height { get; set; } = 4;
 
-        public void GenerateBatch(ref ChunkSegment.ChunkArray chunks, World world, Vector3 position)
+        public void GenerateBatch(ref ChunkSegment.ChunkArray chunks, World world, Point3 position)
         {
             for (int i = 0; i < ChunkSegment.CHUNK_SEGMENT_SIZE; i++)
             {

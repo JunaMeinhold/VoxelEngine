@@ -115,6 +115,8 @@
         {
             rawValues = AllocT<T>(length);
             avgValues = AllocT<T>(length);
+            ZeroMemoryT(rawValues, length);
+            ZeroMemoryT(avgValues, length);
             this.length = length;
         }
 

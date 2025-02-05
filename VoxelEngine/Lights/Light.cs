@@ -45,6 +45,6 @@
 
         public abstract void DestroyShadowMap();
 
-        public abstract void Update(GraphicsContext context, Camera camera, StructuredBuffer<LightData> lightBuffer, StructuredBuffer<ShadowData> shadowDataBuffer);
+        public abstract void UpdateShadowBuffer(StructuredBuffer<ShadowData> shadowDataBuffer, Camera camera);
     }
 }

@@ -44,6 +44,26 @@
 
         public static GraphicsPipelineStateDesc DefaultFullscreen => new() { DepthStencil = DepthStencilDescription.None, Rasterizer = RasterizerDescription.CullBack, Blend = BlendDescription.Opaque, Topology = PrimitiveTopology.Trianglestrip, BlendFactor = default, SampleMask = int.MaxValue };
 
+        /// <summary>
+        /// Gets a default graphics pipeline state with alpha blending.
+        /// </summary>
+        public static GraphicsPipelineStateDesc DefaultAlphaBlend => new() { DepthStencil = DepthStencilDescription.Default, Rasterizer = RasterizerDescription.CullBack, Blend = BlendDescription.AlphaBlend, Topology = PrimitiveTopology.Trianglelist, BlendFactor = default, SampleMask = int.MaxValue };
+
+        /// <summary>
+        /// Gets a default fullscreen graphics pipeline state for rendering to the entire screen with scissors enabled.
+        /// </summary>
+        public static GraphicsPipelineStateDesc DefaultFullscreenScissors => new() { DepthStencil = DepthStencilDescription.None, Rasterizer = RasterizerDescription.CullBackScissors, Blend = BlendDescription.Opaque, Topology = PrimitiveTopology.Trianglestrip, BlendFactor = default, SampleMask = int.MaxValue };
+
+        /// <summary>
+        /// Gets a default additive fullscreen graphics pipeline state for rendering to the entire screen with additive blending.
+        /// </summary>
+        public static GraphicsPipelineStateDesc DefaultAdditiveFullscreen => new() { DepthStencil = DepthStencilDescription.None, Rasterizer = RasterizerDescription.CullBack, Blend = BlendDescription.Additive, Topology = PrimitiveTopology.Trianglestrip, BlendFactor = default, SampleMask = int.MaxValue };
+
+        /// <summary>
+        /// Gets a default alpha blend fullscreen graphics pipeline state for rendering to the entire screen with alpha blending.
+        /// </summary>
+        public static GraphicsPipelineStateDesc DefaultAlphaBlendFullscreen => new() { DepthStencil = DepthStencilDescription.None, Rasterizer = RasterizerDescription.CullBack, Blend = BlendDescription.AlphaBlend, Topology = PrimitiveTopology.Trianglestrip, BlendFactor = default, SampleMask = int.MaxValue };
+
         public override readonly bool Equals(object? obj)
         {
             return obj is GraphicsPipelineStateDesc state && Equals(state);

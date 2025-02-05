@@ -1,9 +1,10 @@
-﻿namespace VoxelEngine.Voxel
+﻿namespace VoxelEngine.Voxel.Serialization
 {
     using VoxelEngine.IO;
     using System.Numerics;
     using System.Runtime.CompilerServices;
     using System.Runtime.InteropServices;
+    using VoxelEngine.Voxel;
 
     public readonly struct ChunkRegionHeader
     {

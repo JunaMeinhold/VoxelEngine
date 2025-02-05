@@ -2,9 +2,16 @@
 {
     public unsafe struct BlockStorage
     {
+        private readonly int size;
         public Block* Data;
 
         public BlockStorage(int size)
+        {
+            this.size = size;
+            Allocate();
+        }
+
+        public void Allocate()
         {
             Data = AllocT<Block>(size);
             ZeroMemoryT(Data, size);
@@ -24,7 +31,11 @@
             }
             set
             {
-                if (Data == null) return;
+                if (Data == null)
+                {
+                    Allocate();
+                }
+
                 Data[index] = value;
             }
         }

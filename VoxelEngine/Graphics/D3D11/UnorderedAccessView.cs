@@ -5,7 +5,7 @@
     using System;
     using System.Collections.Generic;
 
-    public unsafe struct UnorderedAccessView : IRenderTargetView, IEquatable<UnorderedAccessView>
+    public unsafe struct UnorderedAccessView : IUnorderedAccessView, IEquatable<UnorderedAccessView>
     {
         public ComPtr<ID3D11UnorderedAccessView> UAV;
 

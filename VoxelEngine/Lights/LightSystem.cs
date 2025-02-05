@@ -49,6 +49,8 @@
 
         public Vector3 Ambient { get => ambient; set => ambient = value; }
 
+        public StructuredBuffer<ShadowData> ShadowDataBuffer => shadowDataBuffer;
+
         public void Awake(Scene scene)
         {
             lights.OnAdded += LightsOnAdded;
@@ -75,7 +77,7 @@
 
                 var camera = SceneManager.Current.Camera;
 
-                int shadowIndex = 0;
+                uint csmCount = 0;
                 for (int i = 0; i < activeLights.Count; i++)
                 {
                     var light = activeLights[i];
@@ -86,9 +88,8 @@
                         {
                             light.CreateShadowMap();
                         }
-                        light.ShadowMapIndex = shadowIndex;
+
                         shadowDataBuffer.Add(default);
-                        shadowIndex++;
                     }
                     else
                     {
@@ -98,7 +99,34 @@
                         }
                     }
 
-                    light.Update(context, camera, lightBuffer, shadowDataBuffer);
+                    if (light.CastShadows)
+                    {
+                        switch (light.Type)
+                        {
+                            case LightType.Directional:
+                                if (csmCount == 1)
+                                {
+                                    continue;
+                                }
+                                var dir = (DirectionalLight)light;
+                                dir.ShadowMapIndex = (int)shadowDataBuffer.Count;
+                                lightBuffer.Add(new(dir));
+                                shadowDataBuffer.Add(new(dir, dir.Size));
+                                csmCount++;
+                                break;
+                        }
+                    }
+                    else
+                    {
+                        switch (light.Type)
+                        {
+                            case LightType.Directional:
+                                light.ShadowMapIndex = (int)lightBuffer.Count;
+                                lightBuffer.Add(new((DirectionalLight)light));
+                                break;
+                        }
+                    }
+                    light.UpdateShadowBuffer(shadowDataBuffer, camera);
                 }
 
                 lightBuffer.Update(context);

@@ -10,8 +10,8 @@
 
     public struct GraphicsPipelineStateDescEx
     {
-        public GraphicsPipelineDesc PipelineDesc;
-        public GraphicsPipelineStateDesc StateDesc;
+        public GraphicsPipelineDesc Pipeline;
+        public GraphicsPipelineStateDesc State;
     }
 
     public unsafe class GraphicsPipelineState : D3D11PipelineState
@@ -48,7 +48,7 @@
 
         public static GraphicsPipelineState Create(GraphicsPipelineStateDescEx desc, [CallerFilePath] string file = "", [CallerLineNumber] int line = 0)
         {
-            return Create(desc.PipelineDesc, desc.StateDesc, file, line);
+            return Create(desc.Pipeline, desc.State, file, line);
         }
 
         public GraphicsPipelineState(GraphicsPipeline pipeline, GraphicsPipelineStateDesc desc, string dbgName = "")

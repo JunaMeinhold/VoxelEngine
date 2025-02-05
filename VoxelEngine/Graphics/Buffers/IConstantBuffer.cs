@@ -8,9 +8,9 @@
 
         void Update(GraphicsContext context, T value);
 
-        void Update(GraphicsContext context, T[] value);
+        void UpdateRange(GraphicsContext context, T[] value);
 
-        unsafe void Update(GraphicsContext context, T* value, int length);
+        unsafe void UpdateRange(GraphicsContext context, T* value, int length);
     }
 
     public interface IConstantBuffer : IBuffer, IDisposable

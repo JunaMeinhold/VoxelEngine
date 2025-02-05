@@ -104,11 +104,11 @@
             CreateViews(device, description);
         }
 
-        public ComPtr<ID3D11ShaderResourceView> SRV => srv;
+        public ShaderResourceView SRV => srv;
 
-        public ComPtr<ID3D11RenderTargetView> RTV => rtv;
+        public RenderTargetView RTV => rtv;
 
-        public ComPtr<ID3D11UnorderedAccessView> UAV => uav;
+        public UnorderedAccessView UAV => uav;
 
         nint IShaderResourceView.NativePointer => (nint)srv.Handle;
 
@@ -190,7 +190,18 @@
         {
             if ((description.BindFlags & (uint)BindFlag.UnorderedAccess) != 0)
             {
-                UnorderedAccessViewDesc desc = new(description.Format, description.ArraySize > 1 ? UavDimension.Texture2Darray : UavDimension.Texture2D);
+                UnorderedAccessViewDesc desc = new(description.Format);
+                if (description.ArraySize > 1)
+                {
+                    desc.ViewDimension = UavDimension.Texture2Darray;
+                    desc.Union.Texture2DArray = new(0, 0, description.ArraySize);
+                }
+                else
+                {
+                    desc.ViewDimension = UavDimension.Texture2D;
+                    desc.Union.Texture2D = new(0);
+                }
+
                 device.CreateUnorderedAccessView(texture.As<ID3D11Resource>(), ref desc, out uav).ThrowIf();
                 //uav.DebugName = nameof(Texture2D) + ".UAV";
             }

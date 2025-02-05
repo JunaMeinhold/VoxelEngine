@@ -138,7 +138,7 @@
             dirty = false;
 
             worldDataBuffer.Update(context, new WorldData() { chunkOffset = Vector3.Zero });
-            blockBuffer.Update(context, BlockRegistry.GetDescriptionPackeds().ToArray());
+            blockBuffer.UpdateRange(context, BlockRegistry.GetDescriptionPackeds().ToArray());
         }
 
         private void DeferredPass(GraphicsContext context, Camera camera)
@@ -186,7 +186,7 @@
             for (int i = 0; i < world.LoadedRenderRegions.Count; i++)
             {
                 RenderRegion region = world.LoadedRenderRegions[i];
-                for (int j = 0; j < light.CascadeCount; j++)
+                for (int j = 0; j < light.cascadeCount; j++)
                 {
                     var frustum = frustra[j];
                     if (region.VertexBuffer is not null && region.VertexBuffer.VertexCount != 0 && frustum.Intersects(region.BoundingBox))
