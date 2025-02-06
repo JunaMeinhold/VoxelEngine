@@ -60,7 +60,7 @@
 
         private void FloodFillY(byte lightLevelSky, int x, byte max, int z, Chunk chunk, ref LightMap map)
         {
-            Block* voxels = chunk.Data.Data;
+            Block* voxels = chunk.Data;
             for (int i = max - 1; i >= 0; i--)
             {
                 int index = Extensions.MapToIndex(x, i, z);

@@ -21,12 +21,12 @@ namespace VoxelEngine.Voxel
         public Point3 Position;
         public BoundingBox BoundingBox;
 
-        public BlockStorage Data = new(CHUNK_SIZE_CUBED);
+        public Block* Data;
         public byte* MinY;
         public byte* MaxY;
+        public int BlockCount;
 
-        public BlockMetadataCollection BlockMetadata = new();
-        public BiomeMetadata BiomeMetadata = new();
+        public BlockMetadataCollection BlockMetadata;
 
         public ChunkVertexBuffer VertexBuffer = new();
 
@@ -40,16 +40,10 @@ namespace VoxelEngine.Voxel
 
         public Chunk(World map, int x, int y, int z, bool generated = false)
         {
-            MinY = AllocT<byte>(CHUNK_SIZE_SQUARED);
-            ZeroMemoryT(MinY, CHUNK_SIZE_SQUARED);
-            MaxY = AllocT<byte>(CHUNK_SIZE_SQUARED);
-            ZeroMemoryT(MaxY, CHUNK_SIZE_SQUARED);
             DimId = map.DimId;
             Position = new(x, y, z);
-
             Vector3 realPos = new Vector3(x, y, z) * CHUNK_SIZE;
             BoundingBox = new BoundingBox(realPos, realPos + new Vector3(CHUNK_SIZE, CHUNK_SIZE, CHUNK_SIZE));
-            Memset(MinY, CHUNK_SIZE, CHUNK_SIZE_SQUARED);
             DiskDirty = generated;
         }
 
@@ -64,6 +58,21 @@ namespace VoxelEngine.Voxel
             if (count != 0) return;
 
             ChunkAllocator.Free(self);
+        }
+
+        public void Allocate(bool zero)
+        {
+            if (InMemory) return;
+            Data = AllocT<Block>(CHUNK_SIZE_CUBED);
+            MinY = AllocT<byte>(CHUNK_SIZE_SQUARED);
+            MaxY = AllocT<byte>(CHUNK_SIZE_SQUARED);
+            BlockMetadata = new();
+            if (zero)
+            {
+                ZeroMemoryT(Data, CHUNK_SIZE_CUBED);
+                ZeroMemoryT(MaxY, CHUNK_SIZE_SQUARED);
+                Memset(MinY, CHUNK_SIZE, CHUNK_SIZE_SQUARED);
+            }
         }
 
         private enum InternalChunkFlags : byte
@@ -94,7 +103,7 @@ namespace VoxelEngine.Voxel
             }
         }
 
-        public bool InMemory => Data.IsAllocated;
+        public readonly bool InMemory => Data != null;
 
         public bool InSimulation
         {
@@ -148,7 +157,11 @@ namespace VoxelEngine.Voxel
         {
             InBuffer = false;
             VertexBuffer.Dispose();
-            Data.Dispose();
+            if (Data != null)
+            {
+                Free(Data);
+                Data = null;
+            }
             if (MinY != null)
             {
                 Free(MinY);
@@ -172,8 +185,11 @@ namespace VoxelEngine.Voxel
 
                 DimensionManager.GetWorld(DimId).Chunks.Remove(self);
 
-                Data.Dispose();
-
+                if (Data != null)
+                {
+                    Free(Data);
+                    Data = null;
+                }
                 if (MinY != null)
                 {
                     Free(MinY);
@@ -202,7 +218,7 @@ namespace VoxelEngine.Voxel
             _lock.Wait();
             try
             {
-                if (!Data.IsAllocated)
+                if (!InMemory)
                 {
                     return;
                 }
@@ -222,8 +238,18 @@ namespace VoxelEngine.Voxel
         public void SetBlockInternal(Block block, int x, int y, int z)
         {
             _lock.Wait();
+
             try
             {
+                if (block.Type == 0 && !InMemory)
+                {
+                    return;
+                }
+                if (block.Type != 0 && !InMemory)
+                {
+                    Allocate(true);
+                }
+
                 DiskDirty = true;
                 Dirty = true;
 
@@ -234,10 +260,11 @@ namespace VoxelEngine.Voxel
 
                 if (block.Type == 0)
                 {
+                    BlockCount--;
                     if (MaxY[heightAccess] == y + 1)
                     {
                         byte newMaxY = 0;
-                        for (int yl = y; yl >= 0; yl--)
+                        for (int yl = y - 1; yl >= 0; yl--)
                         {
                             if (Data[new Point3(x, yl, z).MapToIndex()].Type != 0)
                             {
@@ -251,7 +278,7 @@ namespace VoxelEngine.Voxel
                     if (MinY[heightAccess] == y)
                     {
                         byte newMinY = 15;
-                        for (int yl = y; yl <= 16; yl++)
+                        for (int yl = y; yl < 16; yl++)
                         {
                             if (Data[new Point3(x, yl, z).MapToIndex()].Type != 0)
                             {
@@ -261,9 +288,15 @@ namespace VoxelEngine.Voxel
                         }
                         MinY[heightAccess] = newMinY;
                     }
+
+                    if (BlockCount == 0)
+                    {
+                        FreeMemory();
+                    }
                 }
                 else
                 {
+                    BlockCount++;
                     MinY[heightAccess] = Math.Min(MinY[heightAccess], (byte)y);
                     MaxY[heightAccess] = Math.Max(MaxY[heightAccess], (byte)(y + 1));
                 }
@@ -276,29 +309,27 @@ namespace VoxelEngine.Voxel
 
         public Block GetBlockInternal(int x, int y, int z)
         {
+            if (!InMemory) return default;
+            int index = Extensions.MapToIndex(x, y, z);
+            if (index < CHUNK_SIZE_CUBED)
             {
-                // Chunk data accessed quickly using bit masks
-                int index = Extensions.MapToIndex(x, y, z);
-                if (index < CHUNK_SIZE_CUBED)
-                {
-                    return Data[index];
-                }
-                else
-                {
-                    return default;
-                }
+                return Data[index];
+            }
+            else
+            {
+                return default;
             }
         }
 
-        public Block GetBlock(Vector3 pos)
+        public Block GetBlock(Point3 pos)
         {
-            Block block = GetBlockInternal((int)pos.X, (int)pos.Y, (int)pos.Z);
+            Block block = GetBlockInternal(pos.X, pos.Y, pos.Z);
             return block;
         }
 
-        public void SetBlock(Block block, Vector3 pos)
+        public void SetBlock(Block block, Point3 pos)
         {
-            SetBlockInternal(block, (int)pos.X, (int)pos.Y, (int)pos.Z);
+            SetBlockInternal(block, pos.X, pos.Y, pos.Z);
         }
 
         public unsafe void Serialize(Chunk* self, Stream stream)

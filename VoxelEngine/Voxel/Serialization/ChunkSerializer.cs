@@ -1,180 +1,6 @@
 ﻿namespace VoxelEngine.Voxel.Serialization
 {
-    using Hexa.NET.Mathematics;
-
-    public struct VoxelStorageRegionHeader
-    {
-    }
-
-    public class VoxelStorageRegionFile
-    {
-        public Point2 Id;
-        public Stream Stream;
-        public DateTime LastAccess;
-        public SemaphoreSlim Semaphore = new(1);
-
-        public VoxelStorageRegionFile()
-        {
-            Stream = null!;
-        }
-
-        internal void Reset(Point2 id, Stream stream)
-        {
-            Id = id;
-            Stream = stream;
-            LastAccess = DateTime.UtcNow;
-        }
-
-        internal void Lock()
-        {
-            Semaphore.Wait();
-        }
-
-        public void ReleaseLock()
-        {
-            Semaphore.Release();
-        }
-
-        public void Return()
-        {
-            ReleaseLock();
-        }
-    }
-
-    public class VoxelStorageRegionManager
-    {
-        private const int maxReader = 32;
-        private const int maxWriter = 1;
-
-        private readonly ManualResetEventSlim writeLock = new(true);
-        private readonly ManualResetEventSlim readLock = new(true);
-        private readonly SemaphoreSlim readSemaphore = new(maxReader);
-        private readonly SemaphoreSlim writeSemaphore = new(maxWriter);
-
-        private readonly Dictionary<Point2, VoxelStorageRegionFile> idToRegions = new();
-        private readonly List<VoxelStorageRegionFile> regions = new();
-
-        public int MaxOpenFiles { get; private set; } = 32;
-
-        private void BeginRead()
-        {
-            writeLock.Wait();
-
-            readLock.Reset();
-
-            readSemaphore.Wait();
-        }
-
-        private void EndRead()
-        {
-            var value = readSemaphore.Release();
-            if (value == maxReader - 1)
-            {
-                readLock.Set();
-            }
-        }
-
-        private void BeginWrite()
-        {
-            readLock.Wait();
-
-            writeLock.Reset();
-
-            writeSemaphore.Wait();
-        }
-
-        private void EndWrite()
-        {
-            var value = writeSemaphore.Release();
-            if (value == maxWriter - 1)
-            {
-                writeLock.Set();
-            }
-        }
-
-        public VoxelStorageRegionFile? AcquireRegionStream(Point2 regionPos, string worldPath, bool create)
-        {
-            BeginRead();
-
-            try
-            {
-                if (idToRegions.TryGetValue(regionPos, out VoxelStorageRegionFile? region))
-                {
-                    region.Lock();
-                    region.LastAccess = DateTime.UtcNow;
-                    return region;
-                }
-            }
-            finally
-            {
-                EndRead();
-            }
-
-            BeginWrite();
-            try
-            {
-                if (!idToRegions.TryGetValue(regionPos, out var region))
-                {
-                    TryEvict(out region);
-                    string filename = Path.Combine(worldPath, $"r.{regionPos.X}.{regionPos.Y}.vxr");
-                    if (!File.Exists(filename) && !create)
-                    {
-                        return null;
-                    }
-
-                    FileStream stream = File.Open(filename, FileMode.OpenOrCreate, FileAccess.ReadWrite);
-
-                    if (region is null)
-                    {
-                        region = new();
-
-                        regions.Add(region);
-                    }
-
-                    region.Reset(regionPos, stream);
-
-                    idToRegions[regionPos] = region;
-                }
-
-                return region;
-            }
-            finally
-            {
-                EndWrite();
-            }
-        }
-
-        private void TryEvict(out VoxelStorageRegionFile? old)
-        {
-            if (idToRegions.Count < MaxOpenFiles)
-            {
-                old = null;
-                return;
-            }
-
-            VoxelStorageRegionFile? leastUsed = null;
-
-            for (int i = 0; i < regions.Count; i++)
-            {
-                var region = regions[i];
-                if (region.Semaphore.CurrentCount == 1)
-                {
-                    if (leastUsed == null || region.LastAccess < leastUsed.LastAccess)
-                    {
-                        leastUsed = region;
-                    }
-                }
-            }
-
-            if (leastUsed != null)
-            {
-                leastUsed.Stream.Dispose();
-                idToRegions.Remove(leastUsed.Id);
-            }
-
-            old = leastUsed;
-        }
-    }
+    using System.IO;
 
     public static class ChunkSerializer
     {
@@ -184,63 +10,56 @@
 
             stream.Position += ChunkHeader.Size;
 
-            stream.Write(new ReadOnlySpan<byte>(chunk->MinY, Chunk.CHUNK_SIZE_SQUARED));
-            stream.Write(new ReadOnlySpan<byte>(chunk->MaxY, Chunk.CHUNK_SIZE_SQUARED));
-
-            chunk->BlockMetadata.Serialize(stream);
-            chunk->BiomeMetadata.Serialize(stream);
-
             int runsWritten = 0;
             if (chunk->InMemory)
             {
-                for (int k = 0; k < Chunk.CHUNK_SIZE; k++)
+                stream.Write(new ReadOnlySpan<byte>(chunk->MinY, Chunk.CHUNK_SIZE_SQUARED));
+                stream.Write(new ReadOnlySpan<byte>(chunk->MaxY, Chunk.CHUNK_SIZE_SQUARED));
+
+                chunk->BlockMetadata.Serialize(stream);
+
+                for (int z = 0; z < Chunk.CHUNK_SIZE; z++)
                 {
-                    // Calculate this once, rather than multiple times in the inner loop
-                    int kCS2 = k * Chunk.CHUNK_SIZE_SQUARED;
-
-                    int heightMapAccess = k * Chunk.CHUNK_SIZE;
-
-                    for (int i = 0; i < Chunk.CHUNK_SIZE; i++)
+                    int zShifted = z << 8;
+                    int heightMapAccess = z * Chunk.CHUNK_SIZE;
+                    for (int x = 0; x < Chunk.CHUNK_SIZE; x++)
                     {
-                        // Determine where to start the innermost loop
-                        int j = chunk->MinY[heightMapAccess];
-                        int topJ = chunk->MaxY[heightMapAccess];
+                        int y = chunk->MinY[heightMapAccess];
+                        int yMax = chunk->MaxY[heightMapAccess];
+
                         heightMapAccess++;
 
-                        // Calculate this once, rather than multiple times in the inner loop
-                        int iCS = i * Chunk.CHUNK_SIZE;
-
-                        // Calculate access here and increment it each time in the innermost loop
-                        int access = kCS2 + iCS + j;
+                        int access = zShifted + (x << 4) + y;
+                        Block* voxels = chunk->Data + access;
 
                         ChunkRecord run = default;
                         bool newRun = true;
 
-                        // X and Z runs search upwards to create runs, so start at the bottom.
-                        for (; j < topJ; j++, access++)
+                        for (; y < yMax; y++, access++, voxels++)
                         {
-                            Block b = chunk->Data[access];
-                            if (newRun || run.Type != b.Type)
-                            {
-                                if (!newRun)
-                                {
-                                    runsWritten++;
-                                    run.Write(stream);
-                                }
-                                if (b.Type != Chunk.EMPTY)
-                                {
-                                    // we could quantize + palette here, but that would add more loading complexity rather than being useful, disk space is more cheap compared to RAM.
-                                    run.Type = b.Type;
-                                    // max index is 4096 and max value of ushort is 65536 which means we can simply cast it and save one byte instead of storing the position and loading times will be faster.
-                                    run.Index = (ushort)access;
-                                    run.Count = 1;
-                                    newRun = false;
-                                }
-                            }
-                            else if (b.Type != Chunk.EMPTY)
+                            Block b = *voxels;
+
+                            if (b.Type == run.Type && !newRun)
                             {
                                 run.Count++;
+                                continue;
                             }
+
+                            if (!newRun)
+                            {
+                                runsWritten++;
+                                run.Write(stream);
+                            }
+
+                            newRun = true; // prevent writing a run when hitting break;
+                            for (; y < yMax && voxels->Type == Chunk.EMPTY; y++, access++, voxels++) ;
+                            if (y == yMax) break;
+
+                            b = *voxels;
+                            run.Type = b.Type;
+                            run.Count = 1;
+                            run.Index = (ushort)access;
+                            newRun = false;
                         }
 
                         if (!newRun)
@@ -254,40 +73,40 @@
 
             long end = stream.Position;
             stream.Position = begin;
-            ChunkHeader.Write(stream, runsWritten);
+            ChunkHeader.Write(stream, runsWritten, end - begin - ChunkHeader.Size);
             stream.Position = end;
         }
 
         public static unsafe void Deserialize(Chunk* chunk, Stream stream)
         {
-            if (!chunk->Data.IsAllocated)
+            ChunkHeader.Read(stream, out int recordCount, out long length);
+
+            if (recordCount == 0)
             {
-                chunk->Data = new(Chunk.CHUNK_SIZE_CUBED);
-                chunk->MinY = AllocT<byte>(Chunk.CHUNK_SIZE_SQUARED);
-                ZeroMemoryT(chunk->MinY, Chunk.CHUNK_SIZE_SQUARED);
-                chunk->MaxY = AllocT<byte>(Chunk.CHUNK_SIZE_SQUARED);
-                ZeroMemoryT(chunk->MaxY, Chunk.CHUNK_SIZE_SQUARED);
-                Memset(chunk->MinY, Chunk.CHUNK_SIZE, Chunk.CHUNK_SIZE_SQUARED);
+                stream.Position += length;
+                return; // skip reading/allocating.
             }
 
-            ChunkHeader.Read(stream, out int recordCount);
+            if (!chunk->InMemory)
+            {
+                chunk->Allocate(false);
+            }
+
+            ZeroMemoryT(chunk->Data, Chunk.CHUNK_SIZE_CUBED);
+            ZeroMemoryT(chunk->MaxY, Chunk.CHUNK_SIZE_SQUARED);
+            Memset(chunk->MinY, Chunk.CHUNK_SIZE, Chunk.CHUNK_SIZE_SQUARED);
 
             stream.ReadExactly(new Span<byte>(chunk->MinY, Chunk.CHUNK_SIZE_SQUARED));
             stream.ReadExactly(new Span<byte>(chunk->MaxY, Chunk.CHUNK_SIZE_SQUARED));
 
             chunk->BlockMetadata.Deserialize(stream);
-            chunk->BiomeMetadata.Deserialize(stream);
 
             ChunkRecord record = default;
             for (int i = 0; i < recordCount; i++)
             {
                 record.Read(stream);
-
-                for (int y = 0; y < record.Count; y++)
-                {
-                    int index = record.Index + y;
-                    chunk->Data[index] = new Block(record.Type);
-                }
+                MemsetT(chunk->Data + record.Index, new Block(record.Type), record.Count);
+                chunk->BlockCount += record.Count;
             }
         }
     }

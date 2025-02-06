@@ -14,7 +14,6 @@
 
     public unsafe struct BlockMetadata
     {
-        public LocalChunkPoint Position;
         public BlockMetadataType Type;
         public byte* Data;
         public int Length;
@@ -90,25 +89,19 @@
 
         public readonly void Write(Stream stream)
         {
-            Span<byte> buffer = stackalloc byte[3 + 4 + 4];
-            buffer[0] = Position.X;
-            buffer[1] = Position.Y;
-            buffer[2] = Position.Z;
-            BinaryPrimitives.WriteInt32LittleEndian(buffer[3..], (int)Type);
-            BinaryPrimitives.WriteInt32LittleEndian(buffer[7..], Length);
+            Span<byte> buffer = stackalloc byte[8];
+            BinaryPrimitives.WriteInt32LittleEndian(buffer, (int)Type);
+            BinaryPrimitives.WriteInt32LittleEndian(buffer[4..], Length);
             stream.Write(buffer);
             stream.Write(AsSpan());
         }
 
         public void Read(Stream stream)
         {
-            Span<byte> buffer = stackalloc byte[3 + 4 + 4];
+            Span<byte> buffer = stackalloc byte[8];
             stream.ReadExactly(buffer);
-            Position.X = buffer[0];
-            Position.Y = buffer[1];
-            Position.Z = buffer[2];
-            Type = (BlockMetadataType)BinaryPrimitives.ReadInt32LittleEndian(buffer[3..]);
-            capacity = Length = BinaryPrimitives.ReadInt32LittleEndian(buffer[7..]);
+            Type = (BlockMetadataType)BinaryPrimitives.ReadInt32LittleEndian(buffer);
+            capacity = Length = BinaryPrimitives.ReadInt32LittleEndian(buffer[4..]);
             if (Length > 0)
             {
                 EnsureCapacity(Length);

@@ -42,9 +42,19 @@
 
                 var chunk = this[index];
 
+                if (block.Type == 0 && !chunk->InMemory)
+                {
+                    return;
+                }
+                if (block.Type != 0 && !chunk->InMemory)
+                {
+                    chunk->Allocate(true);
+                }
+
                 int heightAccess = new Point2(pos.X, pos.Z).MapToIndex();
                 if (block.Type == 0)
                 {
+                    chunk->BlockCount--;
                     if (chunk->MaxY[heightAccess] == height + 1)
                     {
                         byte newMaxY = 0;
@@ -72,9 +82,15 @@
                         }
                         chunk->MinY[heightAccess] = newMinY;
                     }
+
+                    if (chunk->BlockCount == 0)
+                    {
+                        chunk->FreeMemory();
+                    }
                 }
                 else
                 {
+                    chunk->BlockCount++;
                     chunk->MinY[heightAccess] = Math.Min(chunk->MinY[heightAccess], (byte)height);
                     chunk->MaxY[heightAccess] = Math.Max(chunk->MaxY[heightAccess], (byte)(height + 1));
                 }

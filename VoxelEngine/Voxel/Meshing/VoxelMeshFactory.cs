@@ -60,7 +60,7 @@
                     // X and Z runs search upwards to create runs, so start at the botto
                     for (; j < topJ; j++, access++)
                     {
-                        Block* b = chunk->Data.Data + access;
+                        Block* b = chunk->Data + access;
 
                         if (b->Type != Chunk.EMPTY)
                         {
@@ -76,7 +76,7 @@
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private static void CreateRun(ChunkVertexBuffer* vertexBuffer, ChunkNeighbours* neighbours, Chunk* chunk, Block* b, int i, int j, int k, int i1, int k1, int y, int access, bool minX, bool maxX, bool minY, bool maxY, bool minZ, bool maxZ, int iCS, int kCS2)
         {
-            Block* data = chunk->Data.Data;
+            Block* data = chunk->Data;
             int type = b->Type;
             ChunkHelper chunkHelper = chunk->ChunkHelper;
             int textureHealth16 = BlockVertex.IndexToTextureShifted[type];

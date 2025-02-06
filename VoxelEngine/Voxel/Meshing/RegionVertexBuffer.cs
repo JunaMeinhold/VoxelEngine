@@ -76,7 +76,7 @@ namespace VoxelEngine.Voxel.Meshing
 
         public bool BufferData(ChunkVertexBuffer vertexBuffer, Vector3 offset)
         {
-            if (vertexBuffer.Count == 0) return true;
+            if (vertexBuffer.Count == 0 || vertexBuffer.Data == null) return true;
             bool result = AppendRange(vertexBuffer.Data, vertexBuffer.Count, offset);
             dirty = true;
             return result;
