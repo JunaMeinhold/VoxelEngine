@@ -31,8 +31,6 @@
 
         public VoxelHelper VoxelHelper { get; } = new(Matrix4x4.Identity);
 
-        public IReadOnlyList<Pointer<Chunk>> LoadedChunks => WorldLoader.LoadedChunks;
-
         public IReadOnlyList<ChunkSegment> LoadedChunkSegments => WorldLoader.LoadedChunkSegments;
 
         public IReadOnlyList<RenderRegion> LoadedRenderRegions => WorldLoader.LoadedRenderRegions;

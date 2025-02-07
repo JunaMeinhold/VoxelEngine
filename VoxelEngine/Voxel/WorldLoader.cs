@@ -42,7 +42,7 @@
         private Point2[] indicesRenderCache;
         private HashSet<Point2> indicesSimulationCache;
 
-        private readonly HashSet<Point2> loadedRegionIds = new();
+        private readonly HashSet<Point2> loadedRegionIds = [];
 
         private readonly BlockingQueue<Point3> loadIOQueue = new();
 
@@ -56,21 +56,15 @@
         // Contains chunks that needed to upload data to the gpu.
         private readonly BlockingQueue<RenderRegion> uploadQueue = new();
 
-        // Contains chunks that will be added to LoadedChunks list.
-        private readonly BlockingQueue<ChunkSegment> integrationQueue = new();
-
         // Contains chunks that will be unloaded from the gpu and will be send to unloadQueue.
         private readonly BlockingQueue<ChunkSegment> unloadIOQueue = new();
 
         private readonly BlockingQueue<ChunkSegment> saveIOQueue = new();
 
         // Contains chunks that are marked as loaded internal to prevent loading chunks multiple times.
-        private readonly BlockingList<ChunkSegment> loadedInternal = new();
+        private readonly BlockingList<ChunkSegment> loadedInternal = [];
 
-        // Contains chunks that will be rendered and simulated.
-        private readonly List<Pointer<Chunk>> loadedChunks = new();
-
-        private readonly BlockingList<RenderRegion> renderRegions = new();
+        private readonly BlockingList<RenderRegion> renderRegions = [];
 
         private readonly Worker[] workers;
         private readonly Worker[] ioWorkers;
@@ -132,8 +126,6 @@
 
         public World World { get; }
 
-        public IReadOnlyList<Pointer<Chunk>> LoadedChunks => loadedChunks;
-
         public IReadOnlyList<ChunkSegment> LoadedChunkSegments => loadedInternal;
 
         public IReadOnlyList<RenderRegion> LoadedRenderRegions => renderRegions;
@@ -159,8 +151,6 @@
         public int RenderRegionCount => renderRegions.Count;
 
         public int ChunkSegmentCount => loadedInternal.Count;
-
-        public int ChunkCount => loadedChunks.Count;
 
         public bool DoNotSave { get; set; } = false;
 
@@ -472,11 +462,6 @@
             uploadQueue.ReleaseLock();
             Profiler.End("Upload.Load");
 
-            while (integrationQueue.TryDequeue(out ChunkSegment segment))
-            {
-                loadedChunks.AddRange(segment.Chunks);
-            }
-
             Profiler.End("Upload.Total");
         }
 
@@ -521,7 +506,6 @@
             segment.Load(true);
 
             loadedInternal.Add(segment);
-            integrationQueue.Enqueue(segment);
 
             RenderRegion renderRegion = FindRenderRegion(segment.Position);
             renderRegion.AddRegion(segment);

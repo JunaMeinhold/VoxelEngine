@@ -24,7 +24,7 @@ namespace VoxelEngine.Voxel
         public Block* Data;
         public byte* MinY;
         public byte* MaxY;
-        public int BlockCount;
+        public ushort BlockCount;
 
         public BlockMetadataCollection BlockMetadata;
 

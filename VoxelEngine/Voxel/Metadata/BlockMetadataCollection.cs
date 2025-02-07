@@ -82,6 +82,11 @@
             }
         }
 
+        public readonly int SizeOf()
+        {
+            return BlockMetadataCollectionHeader.Size + metadata.Sum(x => x.Length + BlockMetadata.StaticSize);
+        }
+
         public void Deserialize(Stream stream)
         {
             BlockMetadataCollectionHeader.Read(stream, out int metadataCount);

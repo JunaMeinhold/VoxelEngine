@@ -1,10 +1,18 @@
 ﻿namespace VoxelEngine.Voxel
 {
     using System;
+    using System.Buffers.Binary;
     using System.Runtime.InteropServices;
 
+    public interface IBinarySerializable
+    {
+        public int Write(Span<byte> buffer);
+
+        public int Read(ReadOnlySpan<byte> buffer);
+    }
+
     [StructLayout(LayoutKind.Sequential)]
-    public struct Block : IEquatable<Block>
+    public struct Block : IEquatable<Block>, IBinarySerializable
     {
         public ushort Type;
 
@@ -18,6 +26,18 @@
         public static implicit operator ushort(Block block) => block.Type;
 
         public static implicit operator Block(ushort type) => new(type);
+
+        public readonly int Write(Span<byte> buffer)
+        {
+            BinaryPrimitives.WriteUInt16LittleEndian(buffer, Type);
+            return 2;
+        }
+
+        public int Read(ReadOnlySpan<byte> buffer)
+        {
+            Type = BinaryPrimitives.ReadUInt16LittleEndian(buffer);
+            return 2;
+        }
 
         public override bool Equals(object obj)
         {

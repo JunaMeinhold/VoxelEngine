@@ -5,6 +5,8 @@
     using System.Runtime.CompilerServices;
     using System.Runtime.InteropServices;
     using VoxelEngine.Voxel;
+    using Hexa.NET.Mathematics;
+    using System.Buffers.Binary;
 
     public readonly struct ChunkRegionHeader
     {
@@ -14,14 +16,13 @@
 
         public const int Size = 21;
 
-        public static void Write(Stream stream, int recordCount)
+        public static void Write(Stream stream)
         {
             stream.Write(MagicNumber);
             stream.WriteUInt32(Version);
-            stream.WriteInt32(recordCount);
         }
 
-        public static void Read(Stream stream, out int recordCount)
+        public static void Read(Stream stream)
         {
             if (!stream.ReadCompare(MagicNumber))
             {
@@ -33,38 +34,71 @@
             {
                 throw new NotSupportedException($"The version of the header is not supported {version} Max: {Version}, Min: {MinVersion}");
             }
-
-            stream.ReadInt32(out recordCount);
         }
     }
 
     public struct ChunkRegion
     {
-        public const int CHUNK_REGION_SIZE = 8;
-        public const int CHUNK_REGION_SIZE_SQUARED = 8 * 8;
+        public const int CHUNK_REGION_SIZE = 32;
+        public const int CHUNK_REGION_SIZE_SQUARED = 32 * 32;
+        public const int SECTOR_SIZE = 4096;
 
-        public Vector2 Position;
+        public Point2 Position;
         public ChunkRegionSeekTable SeekTable;
 
         [InlineArray(CHUNK_REGION_SIZE_SQUARED)]
         public struct ChunkRegionSeekTable
         {
-            private long _element0;
+            private ChunkRegionSeekTableEntry _element0;
 
-            public Span<long> AsSpan()
+            public Span<ChunkRegionSeekTableEntry> AsSpan()
             {
                 return MemoryMarshal.CreateSpan(ref _element0, CHUNK_REGION_SIZE_SQUARED);
             }
         }
 
-        public void Serialize(Stream stream, ChunkSegment segment)
+        public struct ChunkRegionSeekTableEntry
         {
-            long start = stream.Position;
-            stream.Position += ChunkRegionHeader.Size;
+            public long Position;
+            public int Count;
+
+            public const int Size = 12;
+
+            public void Read(Stream stream)
+            {
+                Span<byte> buffer = stackalloc byte[Size];
+                stream.ReadExactly(buffer);
+                Position = BinaryPrimitives.ReadInt64LittleEndian(buffer);
+                Count = BinaryPrimitives.ReadInt32LittleEndian(buffer[8..]);
+            }
+
+            public readonly void Write(Stream stream)
+            {
+                Span<byte> buffer = stackalloc byte[Size];
+                BinaryPrimitives.WriteInt64LittleEndian(buffer, Position);
+                BinaryPrimitives.WriteInt32LittleEndian(buffer, Count);
+                stream.Write(buffer);
+            }
+        }
+
+        public readonly void Serialize(Stream stream)
+        {
+            ChunkRegionHeader.Write(stream);
+            for (int i = 0; i < CHUNK_REGION_SIZE_SQUARED; i++)
+            {
+                SeekTable[i].Write(stream);
+            }
         }
 
         public void Deserialize(Stream stream)
         {
+            ChunkRegionHeader.Read(stream);
+            for (int i = 0; i < CHUNK_REGION_SIZE_SQUARED; i++)
+            {
+                SeekTable[i].Read(stream);
+            }
+
+            ChunkRegionSeekTableEntry entry = SeekTable[0];
         }
     }
 }

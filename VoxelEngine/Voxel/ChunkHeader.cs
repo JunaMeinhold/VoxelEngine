@@ -1,46 +1,46 @@
 ﻿namespace VoxelEngine.Voxel
 {
-    using VoxelEngine.IO;
+    using System.Buffers.Binary;
+    using System.Runtime.CompilerServices;
 
-    public readonly struct ChunkHeader
+    public enum ChunkCompression : ushort
     {
-        public static readonly Version Version = new(1, 0, 0, 0);
-        public static readonly Version MinVersion = new(1, 0, 0, 0);
+        Raw,
+        RLE,
+    }
 
-        public const int Size = 16;
+    public struct ChunkHeader
+    {
+        public ushort BlockCount;
+        public long Length;
 
-        public static void Write(Stream stream, int recordCount, long length)
+        public const int Size = 10;
+
+        public const int RLEBreakevenPoint = 1365;
+
+        public const int RLEHeightMapBreakevenPoint = 85;
+
+        public readonly void Write(Stream stream)
         {
-            stream.WriteUInt32(Version);
-            stream.WriteInt32(recordCount);
-            stream.WriteInt64(length);
+            Span<byte> buffer = stackalloc byte[10];
+            BinaryPrimitives.WriteUInt16LittleEndian(buffer, BlockCount);
+            BinaryPrimitives.WriteInt64LittleEndian(buffer[2..], Length);
+            stream.Write(buffer);
         }
 
-        public static void Read(Stream stream, out int recordCount, out long length)
+        public static ChunkHeader ReadFrom(Stream stream)
         {
-            Version version = stream.ReadUInt32();
-            if (version > Version || version < MinVersion)
-            {
-                throw new NotSupportedException($"The version of the header is not supported {version} Max: {Version}, Min: {MinVersion}");
-            }
-
-            stream.ReadInt32(out recordCount);
-            stream.ReadInt64(out length);
+            Unsafe.SkipInit(out ChunkHeader header);
+            header.Read(stream);
+            return header;
         }
 
-        public static bool TryRead(Stream stream, out int recordCount, out long length)
+        public void Read(Stream stream)
         {
-            Version version = stream.ReadUInt32();
-            if (version > Version || version < MinVersion)
-            {
-                recordCount = -1;
-                length = 0;
-                return false;
-            }
-
-            stream.ReadInt32(out recordCount);
-            stream.ReadInt64(out length);
-            return true;
+            Span<byte> buffer = stackalloc byte[10];
+            stream.ReadExactly(buffer);
+            BlockCount = BinaryPrimitives.ReadUInt16LittleEndian(buffer);
+            Length = BinaryPrimitives.ReadInt64LittleEndian(buffer[2..]);
         }
     }
 }

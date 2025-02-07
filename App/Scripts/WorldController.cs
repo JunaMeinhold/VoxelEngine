@@ -142,12 +142,6 @@
 
             sb.Reset();
             sb.Append("Loaded Chunks: "u8);
-            sb.Append(world.WorldLoader.ChunkCount);
-            sb.End();
-            ImGui.Text(sb);
-
-            sb.Reset();
-            sb.Append("Allocated Chunks: "u8);
             sb.Append(ChunkAllocator.AllocatedAmount);
             sb.End();
             ImGui.Text(sb);

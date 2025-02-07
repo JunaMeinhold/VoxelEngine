@@ -1,6 +1,7 @@
 ﻿namespace VoxelEngine.Voxel.Serialization
 {
     using Hexa.NET.Mathematics;
+    using System.Runtime.CompilerServices;
 
     public class VoxelStorageRegionManager
     {
@@ -17,37 +18,35 @@
 
         public int MaxOpenFiles { get; private set; } = 32;
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void BeginRead()
         {
             writeLock.Wait();
-
             readLock.Reset();
-
             readSemaphore.Wait();
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void EndRead()
         {
-            var value = readSemaphore.Release();
-            if (value == maxReader - 1)
+            if (readSemaphore.Release() == maxReader - 1)
             {
                 readLock.Set();
             }
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void BeginWrite()
         {
             readLock.Wait();
-
             writeLock.Reset();
-
             writeSemaphore.Wait();
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void EndWrite()
         {
-            var value = writeSemaphore.Release();
-            if (value == maxWriter - 1)
+            if (writeSemaphore.Release() == maxWriter - 1)
             {
                 writeLock.Set();
             }

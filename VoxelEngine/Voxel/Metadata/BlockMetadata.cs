@@ -40,6 +40,8 @@
             }
         }
 
+        public const int StaticSize = 8;
+
         public void Release()
         {
             if (Data != null)
