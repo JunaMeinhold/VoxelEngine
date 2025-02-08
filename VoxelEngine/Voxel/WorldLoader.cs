@@ -7,38 +7,16 @@
     using System.Linq;
     using System.Numerics;
     using System.Runtime.CompilerServices;
-    using System.Runtime.Intrinsics;
-    using System.Runtime.Intrinsics.X86;
     using System.Threading;
     using VoxelEngine.Core;
     using VoxelEngine.Debugging;
     using VoxelEngine.Graphics;
     using VoxelEngine.Threading;
-
-    public readonly unsafe struct SpatialSorter : IComparer<Point2>
-    {
-        public static readonly SpatialSorter Default;
-
-        public int Compare(Point2 x, Point2 y)
-        {
-            float da = Point2.Distance(Point2.Zero, x);
-            float db = Point2.Distance(Point2.Zero, y);
-
-            if (da < db)
-            {
-                return -1;
-            }
-            else if (db < da)
-            {
-                return 1;
-            }
-
-            return 0;
-        }
-    }
+    using VoxelEngine.Voxel.Serialization;
 
     public unsafe class WorldLoader : IDisposable
     {
+        private VoxelRegionFileManager regionManager = new();
         private Point2[] indicesRenderCache;
         private HashSet<Point2> indicesSimulationCache;
 
@@ -473,19 +451,33 @@
                 return;
             }
 
-            if (segment.IsEmpty | !segment.InMemory)
+            if (segment.IsEmpty || !segment.InMemory)
             {
-                if (segment.ExistOnDisk(World))
+                var file = regionManager.AcquireRegionStream(segment.Position.MapToRegions(), "world", false);
+                if (file != null)
                 {
-                    segment.LoadFromDisk(World);
+                    try
+                    {
+                        if (file.Exists(segment))
+                        {
+                            file.ReadSegment(World, &segment);
+                            loadQueue.Enqueue(segment);
+                        }
+                        else
+                        {
+                            generationQueue.Enqueue(segment);
+                        }
+                    }
+                    finally
+                    {
+                        file.Dispose(false);
+                    }
                 }
                 else
                 {
                     generationQueue.Enqueue(segment);
                 }
             }
-
-            loadQueue.Enqueue(segment);
         }
 
         private void GenerateRegion(ChunkSegment segment)
@@ -549,7 +541,6 @@
                 uploadQueue.Enqueue(renderRegion);
             }
 
-            segment.SaveToDisk();
             segment.Unload();
             loadedInternal.Remove(segment);
         }
@@ -623,7 +614,9 @@
                     {
                         if (!DoNotSave)
                         {
-                            segment.SaveToDisk();
+                            var file = regionManager.AcquireRegionStream(segment.Position.MapToRegions(), "world", true)!;
+                            file.WriteSegment(&segment);
+                            file.Dispose(true);
                         }
                     }
                 }

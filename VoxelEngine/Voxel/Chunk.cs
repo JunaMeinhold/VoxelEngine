@@ -332,6 +332,34 @@ namespace VoxelEngine.Voxel
             SetBlockInternal(block, pos.X, pos.Y, pos.Z);
         }
 
+        public unsafe ChunkPreSerialized PreSerialize(Chunk* self)
+        {
+            _lock.Wait();
+            try
+            {
+                DiskDirty = false;
+                return ChunkSerializer.PreSerialize(self);
+            }
+            finally
+            {
+                _lock.Release();
+            }
+        }
+
+        public unsafe void Serialize(Chunk* self, Stream stream, ChunkPreSerialized preSerialized)
+        {
+            _lock.Wait();
+            try
+            {
+                DiskDirty = false;
+                ChunkSerializer.Serialize(self, stream, preSerialized);
+            }
+            finally
+            {
+                _lock.Release();
+            }
+        }
+
         public unsafe void Serialize(Chunk* self, Stream stream)
         {
             _lock.Wait();

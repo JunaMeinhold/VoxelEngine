@@ -3,7 +3,7 @@
     using Hexa.NET.Mathematics;
     using System.Runtime.CompilerServices;
 
-    public class VoxelStorageRegionManager
+    public class VoxelRegionFileManager
     {
         private const int maxReader = 32;
         private const int maxWriter = 1;
@@ -13,8 +13,8 @@
         private readonly SemaphoreSlim readSemaphore = new(maxReader);
         private readonly SemaphoreSlim writeSemaphore = new(maxWriter);
 
-        private readonly Dictionary<Point2, VoxelStorageRegionFile> idToRegions = new();
-        private readonly List<VoxelStorageRegionFile> regions = new();
+        private readonly Dictionary<Point2, IVoxelRegionFileInternal> idToRegions = [];
+        private readonly List<IVoxelRegionFileInternal> regions = [];
 
         public int MaxOpenFiles { get; private set; } = 32;
 
@@ -52,17 +52,17 @@
             }
         }
 
-        public VoxelStorageRegionFile? AcquireRegionStream(Point2 regionPos, string worldPath, bool create)
+        public VoxelRegionFile? AcquireRegionStream(Point2 regionPos, string worldPath, bool create)
         {
             BeginRead();
 
             try
             {
-                if (idToRegions.TryGetValue(regionPos, out VoxelStorageRegionFile? region))
+                if (idToRegions.TryGetValue(regionPos, out IVoxelRegionFileInternal? region))
                 {
                     region.Lock();
                     region.LastAccess = DateTime.UtcNow;
-                    return region;
+                    return (VoxelRegionFile)region;
                 }
             }
             finally
@@ -76,8 +76,11 @@
                 if (!idToRegions.TryGetValue(regionPos, out var region))
                 {
                     TryEvict(out region);
+
                     string filename = Path.Combine(worldPath, $"r.{regionPos.X}.{regionPos.Y}.vxr");
-                    if (!File.Exists(filename) && !create)
+
+                    bool exists = File.Exists(filename);
+                    if (!exists && !create)
                     {
                         return null;
                     }
@@ -86,17 +89,22 @@
 
                     if (region is null)
                     {
-                        region = new();
+                        region = new VoxelRegionFile();
 
                         regions.Add(region);
                     }
 
-                    region.Reset(regionPos, stream);
+                    region.Lock();
+                    region.Reset(regionPos, stream, !exists);
 
                     idToRegions[regionPos] = region;
                 }
+                else
+                {
+                    region.Lock();
+                }
 
-                return region;
+                return (VoxelRegionFile)region;
             }
             finally
             {
@@ -104,7 +112,7 @@
             }
         }
 
-        private void TryEvict(out VoxelStorageRegionFile? old)
+        private void TryEvict(out IVoxelRegionFileInternal? old)
         {
             if (idToRegions.Count < MaxOpenFiles)
             {
@@ -112,12 +120,12 @@
                 return;
             }
 
-            VoxelStorageRegionFile? leastUsed = null;
+            IVoxelRegionFileInternal? leastUsed = null;
 
             for (int i = 0; i < regions.Count; i++)
             {
                 var region = regions[i];
-                if (region.Semaphore.CurrentCount == 1)
+                if (region.CurrentLockCount == 1)
                 {
                     if (leastUsed == null || region.LastAccess < leastUsed.LastAccess)
                     {
@@ -128,7 +136,7 @@
 
             if (leastUsed != null)
             {
-                leastUsed.Stream.Dispose();
+                leastUsed.Dispose(false);
                 idToRegions.Remove(leastUsed.Id);
             }
 

@@ -22,5 +22,11 @@
         {
             return (z << 8) + (x << 4) + y;
         }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public static Point2 MapToRegions(this Point2 chunkPos)
+        {
+            return new(chunkPos.X >> 5, chunkPos.Y >> 5);
+        }
     }
 }

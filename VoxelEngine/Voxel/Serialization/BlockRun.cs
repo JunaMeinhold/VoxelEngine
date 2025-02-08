@@ -9,13 +9,6 @@
         public ushort Count;
         public ushort Type;
 
-        public BlockRun(ushort type, ushort index, byte count)
-        {
-            Type = type;
-            Index = index;
-            Count = count;
-        }
-
         public void Read(Stream stream)
         {
             Span<byte> buffer = stackalloc byte[6];
@@ -30,7 +23,6 @@
             BinaryPrimitives.WriteUInt16LittleEndian(buffer, Index);
             BinaryPrimitives.WriteUInt16LittleEndian(buffer[2..], Count);
             BinaryPrimitives.WriteUInt16LittleEndian(buffer[4..], Type);
-
             return 6;
         }
 

@@ -8,6 +8,7 @@
     using System.IO;
     using System.Numerics;
     using VoxelEngine.IO;
+    using VoxelEngine.Voxel.Serialization;
 
     public unsafe struct ChunkSegment
     {
@@ -240,66 +241,39 @@
             }
         }
 
-        public readonly void SaveToDisk()
+        public long PreSerialize(Span<ChunkPreSerialized> preSerializeds)
         {
-            SaveToDisk(Chunks[0]->Map);
-        }
-
-        public readonly unsafe void SaveToDisk(World world)
-        {
-            bool dirty = false;
-            for (int i = 0; i < CHUNK_SEGMENT_SIZE; i++)
-            {
-                if (Chunks[i]->DiskDirty)
-                {
-                    dirty = true;
-                    break;
-                }
-            }
-
-            if (!dirty)
-            {
-                return;
-            }
-
-            string filename = Path.Combine(world.Path, $"r.{Position.X}.{Position.Y}.vxr");
-            using FileStream fs = File.Create(filename);
-            Span<byte> buffer = stackalloc byte[4];
-            BinaryPrimitives.WriteInt32LittleEndian(buffer, CHUNK_SEGMENT_SIZE);
-            fs.Write(buffer);
+            long size = 0;
             for (int i = 0; i < CHUNK_SEGMENT_SIZE; i++)
             {
                 Chunk* chunk = Chunks[i];
-                chunk->Serialize(chunk, fs);
+                var result = chunk->PreSerialize(chunk);
+                size += result.Length;
+                preSerializeds[i] = result;
             }
-            fs.Flush();
-            fs.Close();
-            fs.Dispose();
+            return size;
         }
 
-        public unsafe void LoadFromDisk(World world)
+        public void Serialize(Stream stream, Span<ChunkPreSerialized> preSerializeds)
         {
-            string filename = Path.Combine(world.Path, $"r.{Position.X}.{Position.Y}.vxr");
-            using FileStream fs = File.OpenRead(filename);
-
-            int count = fs.ReadInt32();
-
-            if (count != CHUNK_SEGMENT_SIZE)
+            for (int i = 0; i < CHUNK_SEGMENT_SIZE; i++)
             {
-                throw new NotSupportedException($"The chunk count must be equals {CHUNK_SEGMENT_SIZE}, but was {count}");
+                Chunk* chunk = Chunks[i];
+                chunk->Serialize(chunk, stream, preSerializeds[i]);
             }
+        }
 
-            for (int i = 0; i < count; i++)
+        public unsafe void LoadFromStream(Stream stream, World world)
+        {
+            for (int i = 0; i < CHUNK_SEGMENT_SIZE; i++)
             {
                 Chunk* chunk = ChunkAllocator.New(world, Position.X, i, Position.Y);
-                chunk->Deserialize(chunk, fs);
+                chunk->Deserialize(chunk, stream);
                 Chunks[i] = chunk;
                 world.Chunks[Chunks[i]->Position] = chunk;
             }
 
             world.Set(this);
-            fs.Close();
-            fs.Dispose();
         }
 
         public static ChunkSegment CreateFrom(World world, Point3 pos)

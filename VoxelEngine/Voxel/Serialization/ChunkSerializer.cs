@@ -2,7 +2,88 @@
 {
     using Hexa.NET.Utilities;
     using System.IO;
+    using System.Runtime.CompilerServices;
     using VoxelEngine.IO;
+
+    /*
+Pattern for ImHex:
+
+struct BlockMetadata
+{
+    u32 type;
+    u32 length;
+    u8 data[length];
+};
+
+struct BlockMetadataCollection
+{
+    u32 version;
+    u32 count;
+    BlockMetadata metadata[count];
+};
+
+struct BlockRun
+{
+    u16 type;
+    u16 index;
+    u16 count;
+};
+
+struct HeightMapRun
+{
+    u8 value;
+    u8 count;
+    u8 index;
+};
+
+struct HeightMap
+{
+    u16 compression;
+    if (compression == 0)
+    {
+        u8 data[256];
+    }
+    else
+    {
+        u8 runCount;
+        HeightMapRun runs[runCount];
+    }
+};
+
+struct Chunk
+{
+    u16 blockCount;
+    u64 length;
+
+    if (blockCount > 0)
+    {
+        HeightMap minY;
+        HeightMap maxY;
+
+        BlockMetadataCollection collection;
+
+        u16 compression;
+        if (compression == 0)
+        {
+            u16 blocks[blockCount];
+        }
+        else
+        {
+            u16 runCount;
+            BlockRun runs[runCount];
+        }
+    }
+};
+
+struct ChunkSegment
+{
+    u32 chunkCount;
+    Chunk chunks[chunkCount];
+};
+
+ChunkSegment segment @ 0x0;
+
+     */
 
     public static class ChunkSerializer
     {
@@ -11,7 +92,7 @@
             long size = ChunkHeader.Size;
 
             ChunkPreSerialized result = default;
-            var records = result.Runs = [];
+            var runs = result.Runs = [];
 
             int runsWritten = 0;
             if (chunk->InMemory)
@@ -51,7 +132,7 @@
                             if (!newRun)
                             {
                                 runsWritten++;
-                                records.Add(run);
+                                runs.Add(run);
                                 if (runsWritten > ChunkHeader.RLEBreakevenPoint)
                                 {
                                     goto end;
@@ -64,7 +145,7 @@
 
                             b = *voxels;
                             run.Type = b.Type;
-                            run.Count = 1;
+                            run.Count = 0;
                             run.Index = (ushort)access;
                             newRun = false;
                         }
@@ -74,7 +155,7 @@
                 if (!newRun)
                 {
                     runsWritten++;
-                    records.Add(run);
+                    runs.Add(run);
                     if (runsWritten > ChunkHeader.RLEBreakevenPoint)
                     {
                         goto end;
@@ -85,16 +166,16 @@
         end:
 
             ChunkHeader header = default;
-            if (records.Count > ChunkHeader.RLEBreakevenPoint)
+            if (runs.Count > ChunkHeader.RLEBreakevenPoint)
             {
                 result.Compression = ChunkCompression.Raw;
                 size += Chunk.CHUNK_SIZE_CUBED * sizeof(ushort);
-                records.Release();
+                runs.Release();
             }
             else
             {
                 result.Compression = ChunkCompression.RLE;
-                size += records.Count * sizeof(BlockRun);
+                size += runs.Count * sizeof(BlockRun);
             }
 
             header.BlockCount = chunk->BlockCount;
@@ -102,7 +183,7 @@
 
             result.Chunk = chunk;
             result.Header = header;
-            result.Runs = records;
+            result.Runs = runs;
             result.Length = size;
 
             return result;
@@ -166,19 +247,23 @@
 
         public static unsafe void Serialize(Chunk* chunk, Stream stream)
         {
-            var result = PreSerialize(chunk);
-            var header = result.Header;
+            Serialize(chunk, stream, PreSerialize(chunk));
+        }
+
+        public static unsafe void Serialize(Chunk* chunk, Stream stream, ChunkPreSerialized serialized)
+        {
+            var header = serialized.Header;
 
             header.Write(stream);
             if (chunk->InMemory)
             {
-                WriteHeightMap(stream, result.CompressionMinY, chunk->MinY, result.MinYRuns);
-                WriteHeightMap(stream, result.CompressionMaxY, chunk->MaxY, result.MaxYRuns);
+                WriteHeightMap(stream, serialized.CompressionMinY, chunk->MinY, serialized.MinYRuns);
+                WriteHeightMap(stream, serialized.CompressionMaxY, chunk->MaxY, serialized.MaxYRuns);
 
                 chunk->BlockMetadata.Serialize(stream);
 
-                stream.WriteUInt16((ushort)result.Compression);
-                switch (result.Compression)
+                stream.WriteUInt16((ushort)serialized.Compression);
+                switch (serialized.Compression)
                 {
                     case ChunkCompression.Raw:
                         Block* data = chunk->Data;
@@ -186,12 +271,12 @@
                         break;
 
                     case ChunkCompression.RLE:
-                        stream.WriteUInt16((ushort)result.Runs.Count);
-                        Write(stream, result.Runs.Data, result.Runs.Count);
+                        stream.WriteUInt16((ushort)serialized.Runs.Count);
+                        Write(stream, serialized.Runs.Data, serialized.Runs.Count);
                         break;
                 }
             }
-            result.Release();
+            ((ChunkPreSerialized)serialized).Release();
         }
 
         private static unsafe void WriteHeightMap(Stream stream, ChunkCompression compression, byte* raw, UnsafeList<HeightMapRun> runs)
@@ -307,6 +392,7 @@
 
                 case ChunkCompression.RLE:
                     ushort runCount = stream.ReadUInt16();
+                    if (runCount > ChunkHeader.RLEBreakevenPoint) throw new FormatException("Corrupt chunk data, RLE data too long.");
                     BlockRun run = default;
                     for (int i = 0; i < runCount; i++)
                     {
@@ -319,7 +405,7 @@
                         }
 
                         int access = run.Index;
-                        int remaining = run.Count;
+                        int remaining = run.Count + 1;
                         int z = (access >> 8) & 0xF;
                         int x = (access >> 4) & 0xF;
                         int y = access & 0xF;
@@ -367,6 +453,9 @@
                         }
                     }
                     break;
+
+                default:
+                    throw new FormatException("Corrupt chunk data, unknown compression mode.");
             }
         }
 
@@ -381,6 +470,7 @@
 
                 case ChunkCompression.RLE:
                     int runCount = stream.ReadByte();
+                    if (runCount > ChunkHeader.RLEHeightMapBreakevenPoint) throw new FormatException("Corrupt height-map data, RLE data too long.");
                     HeightMapRun run = default;
                     for (int i = 0; i < runCount; i++)
                     {
@@ -391,6 +481,9 @@
                         MemsetT(output + run.Index, run.Value, run.Count + 1); // shift count by one to remap from 0..255 to 1..256
                     }
                     break;
+
+                default:
+                    throw new FormatException("Corrupt height-map data, unknown compression mode.");
             }
         }
     }

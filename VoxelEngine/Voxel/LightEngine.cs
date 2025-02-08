@@ -44,23 +44,23 @@
 
     public unsafe class LightEngine
     {
-        public void Compute(Chunk chunk, LightMap map)
+        public void Compute(Chunk* chunk, LightMap map)
         {
             byte lightLevelSky = ComputeSkyLightLevel();
             for (int i = 0; i < Chunk.CHUNK_SIZE_SQUARED; i++)
             {
                 var x = i & 15;
                 var z = i >> 4;
-                var max = chunk.MaxY[i];
+                var max = chunk->MaxY[i];
                 if (max == 0) continue;
 
                 FloodFillY(lightLevelSky, x, max, z, chunk, ref map);
             }
         }
 
-        private void FloodFillY(byte lightLevelSky, int x, byte max, int z, Chunk chunk, ref LightMap map)
+        private void FloodFillY(byte lightLevelSky, int x, byte max, int z, Chunk* chunk, ref LightMap map)
         {
-            Block* voxels = chunk.Data;
+            Block* voxels = chunk->Data;
             for (int i = max - 1; i >= 0; i--)
             {
                 int index = Extensions.MapToIndex(x, i, z);
