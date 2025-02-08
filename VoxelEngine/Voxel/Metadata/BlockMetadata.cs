@@ -2,6 +2,7 @@
 {
     using System.Buffers.Binary;
     using System.Runtime.CompilerServices;
+    using VoxelEngine.Voxel.Serialization;
 
     public interface IBlockMetadata
     {

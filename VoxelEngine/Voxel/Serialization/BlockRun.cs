@@ -18,6 +18,15 @@
             Type = BinaryPrimitives.ReadUInt16LittleEndian(buffer[4..]);
         }
 
+        public readonly void Write(Stream stream)
+        {
+            Span<byte> buffer = stackalloc byte[6];
+            BinaryPrimitives.WriteUInt16LittleEndian(buffer, Index);
+            BinaryPrimitives.WriteUInt16LittleEndian(buffer[2..], Count);
+            BinaryPrimitives.WriteUInt16LittleEndian(buffer[4..], Type);
+            stream.Write(buffer);
+        }
+
         public readonly int Write(Span<byte> buffer)
         {
             BinaryPrimitives.WriteUInt16LittleEndian(buffer, Index);

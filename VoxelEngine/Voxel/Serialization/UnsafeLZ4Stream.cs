@@ -5,18 +5,28 @@
     using System.IO;
     using System.Runtime.CompilerServices;
 
-    public unsafe struct UnsafeLZ4Stream : IDisposable
+    public unsafe class UnsafeLZ4Stream : Stream
     {
         private readonly int blockSize;
-        private readonly StreamMode mode;
+        private StreamMode mode;
         private readonly LZ4Level level;
         private readonly int outputSize;
-        private readonly Stream innerStream;
+        private Stream innerStream;
         private byte* rawBuffer;
         private byte* compressedBuffer;
 
         private int bufferPosition;
         private int bufferedSize;
+
+        public override bool CanRead => mode == StreamMode.Read;
+
+        public override bool CanSeek { get; }
+
+        public override bool CanWrite => mode == StreamMode.Write;
+
+        public override long Length { get => innerStream.Length; }
+
+        public override long Position { get => innerStream.Position; set => innerStream.Position = value; }
 
         public UnsafeLZ4Stream(Stream stream, int blockSize, StreamMode mode, LZ4Level level)
         {
@@ -29,7 +39,15 @@
             compressedBuffer = AllocT<byte>(outputSize);
         }
 
-        public void Write(ReadOnlySpan<byte> buffer)
+        public void Reset(Stream stream, StreamMode mode)
+        {
+            innerStream = stream;
+            this.mode = mode;
+            bufferPosition = 0;
+            bufferedSize = 0;
+        }
+
+        public override void Write(ReadOnlySpan<byte> buffer)
         {
             fixed (byte* pBuffer = buffer)
             {
@@ -37,7 +55,7 @@
             }
         }
 
-        public void Write(byte[] buffer, int offset, int length)
+        public override void Write(byte[] buffer, int offset, int length)
         {
             if (buffer.Length < offset + length) throw new ArgumentOutOfRangeException(nameof(buffer), "Offset or length exceeded the buffer size.");
             fixed (byte* pBuffer = buffer)
@@ -74,26 +92,27 @@
             bufferPosition = 0;
         }
 
-        public void Read(Span<byte> buffer)
+        public override int Read(Span<byte> buffer)
         {
             fixed (byte* pBuffer = buffer)
             {
-                Read(pBuffer, buffer.Length);
+                return Read(pBuffer, buffer.Length);
             }
         }
 
-        public void Read(byte[] buffer, int offset, int length)
+        public override int Read(byte[] buffer, int offset, int length)
         {
             if (buffer.Length < offset + length) throw new ArgumentOutOfRangeException(nameof(buffer), "Offset or length exceeded the buffer size.");
             fixed (byte* pBuffer = buffer)
             {
-                Read(pBuffer + offset, length);
+                return Read(pBuffer + offset, length);
             }
         }
 
-        public void Read(byte* buffer, int length)
+        public int Read(byte* buffer, int length)
         {
             if (mode != StreamMode.Read) throw new InvalidOperationException("Cannot read from an write-only stream.");
+            int read = 0;
             while (length > 0)
             {
                 if (bufferPosition == bufferedSize)
@@ -108,7 +127,10 @@
                 bufferPosition += toRead;
                 length -= toRead;
                 buffer += toRead;
+                read += toRead;
             }
+
+            return read;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -124,7 +146,7 @@
             bufferPosition = 0;
         }
 
-        public void Flush()
+        public override void Flush()
         {
             if (mode == StreamMode.Write)
             {
@@ -150,9 +172,20 @@
             }
         }
 
-        public void Dispose()
+        protected override void Dispose(bool value)
         {
+            Flush();
             Release();
+        }
+
+        public override long Seek(long offset, SeekOrigin origin)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override void SetLength(long value)
+        {
+            throw new NotImplementedException();
         }
     }
 }

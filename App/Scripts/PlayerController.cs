@@ -15,7 +15,7 @@
 
     public class PlayerController : ScriptComponent
     {
-        public float Speed = 20F;
+        public float Speed = 30F;
         public float AngluarSpeed = 20F;
         private bool leftDown;
         private bool rightDown;

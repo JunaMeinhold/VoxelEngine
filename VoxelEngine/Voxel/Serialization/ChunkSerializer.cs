@@ -2,7 +2,6 @@
 {
     using Hexa.NET.Utilities;
     using System.IO;
-    using System.Runtime.CompilerServices;
     using VoxelEngine.IO;
 
     /*
@@ -364,7 +363,6 @@ ChunkSegment segment @ 0x0;
 
             if (header.BlockCount == 0)
             {
-                stream.Position += header.Length;
                 return; // skip reading/allocating.
             }
 

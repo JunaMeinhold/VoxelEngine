@@ -2,6 +2,7 @@
 {
     using Hexa.NET.Utilities;
     using System.Collections;
+    using VoxelEngine.Voxel.Serialization;
 
     public struct BlockMetadataCollection : IList<BlockMetadata>, ICollection<BlockMetadata>
     {

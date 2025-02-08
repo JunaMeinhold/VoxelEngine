@@ -52,7 +52,7 @@
             }
         }
 
-        public VoxelRegionFile? AcquireRegionStream(Point2 regionPos, string worldPath, bool create)
+        public VoxelRegionFile? AcquireRegionStream(Point2 regionPos, string worldPath, bool write)
         {
             BeginRead();
 
@@ -60,7 +60,7 @@
             {
                 if (idToRegions.TryGetValue(regionPos, out IVoxelRegionFileInternal? region))
                 {
-                    region.Lock();
+                    region.Lock(write ? StreamMode.Write : StreamMode.Read);
                     region.LastAccess = DateTime.UtcNow;
                     return (VoxelRegionFile)region;
                 }
@@ -80,7 +80,7 @@
                     string filename = Path.Combine(worldPath, $"r.{regionPos.X}.{regionPos.Y}.vxr");
 
                     bool exists = File.Exists(filename);
-                    if (!exists && !create)
+                    if (!exists && !write)
                     {
                         return null;
                     }
@@ -94,14 +94,14 @@
                         regions.Add(region);
                     }
 
-                    region.Lock();
-                    region.Reset(regionPos, stream, !exists);
+                    region.Lock(write ? StreamMode.Write : StreamMode.Read);
+                    region.Reset(regionPos, stream, !exists, write ? StreamMode.Write : StreamMode.Read);
 
                     idToRegions[regionPos] = region;
                 }
                 else
                 {
-                    region.Lock();
+                    region.Lock(write ? StreamMode.Write : StreamMode.Read);
                 }
 
                 return (VoxelRegionFile)region;

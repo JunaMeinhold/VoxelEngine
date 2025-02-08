@@ -10,6 +10,24 @@
         public byte Count;
         public byte Value;
 
+        public void Read(Stream stream)
+        {
+            Span<byte> buffer = stackalloc byte[3];
+            stream.ReadExactly(buffer);
+            Index = buffer[0];
+            Count = buffer[1];
+            Value = buffer[2];
+        }
+
+        public readonly void Write(Stream stream)
+        {
+            Span<byte> buffer = stackalloc byte[3];
+            buffer[0] = Index;
+            buffer[1] = Count;
+            buffer[2] = Value;
+            stream.Write(buffer);
+        }
+
         public int Read(ReadOnlySpan<byte> buffer)
         {
             Index = buffer[0];
@@ -24,15 +42,6 @@
             buffer[1] = Count;
             buffer[2] = Value;
             return 3;
-        }
-
-        public void Read(Stream stream)
-        {
-            Span<byte> buffer = stackalloc byte[3];
-            stream.ReadExactly(buffer);
-            Index = buffer[0];
-            Count = buffer[1];
-            Value = buffer[2];
         }
     }
 }

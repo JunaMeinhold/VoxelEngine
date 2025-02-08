@@ -2,6 +2,7 @@
 {
     using System.Buffers.Binary;
     using VoxelEngine.IO;
+    using VoxelEngine.Voxel.Serialization;
 
     public readonly struct BlockMetadataCollectionHeader
     {
