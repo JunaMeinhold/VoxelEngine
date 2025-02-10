@@ -11,7 +11,7 @@ PixelInput main(VertexInput input)
 	PixelInput output;
 
 	output.pos = mul(input.pos, model);
-	output.pos = mul(output.pos, viewProj);
+	output.pos = mul(output.pos, relViewProj);
 
 	return output;
 }

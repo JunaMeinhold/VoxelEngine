@@ -11,13 +11,13 @@
         private readonly Lock @lock = new();
         private readonly List<ChunkSegment> ChunkSegments = new();
         public RegionVertexBuffer vertexBuffer = new();
-        public Vector3 Position;
-        public Vector2 Offset;
-        public Vector2 Size;
+        public Point3 Position;
+        public Point2 Offset;
+        public Point2 Size;
         public BoundingBox BoundingBox;
         public int IsDirty;
 
-        public RenderRegion(Vector2 offset, Vector2 size)
+        public RenderRegion(Point2 offset, Point2 size)
         {
             Position = new(offset.X, 0, offset.Y);
             Offset = offset;
@@ -105,7 +105,7 @@
 
                 vertexBuffer.Map(context, verts);
 
-                var min = new Point3((int)Offset.X, 0, (int)Offset.Y);
+                var min = new Point3(Offset.X, 0, Offset.Y);
                 var max = Offset + Size;
                 BoundingBox = new(new Vector3(Offset.X, 0, Offset.Y) * Chunk.CHUNK_SIZE, new Vector3(max.X, World.CHUNK_AMOUNT_Y, max.Y) * Chunk.CHUNK_SIZE);
 

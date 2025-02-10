@@ -26,7 +26,7 @@ namespace App.Graphics.Passes
 
         public override void Configure(GraphResourceBuilder creator)
         {
-            blurFilter = new(Format.R32G32Float, Nucleus.Settings.ShadowMapSize, Nucleus.Settings.ShadowMapSize);
+            blurFilter = new(Format.R32G32Float, Config.Default.ShadowMapSize, Config.Default.ShadowMapSize);
             csmBuffer = creator.CreateConstantBuffer<CSMShadowParams>("CSMBuffer", CpuAccessFlags.Write).Value!;
             copyEffect = new(CopyFilter.None);
             reprojectEffect = new();
@@ -45,6 +45,7 @@ namespace App.Graphics.Passes
 
         public override void Execute(GraphicsContext context, Scene scene, Camera camera, GraphResourceBuilder creator)
         {
+            return;
             var directionalLight = scene.LightSystem.ActiveDirectionalLight;
             if (directionalLight == null)
             {

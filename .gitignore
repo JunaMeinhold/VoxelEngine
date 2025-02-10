@@ -3,9 +3,6 @@
 ##
 ## Get latest from https://github.com/github/gitignore/blob/master/VisualStudio.gitignore
 
-*.dds
-*.png
-
 # User-specific files
 *.rsuser
 *.suo
@@ -364,33 +361,3 @@ MigrationBackup/
 
 # Fody - auto-generated XML schema
 FodyWeavers.xsd
-/App/assets/textures/
-/App/assets/textures/crosshair.png
-/App/assets/textures/skybox.dds
-/App/assets/textures/space_floor.png
-/App/assets/textures/blocks/brick.png
-/App/assets/textures/blocks/cobblestone.dds
-/App/assets/textures/blocks/cobblestone.png
-/App/assets/textures/blocks/dirt.dds
-/App/assets/textures/blocks/dirt.png
-/App/assets/textures/blocks/grass_side.dds
-/App/assets/textures/blocks/grass_side.png
-/App/assets/textures/blocks/grass_top.dds
-/App/assets/textures/blocks/grass_top.png
-/App/assets/textures/blocks/iron_block.dds
-/App/assets/textures/blocks/iron_block.png
-/App/assets/textures/blocks/log_oak.dds
-/App/assets/textures/blocks/log_oak.png
-/App/assets/textures/blocks/log_oak_top.dds
-/App/assets/textures/blocks/log_oak_top.png
-/App/assets/textures/blocks/planks_oak.dds
-/App/assets/textures/blocks/planks_oak.png
-/App/assets/textures/blocks/quartz_block.dds
-/App/assets/textures/blocks/quartz_block.png
-/App/assets/textures/blocks/stone.dds
-/App/assets/textures/blocks/stone.png
-/App/assets/textures/blocks/stonebrick.dds
-/App/assets/textures/blocks/stonebrick.png
-/App/assets/textures/blocks/stonebrick_cracked.dds
-/App/assets/textures/blocks/stonebrick_cracked.png
-/App/assets/textures/blocks/brick.dds

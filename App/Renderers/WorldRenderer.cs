@@ -4,6 +4,7 @@
     using Hexa.NET.D3DCommon;
     using Hexa.NET.DebugDraw;
     using Hexa.NET.DXGI;
+    using Hexa.NET.Mathematics;
     using System;
     using System.Numerics;
     using VoxelEngine.Graphics;
@@ -38,9 +39,9 @@
                 padd = 0;
             }
 
-            public WorldData(Vector2 chunkOffset)
+            public WorldData(Point2 chunkOffset, Vector3 globalPosition)
             {
-                this.chunkOffset = new(chunkOffset.X, 0, chunkOffset.Y);
+                this.chunkOffset = new Point3(chunkOffset.X, 0, chunkOffset.Y) * 16 - globalPosition;
                 padd = 0;
             }
         }
@@ -146,15 +147,16 @@
             if (world == null) return;
             Update(context);
             context.SetGraphicsPipelineState(geometry);
-            var frustum = camera.Transform.Frustum;
+            var frustum = camera.RelFrustum;
             for (int j = 0; j < world.LoadedRenderRegions.Count; j++)
             {
                 RenderRegion region = world.LoadedRenderRegions[j];
-                if (region.VertexBuffer is not null && region.VertexBuffer.VertexCount != 0 && frustum.Intersects(region.BoundingBox))
+                BoundingBox box = new(region.BoundingBox.Min - camera.Transform.GlobalPosition, region.BoundingBox.Max - camera.Transform.GlobalPosition);
+                if (region.VertexBuffer is not null && region.VertexBuffer.VertexCount != 0 && frustum.Intersects(box))
                 {
                     if (region.Bind(context))
                     {
-                        worldDataBuffer.Update(context, new WorldData(region.Offset));
+                        worldDataBuffer.Update(context, new WorldData(region.Offset, camera.Transform.GlobalPosition));
                         context.DrawInstanced((uint)region.VertexBuffer.VertexCount, 1, 0, 0);
                     }
                 }
@@ -193,7 +195,7 @@
                     {
                         if (region.Bind(context))
                         {
-                            worldDataBuffer.Update(context, new WorldData(region.Offset));
+                            worldDataBuffer.Update(context, new WorldData(region.Offset, camera.Transform.GlobalPosition));
                             context.DrawInstanced((uint)region.VertexBuffer.VertexCount, 1, 0, 0);
                         }
 

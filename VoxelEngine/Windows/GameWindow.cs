@@ -88,7 +88,7 @@
             debugDraw.EndDraw(swapChain.RTV, swapChain.DSV);
             renderer.EndFrame();
 
-            swapChain.Present(Nucleus.Settings.VSync ? 1u : 0u);
+            swapChain.Present(Config.Default.VSync ? 1u : 0u);
         }
 
         public override void RendererDestroy()
@@ -106,9 +106,9 @@
 
         private void LimitFrameRate()
         {
-            if (Nucleus.Settings.LimitFPS & !Nucleus.Settings.VSync)
+            if (Config.Default.LimitFPS & !Config.Default.VSync)
             {
-                int fps = Nucleus.Settings.TargetFPS;
+                int fps = Config.Default.TargetFPS;
                 long freq = Stopwatch.Frequency;
                 long frame = Stopwatch.GetTimestamp();
                 while ((frame - fpsStartTime) * fps < freq * fpsFrameCount)

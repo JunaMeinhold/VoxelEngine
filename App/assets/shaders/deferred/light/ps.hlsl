@@ -63,7 +63,7 @@ float3 ComputeDirectionalLight(GeometryAttributes attrs, float3 position, float3
 	if (light.castsShadows)
 	{
 		ShadowData data = ShadowDataBuffer[light.shadowMapIndex];
-		visibility = ShadowFactorDirectionalLightCascaded(CSMDepthBuffer, linearClampSampler, data, position + GetCameraPos(), NdotL);
+		//visibility = ShadowFactorDirectionalLightCascaded(CSMDepthBuffer, linearClampSampler, data, position + GetCameraPos(), NdotL);
 	}
 
 	return BlinnPhong(radiance, NdotL, L, V, N, attrs.albedo, 32) * visibility;

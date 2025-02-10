@@ -27,7 +27,7 @@
 
         public override void Awake()
         {
-            player = GameObject as CPlayer;
+            player = (CPlayer)GameObject;
             player.Respawned += Player_Respawned;
             camera = Scene.Camera;
 
@@ -39,7 +39,7 @@
             var result = PhysicsSystem.CastRay(origin, -Vector3.UnitY, float.MaxValue, world);
         }
 
-        private void Keyboard_OnKeyUp(object sender, VoxelEngine.Core.Input.Events.KeyboardEventArgs e)
+        private void Keyboard_OnKeyUp(object? sender, VoxelEngine.Core.Input.Events.KeyboardEventArgs e)
         {
             if (e.KeyCode == Key.Escape)
             {
@@ -57,7 +57,7 @@
             }
         }
 
-        private void Player_Respawned(object sender, EventArgs e)
+        private void Player_Respawned(object? sender, EventArgs e)
         {
         }
 
@@ -74,6 +74,7 @@
                     world.WorldLoader.Reset();
                 }
                 ImGui.Text(player.SelectedBlock.Name);
+                ImGui.InputFloat("Speed", ref Speed);
             }
             ImGui.End();
 

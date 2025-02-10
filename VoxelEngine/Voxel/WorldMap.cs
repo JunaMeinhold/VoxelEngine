@@ -1,8 +1,6 @@
 ﻿namespace VoxelEngine.Voxel
 {
-    using Hexa.NET.ImGui;
     using Hexa.NET.Mathematics;
-    using System.Numerics;
     using VoxelEngine.Scenes;
 
     public unsafe partial class World : GameObject

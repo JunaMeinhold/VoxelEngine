@@ -88,7 +88,7 @@
 
         private class ConsoleTraceListener : TraceListener
         {
-            public override void Write(string message)
+            public override void Write(string? message)
             {
                 if (message == null)
                 {
@@ -115,7 +115,7 @@
                 }
             }
 
-            public override void WriteLine(string message)
+            public override void WriteLine(string? message)
             {
                 if (message == null)
                 {

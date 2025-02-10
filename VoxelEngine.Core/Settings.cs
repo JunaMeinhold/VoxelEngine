@@ -1,69 +1,53 @@
 ﻿namespace VoxelEngine.Core
 {
-    using Newtonsoft.Json;
+    using System.Text.Json;
+    using System.Text.Json.Serialization;
 
-    public class Settings
+    public class Config
     {
-        [JsonProperty]
-        public bool VSync = false;
+        public bool VSync = true;
 
-        [JsonProperty]
-        public bool LimitFPS = true;
+        public bool LimitFPS = false;
 
-        [JsonProperty]
         public int TargetFPS = 120;
 
-        [JsonProperty]
         public int ShadowMapSize = 1024 * 2;
 
-        [JsonProperty]
         public bool ShaderCache = false;
 
-        [JsonProperty]
-        public int ChunkRenderDistance { get; set; } = 32;
+        public int ChunkRenderDistance { get; set; } = 16;
 
-        [JsonProperty]
+        public int RenderRegionSize { get; set; } = 4;
+
         public int ChunkSimulationDistance { get; set; } = 8;
 
         [JsonIgnore]
         public int BufferCount = 2;
 
-        [JsonIgnore]
-        public bool MSAA = false;
-
-        [JsonIgnore]
-        public int MSAASampleCount = 1;
-
-        [JsonIgnore]
-        public int MSAASampleQuality;
-
-        [JsonIgnore]
-        public float MaxDepth = 1000f;
-
-        [JsonIgnore]
-        public float MinDepth = .001f;
-
         internal void Save()
         {
-            File.WriteAllText("config.json", JsonConvert.SerializeObject(this, Formatting.Indented));
+            File.WriteAllText("config.json", JsonSerializer.Serialize(this, ConfigSourceGenerationContext.Default.Config));
         }
-    }
 
-    public static class Nucleus
-    {
-        static Nucleus()
+        static Config()
         {
             if (File.Exists("config.json"))
             {
-                Settings = JsonConvert.DeserializeObject<Settings>(File.ReadAllText("config.json"));
+                Default = JsonSerializer.Deserialize(File.ReadAllText("config.json"), ConfigSourceGenerationContext.Default.Config)!;
             }
             else
             {
-                Settings = new();
-                Settings.Save();
+                Default = new();
+                Default.Save();
             }
         }
 
-        public static Settings Settings { get; }
+        public static Config Default { get; }
+    }
+
+    [JsonSourceGenerationOptions(WriteIndented = true)]
+    [JsonSerializable(typeof(Config))]
+    internal partial class ConfigSourceGenerationContext : JsonSerializerContext
+    {
     }
 }

@@ -72,7 +72,7 @@
             colors.LightDir = new(sunDir, 1);
 
             constantBuffer.Update(context, colors);
-            mvpBuffer.Update(context, Matrix4x4.Transpose(Matrix4x4.CreateScale(camera.Transform.Far) * Matrix4x4.CreateTranslation(camera.Transform.Position)));
+            mvpBuffer.Update(context, Matrix4x4.Transpose(Matrix4x4.CreateScale(camera.Transform.Far)));
             sphere.Bind(context);
             context.SetGraphicsPipelineState(pipeline);
             context.DrawIndexedInstanced((uint)sphere.IndexBuffer.Count, 1, 0, 0, 0);

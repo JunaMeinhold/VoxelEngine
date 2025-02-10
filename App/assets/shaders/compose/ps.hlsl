@@ -113,8 +113,8 @@ inline float3 Fog(float2 texCoord, float3 color)
 	float depth = DepthTex.SampleLevel(linearClampSampler, texCoord, 0);
 	if (depth == 1)
 		return color;
-	float3 position = GetPositionWS(texCoord, depth);
-	float d = distance(position, GetCameraPos());
+	float3 position = GetPositionRWS(texCoord, depth);
+	float d = length(position);
 	float factor = ComputeFogFactor(d);
 	return lerp(color, FogColor, factor);
 }

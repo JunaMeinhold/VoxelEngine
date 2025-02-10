@@ -39,7 +39,7 @@
             return 2;
         }
 
-        public override bool Equals(object obj)
+        public override bool Equals(object? obj)
         {
             return obj is Block block && Equals(block);
         }

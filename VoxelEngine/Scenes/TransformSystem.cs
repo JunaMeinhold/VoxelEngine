@@ -4,12 +4,21 @@
     using HexaEngine.Queries;
     using HexaEngine.Queries.Generic;
     using System.Collections.Concurrent;
-    using System.Diagnostics;
+    using System.Numerics;
+
+    public static class TransformExtensions
+    {
+        public static Vector3 GetAbsGlobalPosition(this Transform transform)
+        {
+            return SceneManager.Current.TransformSystem.ToAbsoluteWorldPosition(transform.GlobalPosition);
+        }
+    }
 
     public class TransformSystem : ISceneSystem
     {
         private readonly ObjectTypeQuery<GameObject> objects = new(QueryFlags.ObjectAdded | QueryFlags.ObjectRemoved);
         private readonly ConcurrentQueue<Transform> updateQueue = new();
+        private Point3 worldOrigin;
 
         public string Name => "TransformUpdate";
 
@@ -66,6 +75,25 @@
             {
                 transform.Recalculate();
             }
+        }
+
+        public void ShiftWorldOrigin(Point3 newOrigin)
+        {
+            for (int i = 0; i < objects.Count; i++)
+            {
+                // temporarily suppress update events.
+                objects[i].TransformChanged -= TransformChanged;
+                objects[i].Transform.Position += worldOrigin;
+                objects[i].Transform.Position -= newOrigin;
+                objects[i].Transform.Recalculate();
+                objects[i].TransformChanged += TransformChanged;
+            }
+            worldOrigin = newOrigin;
+        }
+
+        public Vector3 ToAbsoluteWorldPosition(Vector3 vector)
+        {
+            return vector + worldOrigin;
         }
     }
 }

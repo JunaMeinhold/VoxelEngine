@@ -30,8 +30,6 @@
 
         public override void FixedUpdate()
         {
-            var context = D3D11DeviceManager.GraphicsContext;
-            world.WorldLoader.Upload(context);
             Vector3 pos = Scene.Camera.Transform.Position;
 
             float x = pos.X % Chunk.CHUNK_SIZE;
@@ -72,6 +70,8 @@
 
         public override unsafe void Update()
         {
+            var context = D3D11DeviceManager.GraphicsContext;
+            world.WorldLoader.Upload(context);
             byte* buffer = stackalloc byte[2048];
             StrBuilder sb = new(buffer, 2048);
 

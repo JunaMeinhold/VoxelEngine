@@ -16,7 +16,7 @@ PixelInputType main(float3 position : POSITION, int aData : POSITION1, float4 co
 {
 	PixelInputType output;
 
-	float3 relativePos = (position + chunkOffset * 16) - GetCameraPos();
+	float3 relativePos = position + chunkOffset;
 
 	output.pos = float4(position, 1);
 	output.position = mul(float4(relativePos, 1), relViewProj);

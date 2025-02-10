@@ -49,7 +49,7 @@
         {
             root = new(this);
             systems.Add(QueryManager = new QuerySystem(this));
-            systems.Add(new TransformSystem());
+            systems.Add(TransformSystem = new TransformSystem());
             systems.Add(RenderSystem = new RenderSystem());
             systems.Add(new ScriptSystem());
             systems.Add(new PhysicsSystem());
@@ -103,6 +103,8 @@
         public LightSystem LightSystem { get; }
 
         public MiniProfiler SceneProfiler { get; } = new();
+
+        public TransformSystem TransformSystem { get; }
 
         public virtual void Initialize()
         {

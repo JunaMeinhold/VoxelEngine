@@ -5,7 +5,6 @@
     using System.Collections.Generic;
     using System.Diagnostics;
     using System.Linq;
-    using System.Numerics;
     using System.Runtime.CompilerServices;
     using System.Threading;
     using VoxelEngine.Core;
@@ -16,7 +15,7 @@
 
     public unsafe class WorldLoader : IDisposable
     {
-        private VoxelRegionFileManager regionManager = new();
+        private readonly VoxelRegionFileManager regionManager = new();
         private Point2[] indicesRenderCache;
         private HashSet<Point2> indicesSimulationCache;
 
@@ -132,7 +131,9 @@
 
         public bool DoNotSave { get; set; } = false;
 
-        public int RenderDistance { get; private set; } = 16;
+        public int RenderDistance { get; private set; } = Config.Default.ChunkRenderDistance;
+
+        public int RenderRegionSize { get; set; } = Config.Default.RenderRegionSize;
 
         private static IEnumerable<Point2> GetIndices(Point3 center, int radius)
         {
@@ -164,7 +165,7 @@
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void RegenerateCache()
         {
-            indicesRenderCache = GetIndices(Point3.Zero, Nucleus.Settings.ChunkRenderDistance).ToArray();
+            indicesRenderCache = GetIndices(Point3.Zero, Config.Default.ChunkRenderDistance).ToArray();
 
             static int compare(Point2 a, Point2 b)
             {
@@ -182,11 +183,11 @@
 
                 return 0;
             }
-            indicesSimulationCache = [.. GetIndices(Point3.Zero, Nucleus.Settings.ChunkSimulationDistance).Order(SpatialSorter.Default)];
+            indicesSimulationCache = [.. GetIndices(Point3.Zero, Config.Default.ChunkSimulationDistance).Order(SpatialSorter.Default)];
             Array.Sort(indicesRenderCache, compare);
         }
 
-        private RenderRegion FindRenderRegion(Vector2 pos)
+        private RenderRegion FindRenderRegion(Point2 pos)
         {
             semaphore.Wait();
             for (int i = 0; i < renderRegions.Count; i++)
@@ -199,23 +200,22 @@
                 }
             }
 
-            const int regionSize = 4;
-            float x = pos.X % regionSize;
-            float y = pos.Y % regionSize;
+            int x = pos.X % RenderRegionSize;
+            int y = pos.Y % RenderRegionSize;
 
-            Vector2 p = pos - new Vector2(x, y);
+            Point2 p = pos - new Point2(x, y);
             if (x < 0)
             {
-                p.X -= regionSize;
+                p.X -= RenderRegionSize;
             }
             if (y < 0)
             {
-                p.Y -= regionSize;
+                p.Y -= RenderRegionSize;
             }
 
             RenderRegion region;
 
-            region = new(p, new(regionSize));
+            region = new(p, new(RenderRegionSize));
             renderRegions.Add(region);
 
             semaphore.Release();
@@ -545,8 +545,8 @@
             loadedInternal.Remove(segment);
         }
 
-        private UnsafeHashSet<Point2> loadedChunksIndices = new(Nucleus.Settings.ChunkRenderDistance * 2 * Nucleus.Settings.ChunkRenderDistance * 2);
-        private UnsafeHashSet<Point2> unloadChunksIndices = new(Nucleus.Settings.ChunkRenderDistance * 2 * Nucleus.Settings.ChunkRenderDistance * 2);
+        private UnsafeHashSet<Point2> loadedChunksIndices = new(Config.Default.ChunkRenderDistance * 2 * Config.Default.ChunkRenderDistance * 2);
+        private UnsafeHashSet<Point2> unloadChunksIndices = new(Config.Default.ChunkRenderDistance * 2 * Config.Default.ChunkRenderDistance * 2);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private void LoadVoid(object param)

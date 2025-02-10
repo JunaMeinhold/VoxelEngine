@@ -1,6 +1,11 @@
 namespace VoxelEngine.Mathematics.Noise
 {
+    using Hexa.NET.ImGui;
+    using Hexa.NET.Mathematics;
+    using System.Numerics;
     using System.Runtime.CompilerServices;
+    using System.Runtime.Intrinsics;
+    using System.Runtime.Intrinsics.X86;
 
     public class PerlinNoise
     {
@@ -152,13 +157,8 @@ namespace VoxelEngine.Mathematics.Noise
             bb = (p[(b + 1) & 255]) & 255;
 
             float x1, x2;
-            x1 = Lerp(Grad(aa, xf, yf),
-                        Grad(ba, xf - 1, yf),
-                        u);
-
-            x2 = Lerp(Grad(ab, xf, yf - 1),
-                        Grad(bb, xf - 1, yf - 1),
-                          u);
+            x1 = Lerp(Grad(aa, xf, yf), Grad(ba, xf - 1, yf), u);
+            x2 = Lerp(Grad(ab, xf, yf - 1), Grad(bb, xf - 1, yf - 1), u);
 
             return Lerp(x1, x2, v);
         }

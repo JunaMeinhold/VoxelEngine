@@ -4,6 +4,8 @@
     using App.Pipelines.Deferred;
     using Hexa.NET.D3D11;
     using Hexa.NET.DXGI;
+    using Hexa.NET.ImGui;
+    using System.Numerics;
     using VoxelEngine.Graphics;
     using VoxelEngine.Graphics.D3D11;
     using VoxelEngine.Scenes;
@@ -42,6 +44,8 @@
             scene.RenderSystem.Draw(context, RenderQueueIndex.Geometry, PassIdentifer.DeferredPass, camera);
 
             context.ClearState();
+
+            ImGui.Image((ulong)gbuffer.SRVs[0].NativePointer, new Vector2(512));
         }
     }
 }

@@ -2,9 +2,6 @@
 {
     using Hexa.NET.Mathematics;
     using Hexa.NET.Utilities;
-    using Hexa.NET.Utilities.Threading;
-    using System.Formats.Tar;
-    using System.Numerics;
 
     public unsafe class ChunkArray
     {

@@ -19,7 +19,7 @@ cbuffer CameraBuffer : register(b1)
 
 float3 GetCameraPos()
 {
-	return float3(viewInv._41, viewInv._42, viewInv._43);
+	return float3(-view._41, -view._42, -view._43);
 }
 
 float GetLinearDepth(float depth)

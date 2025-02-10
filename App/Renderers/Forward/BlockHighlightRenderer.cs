@@ -48,16 +48,16 @@
         {
             if (pass == PassIdentifer.ForwardPass)
             {
-                DrawForward(context);
+                DrawForward(context, camera);
             }
         }
 
-        public void DrawForward(GraphicsContext context)
+        public void DrawForward(GraphicsContext context, Camera camera)
         {
             if (player == null) return;
             if (player.IsLookingAtBlock)
             {
-                mvpBuffer.Update(context, Matrix4x4.Transpose(Matrix4x4.CreateScale(0.51f) * Matrix4x4.CreateTranslation((Vector3)player.LookAtBlock + new Vector3(0.5f))));
+                mvpBuffer.Update(context, Matrix4x4.Transpose(Matrix4x4.CreateScale(0.51f) * Matrix4x4.CreateTranslation((Vector3)player.LookAtBlock - camera.Transform.GlobalPosition + new Vector3(0.5f))));
                 colorBuffer.Update(context, Color);
 
                 lineBox.Bind(context);

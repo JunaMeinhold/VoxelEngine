@@ -33,10 +33,10 @@
         public int cascadeCount = 4;
         public Texture2D? ShadowMap;
         public DepthStencil? DepthStencil;
-        public int Size = Nucleus.Settings.ShadowMapSize;
+        public int Size = Config.Default.ShadowMapSize;
         public float LightBleedingReduction;
         private ShadowData data;
-        public CSMConfig Config = new();
+        public CSMConfig CSMConfig = new();
 
         public override bool HasShadowMap => ShadowMap != null;
 
@@ -138,10 +138,10 @@
 
             if (reproject) // only update matrices if needed if not use the last, because updating everytime would cause numerical instability and performance penalties.
             {
-                Config.CascadeCount = cascadeCount;
-                Config.ShadowMapSize = Size;
+                CSMConfig.CascadeCount = cascadeCount;
+                CSMConfig.ShadowMapSize = Size;
 
-                var matrices = CSMHelper.GetLightSpaceMatrices(camera, Transform, views, cascades, ShadowFrustra, Config);
+                var matrices = CSMHelper.GetLightSpaceMatrices(camera, Transform, views, cascades, ShadowFrustra, CSMConfig);
                 MemcpyT(matrices, &shadowParams.View0, cascadeCount - 1);
                 shadowDataLast = *data;
             }
@@ -176,10 +176,10 @@
             Matrix4x4* views = ShadowData.GetViews(data);
             float* cascades = ShadowData.GetCascades(data);
 
-            Config.CascadeCount = cascadeCount;
-            Config.ShadowMapSize = Size;
+            CSMConfig.CascadeCount = cascadeCount;
+            CSMConfig.ShadowMapSize = Size;
 
-            CSMHelper.GetLightSpaceMatrices(camera.Transform, Transform, views, cascades, ShadowFrustra, Config);
+            CSMHelper.GetLightSpaceMatrices(camera.Transform, Transform, views, cascades, ShadowFrustra, CSMConfig);
         }
     }
 }

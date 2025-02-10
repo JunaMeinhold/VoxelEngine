@@ -10,6 +10,7 @@
     {
         public new CameraTransform Transform = new();
         private bool autoSize = true;
+        public BoundingFrustum RelFrustum = new();
 
         /// <summary>
         /// Initializes a new instance of the <see cref="Camera"/> class.
@@ -29,10 +30,16 @@
 
         public static Camera Current => SceneManager.Current.Camera;
 
+        protected override void OnTransformUpdated(Transform transform)
+        {
+            var view = MathUtil.LookAtLH(Vector3.Zero, Transform.Forward, Transform.Up);
+            RelFrustum.Update(view * Transform.Projection);
+            base.OnTransformUpdated(transform);
+        }
+
         public override void Awake()
         {
             base.Awake();
-            if (!autoSize || Application.MainWindow == null) return;
         }
 
         public override void Destroy()
@@ -92,10 +99,7 @@
             ViewProjInv = Matrix4x4.Transpose(camera.Transform.ViewProjectionInv);
             PrevViewProj = Matrix4x4.Transpose(camera.Transform.PrevViewProjection);
 
-            Matrix4x4 view = camera.Transform.View;
-            view[3, 0] = 0;
-            view[3, 1] = 0;
-            view[3, 2] = 0;
+            var view = MathUtil.LookAtLH(Vector3.Zero, camera.Transform.Forward, camera.Transform.Up);
 
             RelViewProj = view * camera.Transform.Projection;
             Matrix4x4.Invert(RelViewProj, out RelViewProjInv);
