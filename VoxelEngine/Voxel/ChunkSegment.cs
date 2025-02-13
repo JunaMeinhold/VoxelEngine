@@ -3,11 +3,8 @@
     using Hexa.NET.Mathematics;
     using Hexa.NET.Utilities;
     using System;
-    using System.Buffers.Binary;
     using System.Collections;
     using System.IO;
-    using System.Numerics;
-    using VoxelEngine.IO;
     using VoxelEngine.Voxel.Serialization;
 
     public unsafe struct ChunkSegment
@@ -160,7 +157,7 @@
 
                 object IEnumerator.Current => Current;
 
-                public void Dispose()
+                public readonly void Dispose()
                 {
                 }
 
@@ -195,23 +192,16 @@
 
         public readonly bool IsEmpty => Chunks[0] is null;
 
-        public readonly bool IsLoaded => Chunks[0] is not null && Chunks[0]->InBuffer;
-
         public readonly bool InMemory => Chunks[0] is not null && Chunks[0]->InMemory;
 
-        public readonly bool InSimulation => Chunks[0] is not null && Chunks[0]->InSimulation;
-
-        public readonly bool ExistOnDisk(World world)
-        {
-            return File.Exists(Path.Combine(world.Path, $"r.{Position.X}.{Position.Y}.vxr"));
-        }
+        public readonly bool MissingNeighbours => Chunks.Any(x => x.Data->MissingNeighbours);
 
         public void Generate(World world)
         {
             world.Generator.GenerateBatch(ref Chunks, world, new(Position.X, 0, Position.Y));
         }
 
-        public readonly void Load(bool loadToSimulation)
+        public readonly void Update(bool loadToSimulation)
         {
             if (loadToSimulation)
             {

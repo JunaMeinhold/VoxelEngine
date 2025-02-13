@@ -1,3 +1,6 @@
+#ifndef GBUFFER_H_INCLUDED
+#define GBUFFER_H_INCLUDED
+
 float3 PackNormal(float3 normal)
 {
 	return 0.5 * normal + 0.5;
@@ -57,3 +60,5 @@ GeometryData PackGeometryData(
 	data.GBufferC.a = specCoeff;
 	return data;
 }
+
+#endif

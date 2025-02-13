@@ -65,7 +65,7 @@
 
         public readonly float ComputeHeight(PerlinNoise noise, float globalX, float globalZ)
         {
-            float v = noise.OctavePerlin2D(0.002f * globalX, 0.002f * globalZ, Octaves, Persistence, Amplitude);
+            float v = noise.OctavePerlin2D(0.008f * globalX, 0.008f * globalZ, Octaves, Persistence, Amplitude);
             v = MathHelper.SaturateOctave(v, Octaves, Persistence, Amplitude);
             v = MathF.Pow(v, Redistribution);
 

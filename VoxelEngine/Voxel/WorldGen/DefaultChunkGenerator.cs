@@ -164,19 +164,19 @@
                 MaxHeight = 120,
                 MinHeight = 100,
                 Redistribution = 5,
-                WaterHeight = 50,
+                WaterHeight = 100,
             };
 
             Biome hills = new()
             {
                 Name = "Hills",
-                Octaves = 3,
-                Persistence = 0.5f,
-                Amplitude = 1,
+                Octaves = 5,
+                Persistence = 0.6f,
+                Amplitude = 4,
                 MaxHeight = 240,
                 MinHeight = 120,
-                Redistribution = 10,
-                WaterHeight = 50,
+                Redistribution = 12,
+                WaterHeight = 60,
             };
 
             Biome mountains = new()
@@ -188,11 +188,24 @@
                 MaxHeight = 240,
                 MinHeight = 160,
                 Redistribution = 10,
-                WaterHeight = 50,
+                WaterHeight = 100,
+            };
+
+            Biome ocean = new()
+            {
+                Name = "Ocean",
+                Octaves = 3,
+                Persistence = 0.4f,
+                Amplitude = 2,
+                MaxHeight = 80,
+                MinHeight = 40,
+                Redistribution = 10,
+                WaterHeight = 100,
             };
 
             //Biomes.Add(plains);
             Biomes.Add(hills);
+            Biomes.Add(ocean);
             //Biomes.Add(mountains);
         }
 
@@ -218,7 +231,7 @@
 
                     BiomeData data = BiomeData.GetBlendedBiomeData(perlinNoise, Biomes, globalX, globalZ);
 
-                    float height = data.ComputeHeight(perlinNoise, globalX, globalZ);
+                    int height = (int)data.ComputeHeight(perlinNoise, globalX, globalZ);
 
                     if (height <= 0)
                     {
@@ -236,12 +249,22 @@
                             continue;
                         }
 
-                        chunks.SetBlock(new Point3(x, h, z), GetBlock(h, (int)height));
+                        chunks.SetBlock(new Point3(x, h, z), GetBlock(h, height));
                     }
 
-                    if (ShouldPlaceTree(globalX, globalZ))
+                    if (height < 100)
                     {
-                        PlaceTree(ref chunks, new(x, (int)height, z), world);
+                        for (int i = height; i < 100; i++)
+                        {
+                            chunks.SetBlock(new Point3(x, i, z), GetBlockByName("Water"));
+                        }
+                    }
+                    else
+                    {
+                        if (ShouldPlaceTree(globalX, globalZ))
+                        {
+                            PlaceTree(ref chunks, new(x, (int)height, z), world);
+                        }
                     }
                 }
             }

@@ -6,7 +6,7 @@ namespace VoxelEngine.Voxel.Meshing
     {
         public static int[] IndexToTextureShifted { get; set; } =
         [
-            0, 0 << 18, 1 << 18, 2 << 18, 3 << 18, 4 << 18, 5 << 18, 6 << 18, 7 << 18, 8 << 18, 9 << 18, 10 << 18, 11 << 18
+            0, 0 << 18, 1 << 18, 2 << 18, 3 << 18, 4 << 18, 5 << 18, 6 << 18, 7 << 18, 8 << 18, 9 << 18, 10 << 18, 11 << 18, 12 << 18
         ];
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

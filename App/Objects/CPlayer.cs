@@ -10,6 +10,7 @@
         {
             Transform.Position = spawnpoint;
             AddComponent(new PlayerController());
+            AddComponent(new DynamicActorComponent());
         }
     }
 }

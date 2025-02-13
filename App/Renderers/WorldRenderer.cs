@@ -15,36 +15,153 @@
     using VoxelEngine.Voxel;
     using VoxelEngine.Voxel.Blocks;
 
-    public unsafe class WorldRenderer : BaseRenderComponent
+    public struct WorldData
     {
+        public Vector3 chunkOffset;
+        public float padd;
+
+        public WorldData(Vector3 chunkOffset)
+        {
+            this.chunkOffset = chunkOffset;
+            padd = 0;
+        }
+
+        public WorldData(Point2 chunkOffset, Vector3 globalPosition)
+        {
+            this.chunkOffset = new Point3(chunkOffset.X, 0, chunkOffset.Y) * 16 - globalPosition;
+            padd = 0;
+        }
+    }
+
+    public unsafe class WorldForwardRenderer : BaseRenderComponent
+    {
+        private readonly WorldRenderer shared;
         private Texture2D textures;
         private SamplerState samplerState;
+
+        private World? world;
+        private GraphicsPipelineState geometry;
+        private ConstantBuffer<Matrix4x4> mvpBuffer;
+        private ConstantBuffer<WorldData> worldDataBuffer;
+        private ConstantBuffer<BlockDescriptionPacked> blockBuffer;
+        private bool dirty = true;
+
+        public WorldForwardRenderer(WorldRenderer shared)
+        {
+            this.shared = shared;
+        }
+
+        public override int QueueIndex { get; } = (int)RenderQueueIndex.Transparent;
+
+        public override void Awake()
+        {
+            world = (World)GameObject;
+            textures = shared.textures;
+            samplerState = shared.samplerState;
+            mvpBuffer = shared.mvpBuffer;
+            worldDataBuffer = shared.worldDataBuffer;
+            blockBuffer = shared.blockBuffer;
+
+            geometry = GraphicsPipelineState.Create(new GraphicsPipelineDesc()
+            {
+                VertexShader = "forward/voxel/vs.hlsl",
+                PixelShader = "forward/voxel/ps.hlsl",
+            }, new()
+            {
+                DepthStencil = DepthStencilDescription.Default,
+                Rasterizer = RasterizerDescription.CullBack,
+                Blend = new BlendDescription(Blend.SrcAlpha, Blend.InvSrcAlpha, Blend.One, Blend.InvSrcAlpha),
+                InputElements = (
+                [
+                    new("POSITION", 0, Format.R32G32B32Float, 0, -1, InputClassification.PerVertexData, 0),
+                    new("POSITION", 1, Format.R32Sint, 0, -1, InputClassification.PerVertexData, 0),
+                    new("COLOR", 0, Format.R8G8B8A8Unorm, 0, -1, InputClassification.PerVertexData, 0),
+                ])
+            });
+
+            geometry.Bindings.SetSRV("shaderTexture", textures);
+            geometry.Bindings.SetSampler("Sampler", samplerState);
+            geometry.Bindings.SetCBV("ModelBuffer", mvpBuffer);
+            geometry.Bindings.SetCBV("WorldData", worldDataBuffer);
+            geometry.Bindings.SetCBV("TexData", blockBuffer);
+        }
+
+        public override void Destroy()
+        {
+            geometry.Dispose();
+        }
+
+        public override void Draw(GraphicsContext context, PassIdentifer pass, Camera camera, object? parameter)
+        {
+            if (pass == PassIdentifer.ForwardPass)
+            {
+                ForwardPass(context, camera);
+            }
+        }
+
+        private void Update(GraphicsContext context)
+        {
+            if (!dirty) return;
+            dirty = false;
+
+            worldDataBuffer.Update(context, new WorldData() { chunkOffset = Vector3.Zero });
+            blockBuffer.UpdateRange(context, BlockRegistry.GetDescriptionPackeds().ToArray());
+        }
+
+        private void ForwardPass(GraphicsContext context, Camera camera)
+        {
+            if (world == null) return;
+            Update(context);
+            context.SetGraphicsPipelineState(geometry);
+            var frustum = camera.RelFrustum;
+
+            var comparer = RenderRegionZComparer.Instance;
+            comparer.CameraPosition = camera.Transform.GlobalPosition;
+            world.LoadedRenderRegions.Sort(comparer);
+            for (int j = 0; j < world.LoadedRenderRegions.Count; j++)
+            {
+                RenderRegion region = world.LoadedRenderRegions[j];
+                BoundingBox box = new(region.BoundingBox.Min - camera.Transform.GlobalPosition, region.BoundingBox.Max - camera.Transform.GlobalPosition);
+                if (frustum.Intersects(box))
+                {
+                    if (region.BindTransparent(context))
+                    {
+                        worldDataBuffer.Update(context, new WorldData(region.Offset, camera.Transform.GlobalPosition));
+                        context.DrawInstanced((uint)region.TransparentVertexBuffer.VertexCount, 1, 0, 0);
+                    }
+                }
+            }
+            context.SetGraphicsPipelineState(null);
+        }
+    }
+
+    public class RenderRegionZComparer : IComparer<RenderRegion>
+    {
+        public static readonly RenderRegionZComparer Instance = new();
+
+        public Vector3 CameraPosition;
+
+        public int Compare(RenderRegion? x, RenderRegion? y)
+        {
+            if (x == null || y == null) return 0;
+            float distA = (x.BoundingBox.Center - CameraPosition).LengthSquared();
+            float distB = (y.BoundingBox.Center - CameraPosition).LengthSquared();
+            return distB.CompareTo(distA);
+        }
+    }
+
+    public unsafe class WorldRenderer : BaseRenderComponent
+    {
+        internal Texture2D textures;
+        internal SamplerState samplerState;
 
         private GraphicsPipelineState geometry;
         private GraphicsPipelineState csmPass;
         private World? world;
         private bool debugChunksRegion;
-        private ConstantBuffer<Matrix4x4> mvpBuffer;
-        private ConstantBuffer<WorldData> worldDataBuffer;
-        private ConstantBuffer<BlockDescriptionPacked> blockBuffer;
-
-        private struct WorldData
-        {
-            public Vector3 chunkOffset;
-            public float padd;
-
-            public WorldData(Vector3 chunkOffset)
-            {
-                this.chunkOffset = chunkOffset;
-                padd = 0;
-            }
-
-            public WorldData(Point2 chunkOffset, Vector3 globalPosition)
-            {
-                this.chunkOffset = new Point3(chunkOffset.X, 0, chunkOffset.Y) * 16 - globalPosition;
-                padd = 0;
-            }
-        }
+        internal ConstantBuffer<Matrix4x4> mvpBuffer;
+        internal ConstantBuffer<WorldData> worldDataBuffer;
+        internal ConstantBuffer<BlockDescriptionPacked> blockBuffer;
 
         public override int QueueIndex { get; } = (int)RenderQueueIndex.Geometry;
 
@@ -152,28 +269,13 @@
             {
                 RenderRegion region = world.LoadedRenderRegions[j];
                 BoundingBox box = new(region.BoundingBox.Min - camera.Transform.GlobalPosition, region.BoundingBox.Max - camera.Transform.GlobalPosition);
-                if (region.VertexBuffer is not null && region.VertexBuffer.VertexCount != 0 && frustum.Intersects(box))
+                if (region.OpaqueVertexBuffer.VertexCount != 0 && frustum.Intersects(box))
                 {
-                    if (region.Bind(context))
+                    if (region.BindOpaque(context))
                     {
                         worldDataBuffer.Update(context, new WorldData(region.Offset, camera.Transform.GlobalPosition));
-                        context.DrawInstanced((uint)region.VertexBuffer.VertexCount, 1, 0, 0);
+                        context.DrawInstanced((uint)region.OpaqueVertexBuffer.VertexCount, 1, 0, 0);
                     }
-                }
-                if (debugChunksRegion)
-                {
-                    DebugDraw.DrawBoundingBox(region.BoundingBox.Min, region.BoundingBox.Max, new(1, 1, 0, 0.8f));
-                }
-            }
-            if (debugChunksRegion)
-            {
-                for (int j = 0; j < world.LoadedChunkSegments.Count; j++)
-                {
-                    ChunkSegment chunk = world.LoadedChunkSegments[j];
-                    Vector3 min = new Vector3(chunk.Position.X, 0, chunk.Position.Y) * Chunk.CHUNK_SIZE;
-                    Vector3 max = min + new Vector3(Chunk.CHUNK_SIZE) * new Vector3(1, World.CHUNK_AMOUNT_Y, 1);
-
-                    DebugDraw.DrawBoundingBox(min, max, new(1, 1, 1, 0.4f));
                 }
             }
             context.SetGraphicsPipelineState(null);
@@ -191,12 +293,12 @@
                 for (int j = 0; j < light.cascadeCount; j++)
                 {
                     var frustum = frustra[j];
-                    if (region.VertexBuffer is not null && region.VertexBuffer.VertexCount != 0 && frustum.Intersects(region.BoundingBox))
+                    if (region.OpaqueVertexBuffer.VertexCount != 0 && frustum.Intersects(region.BoundingBox))
                     {
-                        if (region.Bind(context))
+                        if (region.BindOpaque(context))
                         {
                             worldDataBuffer.Update(context, new WorldData(region.Offset, camera.Transform.GlobalPosition));
-                            context.DrawInstanced((uint)region.VertexBuffer.VertexCount, 1, 0, 0);
+                            context.DrawInstanced((uint)region.OpaqueVertexBuffer.VertexCount, 1, 0, 0);
                         }
 
                         break;

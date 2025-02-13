@@ -1,21 +1,4 @@
-struct MVPBuffer
-{
-	float4x4 proj;
-	float4x4 view;
-	float4x4 model;
-};
+#ifndef COMMON_H_INCLUDED
+#define COMMON_H_INCLUDED
 
-struct VPBuffer
-{
-	float4x4 proj;
-	float4x4 view;
-};
-
-struct DirectionalLight
-{
-	float3 direction;
-	float reserved;
-	float4 color;
-	float4x4 view;
-	float4x4 proj;
-};
+#endif

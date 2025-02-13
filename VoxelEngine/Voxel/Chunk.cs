@@ -28,9 +28,8 @@ namespace VoxelEngine.Voxel
 
         public BlockMetadataCollection BlockMetadata;
 
-        public ChunkVertexBuffer VertexBuffer = new();
-
-        public ChunkHelper ChunkHelper;
+        public ChunkVertexBuffer OpaqueVertexBuffer = new();
+        public ChunkVertexBuffer TransparentVertexBuffer = new();
 
         public SemaphoreLight _lock = new(1, 1);
 
@@ -83,13 +82,14 @@ namespace VoxelEngine.Voxel
             InSimulation = 4,
             Dirty = 8,
             DiskDirty = 16,
+            MissingNeighbours = 32,
         }
 
         public readonly World Map => DimensionManager.GetWorld(DimId);
 
         public bool InBuffer
         {
-            get => (flags & InternalChunkFlags.InBuffer) != 0;
+            readonly get => (flags & InternalChunkFlags.InBuffer) != 0;
             private set
             {
                 if (value)
@@ -107,7 +107,7 @@ namespace VoxelEngine.Voxel
 
         public bool InSimulation
         {
-            get => (flags & InternalChunkFlags.InSimulation) != 0;
+            readonly get => (flags & InternalChunkFlags.InSimulation) != 0;
             private set
             {
                 if (value)
@@ -123,7 +123,7 @@ namespace VoxelEngine.Voxel
 
         public bool Dirty
         {
-            get => (flags & InternalChunkFlags.Dirty) != 0;
+            readonly get => (flags & InternalChunkFlags.Dirty) != 0;
             private set
             {
                 if (value)
@@ -139,7 +139,7 @@ namespace VoxelEngine.Voxel
 
         public bool DiskDirty
         {
-            get => (flags & InternalChunkFlags.DiskDirty) != 0;
+            readonly get => (flags & InternalChunkFlags.DiskDirty) != 0;
             private set
             {
                 if (value)
@@ -153,10 +153,27 @@ namespace VoxelEngine.Voxel
             }
         }
 
+        public bool MissingNeighbours
+        {
+            readonly get => (flags & InternalChunkFlags.MissingNeighbours) != 0;
+            internal set
+            {
+                if (value)
+                {
+                    flags |= InternalChunkFlags.MissingNeighbours;
+                }
+                else
+                {
+                    flags &= ~InternalChunkFlags.MissingNeighbours;
+                }
+            }
+        }
+
         public void FreeMemory()
         {
             InBuffer = false;
-            VertexBuffer.Dispose();
+            OpaqueVertexBuffer.Dispose();
+            TransparentVertexBuffer.Dispose();
             if (Data != null)
             {
                 Free(Data);
@@ -181,7 +198,8 @@ namespace VoxelEngine.Voxel
             try
             {
                 InBuffer = false;
-                VertexBuffer.Dispose();
+                OpaqueVertexBuffer.Dispose();
+                TransparentVertexBuffer.Dispose();
 
                 DimensionManager.GetWorld(DimId).Chunks.Remove(self);
 
@@ -223,11 +241,8 @@ namespace VoxelEngine.Voxel
                     return;
                 }
 
-                ChunkHelper = new();
                 VoxelMeshFactory.GenerateMesh(self);
                 Dirty = false;
-                ChunkHelper.Release();
-                ChunkHelper = default;
             }
             finally
             {

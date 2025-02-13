@@ -18,10 +18,12 @@
         private Vector3 CurrentPlayerPos;
         private bool invalidate = true;
         private World world;
+        private Player player;
 
         public override void Awake()
         {
-            world = GameObject as World;
+            world = (World)GameObject;
+            player = Scene.Find<Player>()!;
         }
 
         public override void Destroy()
@@ -74,6 +76,12 @@
             world.WorldLoader.Upload(context);
             byte* buffer = stackalloc byte[2048];
             StrBuilder sb = new(buffer, 2048);
+
+            sb.Reset();
+            sb.Append("Look at: "u8);
+            sb.Append(player.LookAtBlock);
+            sb.End();
+            ImGui.Text(sb);
 
             sb.Reset();
             sb.Append("Chunk Segment: "u8);
@@ -175,8 +183,6 @@
                 }
                 directionalLight.Color *= 5;
                 */
-
-                ImGui.Text(directionalLight.Transform.Rotation.ToString());
             }
         }
     }

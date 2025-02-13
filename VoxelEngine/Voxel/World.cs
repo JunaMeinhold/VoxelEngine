@@ -6,6 +6,7 @@
     using System.IO;
     using System.Numerics;
     using System.Runtime.CompilerServices;
+    using VoxelEngine.Threading;
     using VoxelEngine.Voxel.WorldGen;
 
     public unsafe partial class World
@@ -31,9 +32,9 @@
 
         public VoxelHelper VoxelHelper { get; } = new(Matrix4x4.Identity);
 
-        public IReadOnlyList<ChunkSegment> LoadedChunkSegments => WorldLoader.LoadedChunkSegments;
+        public IReadOnlyDictionary<Point2, ChunkSegment> LoadedChunkSegments => WorldLoader.LoadedChunkSegments;
 
-        public IReadOnlyList<RenderRegion> LoadedRenderRegions => WorldLoader.LoadedRenderRegions;
+        public BlockingList<RenderRegion> LoadedRenderRegions => WorldLoader.LoadedRenderRegions;
 
         public int DimId { get; }
 

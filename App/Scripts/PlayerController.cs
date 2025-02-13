@@ -24,6 +24,7 @@
         private CPlayer player;
         private World world;
         private Vector3 teleportLocation;
+        private DynamicActorComponent actor;
 
         public override void Awake()
         {
@@ -37,6 +38,7 @@
             var origin = player.Transform.GlobalPosition;
             origin.Y = 256;
             var result = PhysicsSystem.CastRay(origin, -Vector3.UnitY, float.MaxValue, world);
+            actor = GameObject.GetComponent<DynamicActorComponent>()!;
         }
 
         private void Keyboard_OnKeyUp(object? sender, VoxelEngine.Core.Input.Events.KeyboardEventArgs e)
@@ -70,7 +72,7 @@
                 ImGui.SameLine();
                 if (ImGui.Button("Teleport"))
                 {
-                    camera.Transform.GlobalPosition = teleportLocation;
+                    GameObject.Transform.GlobalPosition = teleportLocation;
                     world.WorldLoader.Reset();
                 }
                 ImGui.Text(player.SelectedBlock.Name);
@@ -79,6 +81,7 @@
             ImGui.End();
 
             CameraTransform transform = camera.Transform;
+            //transform.Position = GameObject.Transform.Position + new Vector3(0, 1f, 0);
             if (!Application.MainWindow.LockCursor)
             {
                 return;
@@ -86,6 +89,8 @@
 
             HandleFreeCamera();
             GameObject.Transform.Position = transform.Position - new Vector3(0, 1f, 0);
+
+            //HandleMovement();
 
             var result = PhysicsSystem.CastRay(transform.Position, transform.Forward, 20, player.World);
 
@@ -195,15 +200,16 @@
         private void HandleFreeCamera()
         {
             CameraTransform transform = camera.Transform;
+            Vector3 direction = default;
             if (Keyboard.IsDown(Key.W))
             {
                 if (Keyboard.IsDown(Key.LCtrl))
                 {
-                    transform.Position += transform.Forward * Speed * 2 * Time.Delta;
+                    direction += transform.Forward * Speed * 2;
                 }
                 else
                 {
-                    transform.Position += transform.Forward * Speed * Time.Delta;
+                    direction += transform.Forward * Speed;
                 }
             }
 
@@ -211,11 +217,11 @@
             {
                 if (Keyboard.IsDown(Key.LCtrl))
                 {
-                    transform.Position += transform.Backward * Speed * 2 * Time.Delta;
+                    direction += transform.Backward * Speed * 2;
                 }
                 else
                 {
-                    transform.Position += transform.Backward * Speed * Time.Delta;
+                    direction += transform.Backward * Speed;
                 }
             }
 
@@ -223,11 +229,11 @@
             {
                 if (Keyboard.IsDown(Key.LCtrl))
                 {
-                    transform.Position += transform.Left * Speed * 2 * Time.Delta;
+                    direction += transform.Left * Speed * 2;
                 }
                 else
                 {
-                    transform.Position += transform.Left * Speed * Time.Delta;
+                    direction += transform.Left * Speed;
                 }
             }
 
@@ -235,11 +241,11 @@
             {
                 if (Keyboard.IsDown(Key.LCtrl))
                 {
-                    transform.Position += transform.Right * Speed * 2 * Time.Delta;
+                    direction += transform.Right * Speed * 2;
                 }
                 else
                 {
-                    transform.Position += transform.Right * Speed * Time.Delta;
+                    direction += transform.Right * Speed;
                 }
             }
 
@@ -247,61 +253,89 @@
             {
                 if (Keyboard.IsDown(Key.LCtrl))
                 {
-                    transform.Position += Vector3.UnitY * Speed * 2 * Time.Delta;
+                    direction += Vector3.UnitY * Speed * 2;
                 }
                 else
                 {
-                    transform.Position += Vector3.UnitY * Speed * Time.Delta;
+                    direction += Vector3.UnitY * Speed;
                 }
             }
 
             if (Keyboard.IsDown(Key.LShift))
             {
-                transform.Position += -Vector3.UnitY * Speed * Time.Delta;
+                direction += -Vector3.UnitY * Speed;
             }
+
+            transform.Position += direction * Time.Delta;
+        }
+
+        private void HandleMovement()
+        {
+            CameraTransform transform = camera.Transform;
+            Vector3 direction = default;
+            if (Keyboard.IsDown(Key.W))
+            {
+                if (Keyboard.IsDown(Key.LCtrl))
+                {
+                    direction += transform.Forward * Speed * 2;
+                }
+                else
+                {
+                    direction += transform.Forward * Speed;
+                }
+            }
+
+            if (Keyboard.IsDown(Key.S))
+            {
+                if (Keyboard.IsDown(Key.LCtrl))
+                {
+                    direction += transform.Backward * Speed * 2;
+                }
+                else
+                {
+                    direction += transform.Backward * Speed;
+                }
+            }
+
+            if (Keyboard.IsDown(Key.A))
+            {
+                if (Keyboard.IsDown(Key.LCtrl))
+                {
+                    direction += transform.Left * Speed * 2;
+                }
+                else
+                {
+                    direction += transform.Left * Speed;
+                }
+            }
+
+            if (Keyboard.IsDown(Key.D))
+            {
+                if (Keyboard.IsDown(Key.LCtrl))
+                {
+                    direction += transform.Right * Speed * 2;
+                }
+                else
+                {
+                    direction += transform.Right * Speed;
+                }
+            }
+
+            if (Keyboard.IsDown(Key.Space) && actor.IsGrounded)
+            {
+                direction += Vector3.UnitY * 40;
+            }
+
+            if (Keyboard.IsDown(Key.LShift))
+            {
+                direction += -Vector3.UnitY * Speed;
+            }
+
+            actor.Move(GameObject.Transform.Position + direction * Time.Delta);
         }
 
         public override void Destroy()
         {
-        }
-
-        private static Vector3? CalculateAddIndex(Vector3 relativeLocation, Vector3 index)
-        {
-            const float size = 1;
-            Vector3 voxelLocation = index * size;
-            if (NearlyEqual(relativeLocation.X, voxelLocation.X))
-            {
-                return new Vector3(index.X - 1, index.Y, index.Z);
-            }
-            else if (NearlyEqual(relativeLocation.X, voxelLocation.X + size))
-            {
-                return new Vector3(index.X + 1, index.Y, index.Z);
-            }
-            else if (NearlyEqual(relativeLocation.Y, voxelLocation.Y))
-            {
-                return new Vector3(index.X, index.Y - 1, index.Z);
-            }
-            else if (NearlyEqual(relativeLocation.Y, voxelLocation.Y + size))
-            {
-                return new Vector3(index.X, index.Y + 1, index.Z);
-            }
-            else if (NearlyEqual(relativeLocation.Z, voxelLocation.Z))
-            {
-                return new Vector3(index.X, index.Y, index.Z - 1);
-            }
-            else if (NearlyEqual(relativeLocation.Z, voxelLocation.Z + size))
-            {
-                return new Vector3(index.X, index.Y, index.Z + 1);
-            }
-            else
-            {
-                return null;
-            }
-        }
-
-        public static bool NearlyEqual(float f1, float f2)
-        {
-            return Math.Abs(f1 - f2) < 0.01;
         }
     }
 }

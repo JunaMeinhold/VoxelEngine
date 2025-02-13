@@ -52,7 +52,7 @@
             systems.Add(TransformSystem = new TransformSystem());
             systems.Add(RenderSystem = new RenderSystem());
             systems.Add(new ScriptSystem());
-            systems.Add(new PhysicsSystem());
+            systems.Add(Physics = new PhysicsSystem());
             systems.Add(LightSystem = new LightSystem());
         }
 
@@ -105,6 +105,7 @@
         public MiniProfiler SceneProfiler { get; } = new();
 
         public TransformSystem TransformSystem { get; }
+        public PhysicsSystem Physics { get; }
 
         public virtual void Initialize()
         {

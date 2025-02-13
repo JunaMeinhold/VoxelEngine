@@ -1,3 +1,6 @@
+#ifndef WEATHER_H_INCLUDED
+#define WEATHER_H_INCLUDED
+
 cbuffer WeatherCBuf : register(b2)
 {
 	float4 light_dir;
@@ -32,3 +35,5 @@ cbuffer WeatherCBuf : register(b2)
 	float3 I;
 	float3 Z;
 }
+
+#endif

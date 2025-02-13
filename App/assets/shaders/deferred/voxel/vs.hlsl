@@ -25,6 +25,8 @@ PixelInputType main(float3 position : POSITION, int aData : POSITION1, float4 co
 
 	output.color = color;
 
+	//output.brightness = (float((aData >> 23) & (15)) + 2) / 8.0;
+
 	int normal = int((aData >> 27) & (7));
 
 	if (normal < 2)
@@ -35,6 +37,9 @@ PixelInputType main(float3 position : POSITION, int aData : POSITION1, float4 co
 	else
 	{
 		output.uv = (normal < 4 ? position.zy : position.xy) * 1; // 1 == uvSize[output.texID]
+		// If X- or X+
+		//if (normal < 4)
+		//	output.brightness *= 1.15;
 	}
 
 	[branch]

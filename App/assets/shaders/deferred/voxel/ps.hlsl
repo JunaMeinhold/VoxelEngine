@@ -9,12 +9,11 @@ GeometryData main(PixelInputType input)
 {
 	float4 albedo;
 	float4 pos = input.pos;
-	float3 normal;
+	float3 normal = input.normal;
 	float3 specular = float3(0.8f, 0.8f, 0.8f);
 	float specCoeff = 0;
 
 	albedo = shaderTexture.Sample(Sampler, float3(input.uv, input.texID)) * input.color;
-	normal = input.normal;
 
 	if (albedo.a < 0.5f)
 	{

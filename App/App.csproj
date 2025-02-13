@@ -25,6 +25,9 @@
 		<None Update="assets\shaders\bloom\upsample\ps.hlsl">
 		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
 		</None>
+		<None Update="assets\shaders\commonShading.hlsl">
+		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</None>
 		<None Update="assets\shaders\effects\blur\box.hlsl">
 		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
 		</None>
@@ -261,6 +264,12 @@
 		</None>
 		<None Update="assets\textures\blocks\stonebrick_cracked.png">
 			<CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</None>
+		<None Update="assets\textures\blocks\water.dds">
+		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+		</None>
+		<None Update="assets\textures\blocks\water.png">
+		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>
 		</None>
 		<None Update="assets\textures\clouds\cloud.dds">
 		  <CopyToOutputDirectory>Always</CopyToOutputDirectory>

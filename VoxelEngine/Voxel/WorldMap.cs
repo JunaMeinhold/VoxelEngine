@@ -45,7 +45,7 @@
             Chunk* c = Chunks[xglobal, yglobal, zglobal];
 
             // To lower memory usage, a chunk is null if it has no blocks
-            if (c == null)
+            if (c == null || c->Data == null)
             {
                 return true;
             }

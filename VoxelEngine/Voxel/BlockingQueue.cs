@@ -38,25 +38,41 @@
             count++;
         }
 
+        public void EnqueueRange(T[] values, int offset, int count)
+        {
+            if (count == 0) return;
+            lock (_lock)
+            {
+                queue.EnsureCapacity(queue.Count + count);
+                for (int i = offset; i < count; i++)
+                {
+                    queue.Enqueue(values[i]);
+                }
+                this.count += count;
+            }
+        }
+
         public void EnqueueRange(IList<T> values)
         {
-            Lock();
-            int count = values.Count;
-            queue.EnsureCapacity(queue.Count + count);
-            foreach (T item in values)
+            lock (_lock)
             {
-                queue.Enqueue(item);
+                int count = values.Count;
+                queue.EnsureCapacity(queue.Count + count);
+                foreach (T item in values)
+                {
+                    queue.Enqueue(item);
+                }
+                this.count += count;
             }
-            this.count += count;
-            ReleaseLock();
         }
 
         public void Enqueue(T item)
         {
-            Lock();
-            queue.Enqueue(item);
-            count++;
-            ReleaseLock();
+            lock (_lock)
+            {
+                queue.Enqueue(item);
+                count++;
+            }
         }
 
         public T Dequeue()
@@ -68,15 +84,31 @@
             return item;
         }
 
+        public int TryDequeueRange(T[] values)
+        {
+            int batchIndex = 0;
+            lock (_lock)
+            {
+                while (batchIndex < values.Length && queue.TryDequeue(out var result))
+                {
+                    values[batchIndex++] = result;
+                    count--;
+                }
+            }
+            return batchIndex;
+        }
+
         public bool TryDequeue([MaybeNullWhen(false)] out T result)
         {
-            Lock();
-            bool item = queue.TryDequeue(out result);
-            if (item)
+            bool item;
+            lock (_lock)
             {
-                count--;
+                item = queue.TryDequeue(out result);
+                if (item)
+                {
+                    count--;
+                }
             }
-            ReleaseLock();
             return item;
         }
 

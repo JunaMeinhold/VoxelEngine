@@ -48,4 +48,15 @@ struct ShadowData
 	float slopeBias;
 };
 
+struct PixelParams
+{
+	float3 Pos;
+	float3 N;
+	float3 V;
+	float NdotV;
+	float3 DiffuseColor;
+	float3 Specular;
+	float SpecCoeff;
+};
+
 #endif

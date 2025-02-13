@@ -44,7 +44,12 @@
 
             world.Generator = new DefaultChunkGenerator(68458);
             world.AddComponent(new WorldController());
-            world.AddComponent(new WorldRenderer());
+
+            WorldRenderer worldRenderer = new();
+            WorldForwardRenderer worldForwardRenderer = new(worldRenderer);
+
+            world.AddComponent(worldRenderer);
+            world.AddComponent(worldForwardRenderer);
             scene.Add(world);
 
             CPlayer player = new(new(0, 74, 0));
@@ -69,6 +74,7 @@
             BlockRegistry.RegisterBlock(new("Oak Planks", new("blocks/planks_oak.dds")));
             BlockRegistry.RegisterBlock(new("Oak Leaves", new("blocks/oak_leaves.dds"), true));
             BlockRegistry.RegisterBlock(new("Quartz Block", new("blocks/quartz_block.dds")));
+            BlockRegistry.RegisterBlock(new("Water", new("blocks/water.dds"), transparent: true));
 
             return scene;
         }

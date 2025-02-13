@@ -11,7 +11,7 @@
         private static float fixedTime;
         private static float delta;
         private static float cumulativeFrameTime;
-        private static int fixedUpdateRate = 10;
+        private static int fixedUpdateRate = 60;
         private static float gameTime = 12;
         private static float gameTimeNormalized;
 

@@ -12,6 +12,7 @@
         private static readonly ConcurrentDictionary<string, int> blockNameToIndex = new();
         private static readonly ConcurrentDictionary<int, string> indexToBlockName = new();
         private static HashSet<ushort> alphaTest = [];
+        private static HashSet<ushort> transparent = [];
 
         private static readonly object _lock = new();
 
@@ -28,6 +29,8 @@
         public static IReadOnlyList<BlockDescription> Description => _descriptions;
 
         public static IReadOnlySet<ushort> AlphaTest => alphaTest;
+
+        public static IReadOnlySet<ushort> Transparent => transparent;
 
         public static int Count
         {
@@ -78,6 +81,10 @@
                 if (entry.AlphaTest)
                 {
                     alphaTest.Add(entry.Id);
+                }
+                if (entry.Transparent)
+                {
+                    transparent.Add(entry.Id);
                 }
             }
         }

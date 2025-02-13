@@ -10,7 +10,8 @@
     {
         private readonly Lock @lock = new();
         private readonly List<ChunkSegment> ChunkSegments = new();
-        public RegionVertexBuffer vertexBuffer = new();
+        public RegionVertexBuffer opaqueVertexBuffer = new();
+        public RegionVertexBuffer transparentVertexBuffer = new();
         public Point3 Position;
         public Point2 Offset;
         public Point2 Size;
@@ -24,7 +25,9 @@
             Size = size;
         }
 
-        public RegionVertexBuffer VertexBuffer => vertexBuffer;
+        public RegionVertexBuffer OpaqueVertexBuffer => opaqueVertexBuffer;
+
+        public RegionVertexBuffer TransparentVertexBuffer => transparentVertexBuffer;
 
         public int RegionCount
         {
@@ -90,7 +93,8 @@
                 if (value == 0) return;
                 IsDirty = 0;
 
-                int verts = 0;
+                int vertsOpaque = 0;
+                int vertsTransparent = 0;
 
                 for (int i = 0; i < ChunkSegments.Count; i++)
                 {
@@ -98,12 +102,15 @@
                     for (int j = 0; j < ChunkSegment.CHUNK_SEGMENT_SIZE; j++)
                     {
                         Chunk* chunk = region.Chunks[j];
-                        chunk->VertexBuffer.Lock();
-                        verts += chunk->VertexBuffer.Count;
+                        chunk->OpaqueVertexBuffer.Lock();
+                        chunk->TransparentVertexBuffer.Lock();
+                        vertsOpaque += chunk->OpaqueVertexBuffer.Count;
+                        vertsTransparent += chunk->TransparentVertexBuffer.Count;
                     }
                 }
 
-                vertexBuffer.Map(context, verts);
+                opaqueVertexBuffer.Map(context, vertsOpaque);
+                transparentVertexBuffer.Map(context, vertsTransparent);
 
                 var min = new Point3(Offset.X, 0, Offset.Y);
                 var max = Offset + Size;
@@ -115,23 +122,32 @@
                     for (int j = 0; j < ChunkSegment.CHUNK_SEGMENT_SIZE; j++)
                     {
                         Chunk* chunk = region.Chunks[j];
-                        vertexBuffer.BufferData(chunk->VertexBuffer, (chunk->Position - min) * Chunk.CHUNK_SIZE);
-                        chunk->VertexBuffer.ReleaseLock();
+                        opaqueVertexBuffer.BufferData(chunk->OpaqueVertexBuffer, (chunk->Position - min) * Chunk.CHUNK_SIZE);
+                        transparentVertexBuffer.BufferData(chunk->TransparentVertexBuffer, (chunk->Position - min) * Chunk.CHUNK_SIZE);
+                        chunk->OpaqueVertexBuffer.ReleaseLock();
+                        chunk->TransparentVertexBuffer.ReleaseLock();
                     }
                 }
 
-                vertexBuffer.Unmap(context);
+                opaqueVertexBuffer.Unmap(context);
+                transparentVertexBuffer.Unmap(context);
             }
         }
 
         public void Release()
         {
-            vertexBuffer?.Dispose();
+            opaqueVertexBuffer.Dispose();
+            transparentVertexBuffer.Dispose();
         }
 
-        public bool Bind(GraphicsContext context)
+        public bool BindOpaque(GraphicsContext context)
         {
-            return vertexBuffer.Bind(context);
+            return opaqueVertexBuffer.VertexCount > 0 && opaqueVertexBuffer.Bind(context);
+        }
+
+        public bool BindTransparent(GraphicsContext context)
+        {
+            return transparentVertexBuffer.VertexCount > 0 && transparentVertexBuffer.Bind(context);
         }
     }
 }

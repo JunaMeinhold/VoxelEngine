@@ -109,28 +109,11 @@
         {
         }
 
-        private UnsafeRingBuffer<float> frames = new(512) { AverageValues = false };
-
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public unsafe void Render(GraphicsContext context, Camera camera, Scene scene)
         {
-            const int shade_mode = 2;
-            const float fill_ref = 0;
-            double fill = shade_mode == 0 ? -double.PositiveInfinity : shade_mode == 1 ? double.PositiveInfinity : fill_ref;
-
-            frames.Add(Time.Delta * 1000);
             perlinNoiseWidget.Draw(context);
             profilerWidget.Draw();
-            ImPlot.SetNextAxesToFit();
-            if (ImPlot.BeginPlot("Frames"))
-            {
-                ImPlot.PushStyleVar(ImPlotStyleVar.FillAlpha, 0.25f);
-                ImPlot.PlotShaded("Frames", ref frames.Values[0], frames.Length, fill, 1, 0, ImPlotShadedFlags.None, frames.Head);
-                ImPlot.PopStyleVar();
-
-                ImPlot.PlotLine("Frames", ref frames.Values[0], frames.Length, 1, 0, ImPlotLineFlags.None, frames.Head);
-                ImPlot.EndPlot();
-            }
 
             ImGui.Text($"{1 / Time.Delta} FPS / {Time.Delta * 1000}ms");
             ImGui.InputFloat("TimeScale", ref Time.TimeScale);
@@ -139,17 +122,13 @@
             {
                 Time.GameTime = gt;
             }
-
-            var directionalLight = scene.LightSystem.ActiveDirectionalLight!;
-
-            ImGui.InputFloat("Light Bleeding", ref directionalLight.LightBleedingReduction);
+            var isSimulating = scene.IsSimulating;
+            if (ImGui.Checkbox("Simulate", ref isSimulating))
+            {
+                scene.IsSimulating = isSimulating;
+            }
 
             DebugDraw.SetCamera(camera.Transform.ViewProjection);
-
-            ImGui.InputFloat("LightDistanceFactor", ref directionalLight.CSMConfig.LightDistanceFactor);
-            ImGui.InputFloat("FarFactor", ref directionalLight.CSMConfig.FarFactor);
-            ImGui.InputFloat("PixelSnap", ref directionalLight.CSMConfig.PixelSnap);
-            ImGui.Checkbox("Stabilize", ref directionalLight.CSMConfig.Stabilize);
 
             cameraBuffer.Update(context, new CBCamera(camera, new Vector2(rendererWidth, rendererHeight)));
 

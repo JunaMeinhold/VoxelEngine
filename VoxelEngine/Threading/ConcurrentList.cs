@@ -45,6 +45,26 @@
 
         public readonly Lock SyncRoot = new();
 
+        public void AddRange(IEnumerable<T> values)
+        {
+            lock (SyncRoot)
+            {
+                _list.AddRange(values);
+            }
+        }
+
+        public void AddRange(T[] values, int offset, int count)
+        {
+            if (count == 0) return;
+            lock (SyncRoot)
+            {
+                for (int i = offset; i < count; i++)
+                {
+                    _list.Add(values[i]);
+                }
+            }
+        }
+
         public void Add(T item)
         {
             lock (SyncRoot)
@@ -170,6 +190,14 @@
             lock (SyncRoot)
             {
                 return ((IEnumerable)_list).GetEnumerator();
+            }
+        }
+
+        public void Sort(IComparer<T> comparer)
+        {
+            lock (SyncRoot)
+            {
+                _list.Sort(comparer);
             }
         }
     }

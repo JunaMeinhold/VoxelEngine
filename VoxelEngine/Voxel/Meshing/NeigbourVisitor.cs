@@ -5,6 +5,28 @@
     public unsafe struct ChunkNeighbours
     {
         public Chunk* cXN, cXP, cYN, cYP, cZN, cZP;
+
+        public void AddRef()
+        {
+            if (cXN != null) cXN->AddRef();
+            if (cXP != null) cXP->AddRef();
+            if (cYN != null) cYN->AddRef();
+            if (cYP != null) cYP->AddRef();
+            if (cZN != null) cZN->AddRef();
+            if (cZP != null) cZP->AddRef();
+        }
+
+        public void Release()
+        {
+            if (cXN != null) cXN->Dispose(cXN);
+            if (cXP != null) cXP->Dispose(cXP);
+            if (cYN != null) cYN->Dispose(cYN);
+            if (cYP != null) cYP->Dispose(cYP);
+            if (cZN != null) cZN->Dispose(cZN);
+            if (cZP != null) cZP->Dispose(cZP);
+        }
+
+        public readonly bool MissingNeighbours => cXN == null || cZN == null || cXP == null || cZP == null;
     }
 
     public static unsafe class NeighbourVisitor

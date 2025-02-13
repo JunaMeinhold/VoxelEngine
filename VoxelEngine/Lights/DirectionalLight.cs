@@ -34,7 +34,7 @@
         public Texture2D? ShadowMap;
         public DepthStencil? DepthStencil;
         public int Size = Config.Default.ShadowMapSize;
-        public float LightBleedingReduction;
+        public float LightBleedingReduction = 0.1f;
         private ShadowData data;
         public CSMConfig CSMConfig = new();
 
